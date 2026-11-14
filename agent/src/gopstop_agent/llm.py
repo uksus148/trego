@@ -46,6 +46,18 @@ class ToolModel:
         self._lock = asyncio.Lock()
         self._remaining, self._reset = None, 0.0
 
+    def _record_quota(self, response: httpx.Response) -> None:
+        # Advisory headers must never hide the primary HTTP/model result.
+        remaining = response.headers.get("x-ratelimit-remaining-tokens", "")[:128]
+        reset = response.headers.get("x-ratelimit-reset-tokens", "")[:128]
+        try:
+            self._remaining = int(remaining) if remaining.isdigit() else None
+            seconds = sum(float(n) * {"ms": .001, "s": 1, "m": 60, "h": 3600}[unit]
+                          for n, unit in re.findall(r"(\d+(?:\.\d+)?)(ms|s|m|h)", reset))
+            self._reset = time.monotonic() + seconds
+        except ValueError:
+            self._remaining, self._reset = None, 0.0
+
     async def call(self, body: dict) -> dict:
         with stage("model"):
             return await self._call(body)
@@ -83,16 +95,11 @@ class ToolModel:
                         headers={"Authorization": f"Bearer {self._key}"},
                         timeout=self._timeout, follow_redirects=False,
                     )
-                    remaining = response.headers.get("x-ratelimit-remaining-tokens", "")
-                    self._remaining = int(remaining) if remaining.isdigit() else None
-                    reset = response.headers.get("x-ratelimit-reset-tokens", "")
-                    seconds = sum(float(n) * {"ms": .001, "s": 1, "m": 60, "h": 3600}[unit]
-                                  for n, unit in re.findall(r"(\d+(?:\.\d+)?)(ms|s|m|h)", reset))
-                    self._reset = time.monotonic() + seconds
+                    self._record_quota(response)
+                    if response.is_error or response.is_redirect:
+                        raise http_failure(response, **diagnostic)
                 finally:
                     self._lock.release()
-                if response.is_error or response.is_redirect:
-                    raise http_failure(response, **diagnostic)
                 diagnostic["status"] = response.status_code
                 reason = "response_json"
                 choices = response.json()["choices"]

@@ -10,6 +10,7 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 from redis.asyncio import Redis
 
+from gopstop_agent.diagnostics import cache_event
 from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.geocoding_candidates import GeocodingCandidate, select_candidate
 from gopstop_agent.geocoding_models import GeocodedPlace
@@ -67,9 +68,12 @@ class NominatimGeocoder:
         cached = await self._redis.get(key)
         if cached is not None:
             try:
-                return locations_adapter.validate_json(cached)
+                value = locations_adapter.validate_json(cached)
+                cache_event("nominatim", "hit")
+                return value
             except ValidationError:
                 pass
+        cache_event("nominatim", "invalid" if cached is not None else "miss")
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 token = uuid4().hex

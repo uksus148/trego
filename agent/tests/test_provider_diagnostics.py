@@ -122,3 +122,19 @@ async def test_queue_deadline_is_cancellation_not_provider_http_failure(caplog):
         model._lock.release()
     assert "stage=model_queue" in caplog.text and "reason=cancelled" in caplog.text
     assert "http_status" not in caplog.text and "LEAK" not in caplog.text
+
+
+@pytest.mark.parametrize("status", [200, 400])
+async def test_invalid_quota_headers_cannot_hide_the_primary_http_failure(status):
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(
+        status, json=completion() if status == 200 else {"error": {"code": "tool_use_failed"}},
+        headers={"x-ratelimit-remaining-tokens": bytes([178]), "x-ratelimit-reset-tokens": "LEAK"},
+    ))) as client:
+        model = ToolModel(client, "LEAK", "groq")
+        if status == 200:
+            assert await model.call(request_body()) == {"place": PLACE}
+        else:
+            with pytest.raises(ProviderError) as caught:
+                await model.call(request_body())
+            assert caught.value.diagnostic["http_status"] == 400
+            assert caught.value.diagnostic["provider_code"] == "tool_use_failed"

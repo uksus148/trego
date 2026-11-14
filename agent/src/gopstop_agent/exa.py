@@ -7,6 +7,7 @@ import httpx
 from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, ValidationError
 from redis.asyncio import Redis
 
+from gopstop_agent.diagnostics import cache_event
 from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.provider_errors import http_failure
 
@@ -55,9 +56,12 @@ class ExaSearch:
         cached = await self._redis.get(key) if use_cache else None
         if cached is not None:
             try:
-                return sources_adapter.validate_json(cached)
+                value = sources_adapter.validate_json(cached)
+                cache_event("exa", "hit")
+                return value
             except ValidationError:
                 pass
+        cache_event("exa", "bypass" if not use_cache else "invalid" if cached is not None else "miss")
         try:
             response = await self._client.post(
                 "https://api.exa.ai/search", headers={"x-api-key": self._api_key},

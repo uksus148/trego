@@ -6,6 +6,7 @@ import json
 from pydantic import TypeAdapter, ValidationError
 from redis.asyncio import Redis
 
+from gopstop_agent.diagnostics import cache_event
 from gopstop_agent.exa import ResearchSource
 from gopstop_agent.resolver import ClaudePlaceResolver, SourceResolution
 
@@ -31,9 +32,11 @@ class CachedPlaceResolver:
             try:
                 place = resolution_adapter.validate_json(cached)
                 if place is None or place.sourceIndex < min(len(sources), 3):
+                    cache_event("resolution", "hit")
                     return place
             except ValidationError:
                 pass
+        cache_event("resolution", "invalid" if cached is not None else "miss")
         # A cache read outage stops before spending credits; failed writes propagate too.
         place = await self._resolver.resolve(description, sources)
         await self._cache.set(key, resolution_adapter.dump_json(place), ex=CACHE_TTL_SECONDS)
