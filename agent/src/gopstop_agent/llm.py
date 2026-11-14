@@ -8,14 +8,8 @@ import time
 import httpx
 
 from gopstop_agent.config import Settings
-
-
-class ProviderError(Exception):
-    """An upstream response could not be used; never expose its body to clients."""
-
-
-class ProviderTimeout(ProviderError):
-    """A provider or internal discovery deadline elapsed."""
+from gopstop_agent.diagnostics import stage
+from gopstop_agent.provider_errors import ProviderError, ProviderTimeout, http_failure
 
 
 def inline_tool_schema(schema: dict) -> dict:
@@ -53,7 +47,13 @@ class ToolModel:
         self._remaining, self._reset = None, 0.0
 
     async def call(self, body: dict) -> dict:
-        name = body["tool_choice"]["name"]
+        with stage("model"):
+            return await self._call(body)
+
+    async def _call(self, body: dict) -> dict:
+        name = body.get("tool_choice", {}).get("name")
+        diagnostic = {"provider": self.provider, "operation": name}
+        reason = "request_schema"
         try:
             if self.provider == "groq":
                 payload = {
@@ -70,11 +70,14 @@ class ToolModel:
                     payload["reasoning_effort"] = "low"
                 # Shared by intent/resolution/reply in one worker. Outer chat/discovery
                 # deadlines include waiting; 429 responses are never replayed.
-                async with self._lock:
+                with stage("model_queue"):
+                    await self._lock.acquire()
+                try:
                     encoded = json.dumps(payload, ensure_ascii=False)
                     estimate = max(len(encoded) // 2, len(encoded.encode()) // 3) + payload["max_completion_tokens"]
                     if self._remaining is not None and self._remaining < estimate:
-                        await asyncio.sleep(max(0, self._reset - time.monotonic()))
+                        with stage("quota_wait"):
+                            await asyncio.sleep(max(0, self._reset - time.monotonic()))
                     response = await self._client.post(
                         "https://api.groq.com/openai/v1/chat/completions", json=payload,
                         headers={"Authorization": f"Bearer {self._key}"},
@@ -86,13 +89,22 @@ class ToolModel:
                     seconds = sum(float(n) * {"ms": .001, "s": 1, "m": 60, "h": 3600}[unit]
                                   for n, unit in re.findall(r"(\d+(?:\.\d+)?)(ms|s|m|h)", reset))
                     self._reset = time.monotonic() + seconds
-                response.raise_for_status()
+                finally:
+                    self._lock.release()
+                if response.is_error or response.is_redirect:
+                    raise http_failure(response, **diagnostic)
+                diagnostic["status"] = response.status_code
+                reason = "response_json"
                 choices = response.json()["choices"]
-                if len(choices) != 1 or choices[0]["finish_reason"] not in ("tool_calls", "stop"):
-                    raise ProviderError("Model tool generation did not complete.")
+                if len(choices) != 1:
+                    raise ProviderError("Model returned an unexpected tool.", reason="unexpected_tool", **diagnostic)
+                diagnostic["finish"] = choices[0]["finish_reason"]
+                if diagnostic["finish"] not in ("tool_calls", "stop"):
+                    raise ProviderError("Model tool generation did not complete.", reason="incomplete_generation", **diagnostic)
                 calls = choices[0]["message"]["tool_calls"]
                 if len(calls) != 1 or calls[0]["type"] != "function" or calls[0]["function"]["name"] != name:
-                    raise ProviderError("Model returned an unexpected tool.")
+                    raise ProviderError("Model returned an unexpected tool.", reason="unexpected_tool", **diagnostic)
+                reason = "tool_arguments"
                 result = json.loads(calls[0]["function"]["arguments"])
             else:
                 response = await self._client.post(
@@ -100,19 +112,28 @@ class ToolModel:
                     headers={"x-api-key": self._key, "anthropic-version": "2023-06-01"},
                     timeout=self._timeout, follow_redirects=False,
                 )
-                response.raise_for_status()
+                if response.is_error or response.is_redirect:
+                    raise http_failure(response, **diagnostic)
+                diagnostic["status"] = response.status_code
+                reason = "response_json"
                 data = response.json()
+                diagnostic["finish"] = data.get("stop_reason")
                 calls = [item for item in data["content"] if item.get("type") == "tool_use"]
-                if data.get("stop_reason") != "tool_use" or len(calls) != 1 or calls[0]["name"] != name:
-                    raise ProviderError("Model returned an incomplete or unexpected tool.")
+                if data.get("stop_reason") != "tool_use":
+                    raise ProviderError("Model tool generation did not complete.", reason="incomplete_generation", **diagnostic)
+                if len(calls) != 1 or calls[0]["name"] != name:
+                    raise ProviderError("Model returned an unexpected tool.", reason="unexpected_tool", **diagnostic)
                 result = calls[0]["input"]
             if not isinstance(result, dict):
-                raise ProviderError("Model tool input must be an object.")
+                raise ProviderError("Model tool input must be an object.", reason="tool_arguments", **diagnostic)
             return result
         except httpx.TimeoutException as exc:
-            raise ProviderTimeout("Model request is temporarily unavailable (timeout).") from exc
-        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
-            raise ProviderError("Model request is temporarily unavailable.") from exc
+            raise ProviderTimeout("Model request is temporarily unavailable (timeout).",
+                                  reason="timeout", timeout=type(exc).__name__, **diagnostic) from exc
+        except httpx.HTTPError as exc:
+            raise ProviderError("Model request is temporarily unavailable.", reason="transport", **diagnostic) from exc
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+            raise ProviderError("Model request is temporarily unavailable.", reason=reason, **diagnostic) from exc
 
 
 def create_tool_model(client: httpx.AsyncClient, settings: Settings) -> ToolModel:

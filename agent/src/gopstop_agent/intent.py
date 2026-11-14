@@ -88,6 +88,7 @@ class ClaudeIntentExtractor:
                 question = " ".join(questions[location] for location in questions
                                     if any(error["loc"] == location for error in errors))
                 raise IntentClarificationRequired(question) from None
-            raise ProviderError("Intent extraction returned invalid data.") from exc
+            raise ProviderError("Intent extraction returned invalid data.", provider=self._tool_model.provider,
+                                operation="extract_route_intent", reason="schema_validation", validation=exc) from exc
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise ProviderError("Intent extraction is temporarily unavailable.") from exc

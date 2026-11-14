@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, ValidationError
 from redis.asyncio import Redis
 
 from gopstop_agent.intent import ProviderError, ProviderTimeout
+from gopstop_agent.provider_errors import http_failure
 
 
 CACHE_TTL_SECONDS = 86400
@@ -62,7 +63,8 @@ class ExaSearch:
                 "https://api.exa.ai/search", headers={"x-api-key": self._api_key},
                 json=request_body, timeout=self._timeout, follow_redirects=False,
             )
-            response.raise_for_status()
+            if response.is_error or response.is_redirect:
+                raise http_failure(response, provider="exa", operation="search")
             data = response.json()
             results = data["results"]
             if not isinstance(results, list):
@@ -91,11 +93,17 @@ class ExaSearch:
                 if len(sources) == 3:
                     break
             if results and not sources:
-                raise ProviderError("Place research returned no usable sources.")
+                raise ProviderError("Place research returned no usable sources.", provider="exa",
+                                    operation="search", reason="no_usable_sources")
         except httpx.TimeoutException as exc:
-            raise ProviderTimeout("Place research is temporarily unavailable.") from exc
-        except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as exc:
-            raise ProviderError("Place research is temporarily unavailable.") from exc
+            raise ProviderTimeout("Place research is temporarily unavailable.", provider="exa", operation="search",
+                                  reason="timeout", timeout=type(exc).__name__) from exc
+        except httpx.HTTPError as exc:
+            raise ProviderError("Place research is temporarily unavailable.", provider="exa",
+                                operation="search", reason="transport") from exc
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            raise ProviderError("Place research is temporarily unavailable.", provider="exa",
+                                operation="search", reason="response_json", status=response.status_code) from exc
         if use_cache:
             await self._redis.set(key, sources_adapter.dump_json(sources), ex=CACHE_TTL_SECONDS)
         return sources

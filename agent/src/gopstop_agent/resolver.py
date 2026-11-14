@@ -3,7 +3,7 @@
 import json
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import ValidationError, BaseModel, ConfigDict, Field, field_validator
 
 from gopstop_agent.exa import ResearchSource
 from gopstop_agent.intent import Name, ProviderError
@@ -78,7 +78,11 @@ class ClaudePlaceResolver:
             value = await self._tool_model.call(self.request_body(description, sources))
             result = ResolutionResult.model_validate(value).place
             if result and result.sourceIndex >= min(len(sources), 3):
-                raise ProviderError("Place resolution selected an unknown source.")
+                raise ProviderError("Place resolution selected an unknown source.", provider=self.provider,
+                                    operation="resolve_place", reason="invalid_source_index")
             return result
+        except ValidationError as exc:
+            raise ProviderError("Model returned invalid data.", provider=self.provider,
+                                operation="resolve_place", reason="schema_validation", validation=exc) from exc
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise ProviderError("Place resolution is temporarily unavailable.") from exc
