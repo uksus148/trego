@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import stage
+from gopstop_agent.diagnostics import candidate_scope, stage
 from gopstop_agent.exa import ExaSearch, ResearchSource
 from gopstop_agent.geocoding import GeocodedPlace, NominatimGeocoder, OSM_ATTRIBUTION
 from gopstop_agent.intent import ClaudeIntentExtractor, Message, ProviderTimeout, RouteIntent
@@ -94,13 +94,14 @@ class PlaceDiscovery:
 
                 limit = asyncio.Semaphore(3)
 
-                async def bounded(description: str) -> PlaceFinding:
-                    async with limit:
-                        return await find(description)
+                async def bounded(index: int, description: str) -> PlaceFinding:
+                    with candidate_scope(index):
+                        async with limit:
+                            return await find(description)
 
                 targets = [intent.start, *intent.mustSee, intent.end]
-                tasks = {name: asyncio.create_task(bounded(name))
-                         for name in dict.fromkeys(targets) if name is not None}
+                tasks = {name: asyncio.create_task(bounded(index, name))
+                         for index, name in enumerate(dict.fromkeys(targets)) if name is not None}
                 try:
                     await asyncio.gather(*tasks.values())
                 finally:
@@ -121,7 +122,7 @@ class PlaceDiscovery:
                 end = tasks[intent.end].result() if intent.end is not None else None
                 return DiscoveryResult(intent=intent, start=start, stops=stops, end=end)
         except TimeoutError as exc:
-            raise ProviderTimeout("Place discovery exceeded its time limit.") from exc
+            raise ProviderTimeout("Place discovery exceeded its time limit.", reason="discovery_deadline") from exc
 
 
 def create_discovery(client: httpx.AsyncClient, cache: Redis, settings: Settings,

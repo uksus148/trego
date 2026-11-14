@@ -3,7 +3,7 @@
 import json
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ValidationError, BaseModel, ConfigDict, Field
 
 from gopstop_agent.intent import Message, ProviderError
 from gopstop_agent.llm import ToolModel
@@ -49,5 +49,8 @@ class ClaudeReplyWriter:
                 "tool_choice": {"type": "tool", "name": "write_chat_reply"},
             })
             return Reply.model_validate(result).reply
+        except ValidationError as exc:
+            raise ProviderError("Model returned invalid data.", provider=self._tool_model.provider,
+                                operation="write_chat_reply", reason="schema_validation", validation=exc) from exc
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise ProviderError("Reply generation is temporarily unavailable.") from exc

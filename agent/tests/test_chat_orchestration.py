@@ -100,6 +100,11 @@ async def test_http_factories_preserve_sources_history_and_saved_route_with_safe
                   "routing_cache", "route_readback", "reply", "session_save"):
         assert f"stage={stage}" in caplog.text
     assert "private-session" not in caplog.text and "fixture-claude-secret" not in caplog.text
+    for cache_name in ("exa", "resolution", "nominatim"):
+        assert f"cache={cache_name} result=miss" in caplog.text
+        assert f"cache={cache_name} result=hit" in caplog.text
+    for index in range(3):
+        assert f"candidate={index} stage=resolution" in caplog.text
 
 
 @pytest.mark.parametrize("bad", [
@@ -107,7 +112,7 @@ async def test_http_factories_preserve_sources_history_and_saved_route_with_safe
     {"place": {"canonicalName": "Skok", "region": "High Tatras, Slovakia", "sourceIndex": 0}},
     "tool_use_failed",
 ])
-async def test_groq_reported_resolution_failures_never_ingest_or_save_success(build_app, bad):
+async def test_groq_reported_resolution_failures_never_ingest_or_save_success(build_app, bad, caplog):
     api, resolution_calls = ApiFixture(), []
     providers = provider_fixture({"start": "Skok", "end": "Skok"},
                                  {"Skok": ("Skok", [row(1, "Skok", 49.14, 20.05)])}, [])
@@ -132,12 +137,19 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
 
     app, cache, _ = build_app(handle, llm_provider="groq", groq_api_key="fixture-groq-secret",
                                anthropic_api_key="")
-    with TestClient(app) as client:
+    with caplog.at_level(logging.INFO, logger="gopstop_agent.diagnostics"), TestClient(app) as client:
         response = client.post("/api/chat", json={"sessionId": "invalid-resolution", "message": "Find Skok"})
     assert response.status_code == 502 and "private" not in response.text
     assert len(resolution_calls) == 1  # No retry or repair from failed_generation.
     assert api.calls == [] and await cache.llen("gopstop:chat-session:invalid-resolution") == 0
     assert await cache.keys("gopstop:place-resolution:*") == []
+    reason = "http_status" if bad == "tool_use_failed" else "schema_validation"
+    lines = [record.message for record in caplog.records if f"reason={reason}" in record.message]
+    assert all(any(f"stage={name} " in line for line in lines) for name in ("resolution", "discovery", "chat"))
+    assert len({line.split("trace=")[1].split()[0] for line in lines}) == 1
+    assert "invalid-resolution" not in caplog.text and "private provider diagnostic" not in caplog.text
+    if bad == "tool_use_failed":
+        assert "http_status=400 provider_code=tool_use_failed" in caplog.text
 
 
 @pytest.mark.parametrize("outcome", ["ready", "ambiguous", "no_route"])
