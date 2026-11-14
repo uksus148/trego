@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     session_max_messages: int = Field(default=200, ge=2, le=10_000, multiple_of=2)
     valkey_connect_timeout_seconds: float = Field(default=2, gt=0, le=30)
     valkey_socket_timeout_seconds: float = Field(default=2, gt=0, le=30)
+    valkey_health_check_interval_seconds: float = Field(default=15, gt=0, le=300)
     cors_origins: list[str] = ["http://localhost:5173"]
     anthropic_api_key: SecretStr = Field(default="", validation_alias="ANTHROPIC_API_KEY")
     exa_api_key: SecretStr = Field(default="", validation_alias="EXA_API_KEY")

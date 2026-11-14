@@ -8,7 +8,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from redis.asyncio import Redis, from_url
+from redis.asyncio import Redis
 from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
 from redis.exceptions import RedisError
@@ -19,6 +19,7 @@ from gopstop_agent.diagnostics import stage, trace
 from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.sessions import SessionStore, ValkeySessionStore
 from gopstop_agent.trails_api import HandoffError
+from gopstop_agent.valkey import from_url
 
 
 class ChatRequest(BaseModel):
@@ -56,6 +57,8 @@ def create_app(
                 decode_responses=True,
                 socket_connect_timeout=configured.valkey_connect_timeout_seconds,
                 socket_timeout=configured.valkey_socket_timeout_seconds,
+                health_check_interval=configured.valkey_health_check_interval_seconds,
+                socket_keepalive=True,
                 retry=Retry(NoBackoff(), 0),
             )
         )

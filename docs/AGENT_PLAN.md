@@ -51,6 +51,13 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
 
 ## Sequential blocks
 
+#56 merged at `cc2112e` with 328 fixture tests; its research core remains internal.
+The next assigned defect is [#58](https://github.com/uksus148/trego./issues/58): stale
+pooled Valkey sockets after idle. The fix adds pre-command health/reconnection while
+retaining zero application-command retries. Local RESP tests cover concurrent stale
+connections, silent sockets, cancellation, outages/authentication and a committed
+session write whose response is lost. Review and the team's Aiven idle rerun remain.
+
 The #54 review is complete and the typed routing correction merged at `41ffe14`
 (265 agent tests). Mukhamed requested his optional availability-research slice next.
 The [internal core](../agent/AVAILABILITY.md) prepares date clarification, bounded

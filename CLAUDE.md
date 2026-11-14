@@ -227,6 +227,13 @@ submitted `source`, return 400 rather than being silently ignored. See the
   Both owners reviewed activation, budgets and chat behavior in #43; actual
   latency/provider/proxy budgets still need live-preflight measurement.
 
+  Issue #58's agent follow-up validates idle Valkey connections before application
+  commands, with a 15-second idle health threshold and TCP keepalive. It allows one
+  recovery pass during connection preparation only; command/transaction retries stay
+  zero, authentication failures are not retried, and paid/API calls are not replayed.
+  Existing TLS verification, total deadlines and 503/504 behavior remain. No public
+  chat fields or database changes are introduced; team-machine idle acceptance is separate.
+
   Mukhamed requested Groq for live integration tests. Merged #47 adds
   `AGENT_LLM_PROVIDER=groq`, `GROQ_API_KEY`, `AGENT_GROQ_MODEL=openai/gpt-oss-20b`
   and shared transport for all three model tasks. Anthropic remains compatible;
