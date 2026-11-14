@@ -136,3 +136,10 @@ and repeat a known request to check cache reuse. #49 may still yield a normal no
 reply after successful discovery/ingestion; no routeId is correct in that case and
 does not complete E5. Report sanitized status, revision, elapsedMs, selected OSM IDs
 and saved IDs when present. Do not automatically repeat an uncertain route POST.
+
+## Isolate issue #61
+
+For an intermittent `resolution` 502, follow [provider diagnostics](DIAGNOSTICS.md).
+The explicit cold probe makes fresh Exa/model calls without session, cache or Java
+writes and reports safe HTTP/code/schema details. Historical logs cannot establish
+the original cause. Keep #61 open until a same-revision team rerun verifies it.

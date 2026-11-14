@@ -100,7 +100,9 @@ reply/storage failure or cancellation. Never automatically retry uncertain POSTs
 discovery, handoff, reply generation and session storage. Existing shorter stage
 limits still apply. `logging.json` enables stage elapsed time/outcome logs with a
 random request trace and hashed session label, without message text, keys or raw
-session IDs. These are internal diagnostics, not new public response fields.
+session IDs. [Provider diagnostics](DIAGNOSTICS.md) explains safe status/code/schema
+metadata, cache events, queue/quota timing and the read-only cold resolution probe.
+These are internal diagnostics, not new public response fields.
 
 ## Intent extraction
 
