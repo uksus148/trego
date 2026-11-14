@@ -35,6 +35,22 @@ configure `AGENT_VALKEY_CONNECT_TIMEOUT_SECONDS` and
 `AGENT_VALKEY_SOCKET_TIMEOUT_SECONDS` to change them. Timeouts return the same 503
 as connection failures. These settings are listed in the root `.env.example`.
 
+Managed Valkey connections use TCP keepalive and
+`AGENT_VALKEY_HEALTH_CHECK_INTERVAL_SECONDS=15` (positive, at most 300).
+The interval is an idle threshold for a PING before use, not a background heartbeat.
+The pool validates/probes a connection before giving it to a command or transaction.
+One failed pre-command connection check may reconnect and try again; authentication
+failures propagate immediately. Each attempt retains the existing connect/socket
+timeouts, and the outer chat/discovery deadlines include this work.
+
+Application command retries remain **zero**. A lost response to RPUSH/EXEC, SET NX
+or EVAL must not replay a write, append the exchange twice or repeat provider/API
+work. Actual outages still return 503; cancellation/total chat expiry can return
+504. A socket can still fail after its check, so failed requests may leave committed
+data. The factory retains redis-py's URL parsing, TLS verification and owned-pool
+cleanup; caller-injected clients retain their original configuration/ownership.
+See [the #58 idle check](../docs/INTEGRATION_RUNBOOK.md#issue-58-idle-valkey-check).
+
 If port 5173 is busy, Vite may start the frontend on 5174. Check the URL printed
 by Vite and add that exact origin to `AGENT_CORS_ORIGINS` in the root `.env`, for
 example `AGENT_CORS_ORIGINS=["http://localhost:5173","http://localhost:5174"]`.

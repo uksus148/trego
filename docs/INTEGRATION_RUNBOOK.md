@@ -3,7 +3,7 @@
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
 or reporting an end-to-end result. Last checked: November 14, 2026, against
-`main` at `173ed44` (through merged #57), plus the internal availability-research core under review.
+`main` at `cc2112e` (through merged #56/#57), plus the #58 Valkey connection fix under review.
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -44,8 +44,9 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B8 | Non-root Java 21 API container | Murat | Merged; public deployment pending | [#46](https://github.com/uksus148/trego./pull/46), main `7d89639`; container/CI packaging only, no public deployment |
 | B9 | Evidenced Nominatim candidate selection for #51 | Mukhamed | Merged; live control passed | [#52](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; 259 fixture tests; Daniil's live discovery/control browser evidence below; #49 still blocks Rysy |
 | B10 | Distinct no-path/unmatched-waypoint handling | Murat, with agent/UI owner reviews | Merged | [#54](https://github.com/uksus148/trego./pull/54), main `41ffe14`; 265 combined agent tests; July-planning demo correction, combined browser acceptance pending |
-| B11 | Internal optional availability research | Mukhamed | Review fixes; not connected to HTTP chat | [#56](https://github.com/uksus148/trego./pull/56), [core and limits](../agent/AVAILABILITY.md); 328 fixture tests; source-bound publication roles and uncapped text provenance; no live acceptance or public activation |
+| B11 | Internal optional availability research | Mukhamed | Merged; not connected to HTTP chat | [#56](https://github.com/uksus148/trego./pull/56), main `cc2112e`, [core and limits](../agent/AVAILABILITY.md); 328 fixture tests; no live acceptance or public activation |
 | B12 | Optional availability-research boundary | Murat; agent/UI remain with their owners | Java input validation and wire proposal submitted for review from main `4efa575`; public research not enabled | [Contract](ROUTE_AVAILABILITY_CONTRACT.md), [fixtures](contracts/route-availability.examples.json); 204 local API tests passed, including ten strict-input cases; needs affected-owner agreement and chat/UI integration; B10/B11 are reserved by the parallel [#56](https://github.com/uksus148/trego./pull/56) |
+| B13 | Idle Valkey connection recovery | Mukhamed | Prepared for review; live idle rerun pending | [#58](https://github.com/uksus148/trego./issues/58); 335 agent tests, including local RESP/TCP faults; no application-write or provider retries |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |
@@ -142,6 +143,31 @@ New error codes, snap behavior or a changed required demo need affected-owner
 agreement in CLAUDE.md. A successful control hike is not Tatras E5 acceptance.
 
 ## Implementation responsibilities and merge gates
+
+### Issue #58 idle Valkey check
+
+Daniil reports three initial 503s after about 25 minutes idle, while a fresh Aiven
+client and the Java API worked. The agent configuration had zero command retries
+and no health interval. This is reported team-machine evidence, not a newly verified
+Aiven outage or live run from this workspace.
+
+The managed pool now checks idle sockets before application work and can reconnect
+once during preparation. Command/transaction retries remain zero. Local tests use
+real redis-py RESP connections over loopback: three stale pooled sockets recover
+before concurrent HTTP chat history reads; silent sockets either recover within the
+socket timeout or respect cancellation; real failures stay errors. A committed EXEC
+with a lost reply returns 503 and appends exactly one exchange. TLS verification and
+owned-pool cleanup are checked separately. No paid/live service call is needed in CI.
+
+After both reviews/deployment, restart the agent with the default 15-second
+`AGENT_VALKEY_HEALTH_CHECK_INTERVAL_SECONDS`. Use the existing live-test guide for
+one successful control hike, then leave the **same agent process** idle for at least
+the reported 25 minutes. No periodic test PINGs should warm its pool. Submit one new
+explicit control chat and record revision, status, stage/elapsed time and saved IDs.
+The first request should not fail because of an already stale pooled socket; actual
+provider/storage outages remain errors. Repeat only after diagnosing any uncertain
+POST outcome, since earlier data may have committed. This check does not activate the
+internal research core or establish a complete browser/E5 pass.
 
 ### E1: Murat - researched ingestion
 
