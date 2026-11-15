@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, realApi } from './realApi'
+import { ApiContractError } from '../lib/apiContract'
 
-function stubFetch(body: unknown) {
-  const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(body), { status: 200 }))
+const ROUTE_ID = '00000000-0000-4000-8000-000000000099'
+const validRoute = { id: ROUTE_ID, geojson: { type: 'LineString', coordinates: [[20, 49], [20.1, 49.1]] }, distanceKm: 12.3, ascentM: 200, durationMin: 240, places: [], segments: [] }
+
+function stubFetch(body: unknown, status = 200) {
+  const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(body), { status }))
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
@@ -15,9 +19,9 @@ afterEach(() => {
 
 describe('realApi', () => {
   it('sends GET requests without a Content-Type so browsers skip the CORS preflight', async () => {
-    const fetchMock = stubFetch({ id: 'r1' })
+    const fetchMock = stubFetch(validRoute)
 
-    await realApi.getRoute('r1')
+    await realApi.getRoute(ROUTE_ID)
 
     expect(fetchMock.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
     expect(sentHeaders(fetchMock).has('Content-Type')).toBe(false)
@@ -32,6 +36,45 @@ describe('realApi', () => {
     expect(init?.method).toBe('POST')
     expect(sentHeaders(fetchMock).get('Content-Type')).toBe('application/json')
     expect(JSON.parse(String(init?.body))).toEqual({ sessionId: 's', message: 'hi' })
+  })
+
+  it('validates a successful route GET and requires the requested route identity', async () => {
+    stubFetch(validRoute)
+    await expect(realApi.getRoute(ROUTE_ID)).resolves.toMatchObject({ id: ROUTE_ID, distanceKm: 12.3 })
+
+    stubFetch({ ...validRoute, geojson: undefined })
+    await expect(realApi.getRoute(ROUTE_ID)).rejects.toBeInstanceOf(ApiContractError)
+    stubFetch({ ...validRoute, id: '00000000-0000-4000-8000-000000000098' })
+    await expect(realApi.getRoute(ROUTE_ID)).rejects.toBeInstanceOf(ApiContractError)
+  })
+
+  it('turns malformed successful chat and place responses into contract errors', async () => {
+    stubFetch({ reply: 'Ready', places: null })
+    await expect(realApi.chat({ sessionId: 's', message: 'hi' })).rejects.toBeInstanceOf(ApiContractError)
+
+    stubFetch({ id: 'not-a-uuid', name: 'Skok', lat: 49, lon: 20, tags: [], photos: [], source: 'manual' }, 201)
+    await expect(realApi.addPlace({ name: 'Skok', lat: 49, lon: 20, tags: [] })).rejects.toBeInstanceOf(ApiContractError)
+  })
+
+  it('requires a created route to preserve every requested stop occurrence and does not retry', async () => {
+    const id = '00000000-0000-4000-8000-000000000021'
+    const stop = { id, name: 'Skok', lat: 49, lon: 20, tags: ['waterfall'], photos: [], source: 'https://example.org/skok' }
+    const request = { start: { lat: 49, lon: 20 }, end: { lat: 49.2, lon: 20.2 }, placeIds: [id, id], preferences: [] }
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ ...validRoute, places: [stop, stop] }), { status: 201 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await realApi.createRoute(request)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const mismatched = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ ...validRoute, places: [stop] }), { status: 201 }))
+    vi.stubGlobal('fetch', mismatched)
+    await expect(realApi.createRoute(request)).rejects.toBeInstanceOf(ApiContractError)
+    expect(mismatched).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects malformed JSON on a successful response as a recoverable contract error', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response('{broken', { status: 200 })))
+    await expect(realApi.getRoute(ROUTE_ID)).rejects.toBeInstanceOf(ApiContractError)
   })
 })
 
