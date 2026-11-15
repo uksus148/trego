@@ -33,6 +33,15 @@ locations_adapter = TypeAdapter(list[GeocodingCandidate])
 SEARCH_OPTIONS = {"format": "jsonv2", "limit": 8, "namedetails": 1, "extratags": 1}
 
 
+def preserve_query_name(query: str, name: str | None) -> str:
+    """A search hint may translate a sourced name, but must not truncate it."""
+    parts = [part.strip() for part in query.split(",")]
+    if name and words(parts[0]) and words(parts[0]) < words(name.split(",")[0]):
+        parts[0] = name.split(",")[0].strip()
+        return ", ".join(parts)
+    return query
+
+
 class NominatimGeocoder:
     def __init__(self, client: httpx.AsyncClient, redis: Redis, user_agent: str,
                  base_url: str = "https://nominatim.openstreetmap.org",
@@ -54,6 +63,7 @@ class NominatimGeocoder:
         query = query.strip()
         if not query:
             raise ValueError("Geocoding query must not be blank.")
+        query = preserve_query_name(query, name)
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 candidates = await self._search(query)
