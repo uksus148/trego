@@ -1,6 +1,8 @@
 """Select language before side effects; render known outcomes without generation."""
 
 import json
+import math
+import re
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -54,32 +56,36 @@ LANGUAGE_QUESTION = (
 # Templates contain only verified result categories. Place names are quoted data.
 CATALOG = {
     "en": {
-        "ready": "Route saved: {visits}. Distance {distance} km; ascent {ascent} m; duration {duration} min.",
+        "ready": "Your hike is ready: {visits}. Distance {distance} km; ascent {ascent} m; duration {duration}.",
         "missing": "Please specify {endpoints}.", "start": "the start", "end": "the destination",
+        "unspecified": "Please give the exact name and location of the unclear waypoint.",
         "unresolved": "Please provide a more precise name or location for: {names}.",
         "limits": "Please choose at most 5 intermediate stops and 12 preferences.",
         "no_route": "No hiking path was found between these points. Please choose different endpoints or stops.",
         "waypoint_not_routable": "A waypoint could not be matched to the hiking network within the search radius. Please verify coordinates or choose another point.",
     },
     "ru": {
-        "ready": "Маршрут сохранён: {visits}. Расстояние {distance} км; набор высоты {ascent} м; время {duration} мин.",
+        "ready": "Маршрут готов: {visits}. Расстояние {distance} км; набор высоты {ascent} м; время {duration}.",
         "missing": "Укажите {endpoints}.", "start": "начальную точку", "end": "конечную точку",
+        "unspecified": "Укажите точное название и расположение неясной точки маршрута.",
         "unresolved": "Уточните название или расположение: {names}.",
         "limits": "Выберите не более 5 промежуточных остановок и 12 предпочтений.",
         "no_route": "Пешеходный путь между этими точками не найден. Выберите другие конечные точки или остановки.",
         "waypoint_not_routable": "Не удалось сопоставить одну из точек с пешеходной сетью в пределах радиуса поиска. Проверьте координаты или выберите другую точку.",
     },
     "sk": {
-        "ready": "Trasa je uložená: {visits}. Vzdialenosť {distance} km; stúpanie {ascent} m; čas {duration} min.",
+        "ready": "Vaša túra je pripravená: {visits}. Vzdialenosť {distance} km; stúpanie {ascent} m; čas {duration}.",
         "missing": "Uveďte {endpoints}.", "start": "začiatočný bod", "end": "cieľový bod",
+        "unspecified": "Uveďte presný názov a polohu nejasného bodu trasy.",
         "unresolved": "Spresnite názov alebo polohu: {names}.",
         "limits": "Vyberte najviac 5 zastávok a 12 preferencií.",
         "no_route": "Medzi týmito bodmi sa nenašla turistická trasa. Vyberte iné koncové body alebo zastávky.",
         "waypoint_not_routable": "Jeden z bodov sa nepodarilo priradiť k turistickej sieti v rámci vyhľadávacieho polomeru. Overte súradnice alebo vyberte iný bod.",
     },
     "fi": {
-        "ready": "Reitti tallennettu: {visits}. Matka {distance} km; nousu {ascent} m; kesto {duration} min.",
+        "ready": "Vaellusreittisi on valmis: {visits}. Matka {distance} km; nousu {ascent} m; kesto {duration}.",
         "missing": "Anna {endpoints}.", "start": "lähtöpiste", "end": "määränpää",
+        "unspecified": "Anna epäselvän reittipisteen tarkka nimi ja sijainti.",
         "unresolved": "Tarkenna nimi tai sijainti: {names}.",
         "limits": "Valitse enintään 5 välipysähdystä ja 12 mieltymystä.",
         "no_route": "Näiden pisteiden välille ei löytynyt vaellusreittiä. Valitse toiset päätepisteet tai pysähdykset.",
@@ -88,23 +94,37 @@ CATALOG = {
 }
 
 
-def quoted(names):
-    return " → ".join(json.dumps(name, ensure_ascii=False) for name in names)
+def display_names(names):
+    return " → ".join(" ".join(name.split()) for name in names)
 
 
 class FactualReplyWriter:
     async def write(self, message, history, outcome, facts, *, language="en"):
         catalog = CATALOG[language]
         if outcome == "ready":
-            return catalog["ready"].format(visits=quoted(facts["visits"]), distance=f'{facts["distanceKm"]:.2f}',
-                                           ascent=f'{facts["ascentM"]:.0f}', duration=f'{facts["durationMin"]:.0f}')
+            minutes = math.floor(facts["durationMin"] + .5)
+            hours, rest = divmod(minutes, 60)
+            units = {"en": ("h", "min"), "ru": ("ч", "мин"), "sk": ("h", "min"), "fi": ("t", "min")}[language]
+            duration = f"{hours} {units[0]} {rest:02d} {units[1]}"
+            return catalog["ready"].format(visits=display_names(facts["visits"]), distance=f'{facts["distanceKm"]:.1f}'.removesuffix(".0"),
+                                           ascent=f'{facts["ascentM"]:.0f}', duration=duration)
         if outcome != "clarification":
             return catalog[outcome]
         if facts.get("intentLimits"):
             return catalog["limits"]
         parts = []
         if facts.get("missingEndpoints"):
-            parts.append(catalog["missing"].format(endpoints=", ".join(catalog[key] for key in facts["missingEndpoints"])))
+            parts.append(catalog["missing"].format(endpoints={"en": " and ", "ru": " и ", "sk": " a ", "fi": " ja "}[language].join(catalog[key] for key in facts["missingEndpoints"])))
         if facts.get("unresolvedPlaces"):
-            parts.append(catalog["unresolved"].format(names=quoted(facts["unresolvedPlaces"])))
+            users = [message, *(item["content"] for item in history if item["role"] == "user")]
+            names = []
+            for name in dict.fromkeys(facts["unresolvedPlaces"]):
+                pattern = re.compile(r"(?<!\w)" + re.escape(name) + r"(?!\w)", re.IGNORECASE)
+                match = next((m for text in users if (m := pattern.search(text))), None)
+                if match and match.group() not in names:
+                    names.append(match.group())
+            if names:
+                parts.append(catalog["unresolved"].format(names=display_names(names)))
+            if len(names) < len(set(facts["unresolvedPlaces"])):
+                parts.append(catalog["unspecified"])
         return " ".join(parts)

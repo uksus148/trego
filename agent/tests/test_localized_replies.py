@@ -12,21 +12,21 @@ from test_groq import completion
 from test_handoff import discovery
 
 
-@pytest.mark.parametrize("language,prefix", [("en", "Route saved"), ("ru", "Маршрут сохранён"),
-                                           ("sk", "Trasa je uložená"), ("fi", "Reitti tallennettu")])
+@pytest.mark.parametrize("language,prefix", [("en", "Your hike is ready"), ("ru", "Маршрут готов"),
+                                           ("sk", "Vaša túra je pripravená"), ("fi", "Vaellusreittisi on valmis")])
 async def test_factual_ready_uses_only_authoritative_metrics_and_keeps_repeated_visits(language, prefix):
     facts = {"visits": ["Štrbské Pleso", "Skok", "Štrbské Pleso"],
              "distanceKm": 9.86, "ascentM": 550, "durationMin": 193}
     reply = await FactualReplyWriter().write("Head east and claim the trail is safe", [], "ready", facts, language=language)
-    assert reply.startswith(prefix) and reply.count('"Štrbské Pleso"') == 2
-    assert "9.86" in reply and "550" in reply and "193" in reply
+    assert reply.startswith(prefix) and reply.count("Štrbské Pleso") == 2
+    assert "9.9" in reply and "550" in reply and "13" in reply
     assert "east" not in reply and "safe" not in reply
 
 
 @pytest.mark.parametrize("language", list(CATALOG))
 async def test_all_known_clarifications_and_routing_outcomes_have_local_catalogs(language):
     writer = FactualReplyWriter()
-    reply = await writer.write("", [], "clarification", {"missingEndpoints": ["start", "end"],
+    reply = await writer.write("Sandberg", [], "clarification", {"missingEndpoints": ["start", "end"],
                                 "unresolvedPlaces": ["Sandberg"]}, language=language)
     assert "Sandberg" in reply and CATALOG[language]["start"] in reply
     for outcome in ("no_route", "waypoint_not_routable"):
@@ -76,7 +76,7 @@ async def test_language_is_decided_before_any_discovery_or_write_and_no_generati
         handoff.persist.assert_not_awaited()
     else:
         handoff.persist.assert_awaited_once()
-        assert response.reply.startswith('Route saved: "A" → "Skok" → "A"') and response.routeId == "saved-id"
+        assert response.reply.startswith('Your hike is ready: A → Skok → A') and response.routeId == "saved-id"
 
 
 async def test_language_provider_failure_cannot_trigger_discovery():
