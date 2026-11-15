@@ -54,7 +54,7 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
 | B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
 | B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Merged in #72; #76 reports a separate resolution-substitution defect | main `4271e60`; [evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures; candidate v3 preserves addresstype |
-| B21 | Requested identity (#76/#77) and runtime #84 based on #81 | Mukhamed | PR #78: independent review pending; named/descriptive bypass still blocks merge | [Current evidence and runtime proposal](../agent/IDENTITY_REVIEW.md); fd817bc 120B routes passed; #84 adds session leases/validation and proposes 409 |
+| B21 | Requested identity (#76/#77) and runtime #84 based on #81 | Mukhamed | PR #78: narrow MVP verification for every target; independent review and Daniil agreement pending | [Current evidence and runtime proposal](../agent/IDENTITY_REVIEW.md); fd817bc 120B routes are historical; corrected-head live acceptance remains |
 | B22 | Shared Nominatim URL identity (#75) | Murat | Merged in #79; issue closed | main `9f65a86`; Mukhamed independently passed 28 URL cases and six real Java/Python Valkey peer cases; full API/container CI passed; gate namespace/token/cooldown unchanged |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
@@ -70,8 +70,8 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
   #61's diagnostic gap is fixed; this does not recover its historical unlogged payload.
 - #75 closed after API PR #79 merged, with independent frontend/live and agent/
   cross-runtime review. No duplicate API patch is included in #78.
-- #76/#77 remain open for fd817bc's named/descriptive bypass. Murat's latest 120B
-  review passed all five routes; earlier Russian/castle/Stupava failures are superseded.
+- #76/#77 remain open for reviewed-head identity acceptance. The narrow MVP fix
+  removes the descriptive bypass; prior fd817bc 120B passes do not certify this change.
   See [current evidence and #84 solution based on #81](../agent/IDENTITY_REVIEW.md).
 - [Daniil's ab35920 evidence](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)
   predates the latest changes; primary 20B/browser/media acceptance remains separate.

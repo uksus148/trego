@@ -269,9 +269,13 @@ submitted `source`, return 400 rather than being silently ignored. See the
   Internal/public result shapes, source binding and API handoff remain unchanged.
 
   Issues #76/#77 in PR #78 bind research/resolution to requested targets.
-  Changed named identities need settlement/feature proof; empty verification
-  clarifies before writes. Internal descriptiveTargets uses existing enum roles
-  start/end/stop:1–stop:5; its observed named-target bypass still blocks merge.
+  Every requested target needs identity verification, including descriptions.
+  Changed identities need independent settlement/feature proof; empty verification
+  clarifies before writes or positive cache promotion. Internal descriptiveTargets
+  (start/end/stop:1–stop:5) is advisory and cannot waive verification. Murat agreed
+  the narrow MVP policy on November 15: unbound descriptions ask for an explicit
+  place name, adding a clarification turn. Daniil's agreement and reviewed-head
+  acceptance remain merge gates; server-bound candidate confirmation is deferred.
   Query correction retains full sourced names. Linked settlement boundary selection
   requires matching type/aliases/Q ID/coordinates/linked_place; both owners review.
   The private --include-identity probe captures stage comparisons without routine
@@ -448,7 +452,7 @@ Use Lombok `@RequiredArgsConstructor` for constructor-based dependency injection
 
 1. Build FastAPI `/api/chat` with sessions in Valkey.
 2. Extract intent from free text as `{start, end, mustSee[], preferences[]}` using Claude tool use or structured output.
-3. Use Exa to find places from descriptions such as “the waterfall from TikTok near Štrbské Pleso”, and search for photos and trail descriptions. **Always retain sourceUrl.**
+3. Use Exa to research descriptions such as “the waterfall from TikTok near Štrbské Pleso”. Unbound reinterpretations require an explicit place name before persistence; automatic descriptor resolution is not guaranteed. **Always retain sourceUrl.**
 4. Geocode results with Nominatim/OSM into `Place`.
 5. Embed places and photo captions with Gemini, store them in pgvector, and rank results by user preferences.
 6. Consume `photo.uploaded`, extract EXIF location, generate embeddings, and associate photos with nearby trails.

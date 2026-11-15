@@ -128,8 +128,9 @@ deadline and shared quota gate. It is outside discovery's shorter timeout.
 
 `ClaudeIntentExtractor` validates tool use through shared `ToolModel` and the internal
 `{start, end, mustSee[], preferences[], descriptiveTargets[]}` result. The last
-field references existing target roles (`start`, `end`, `stop:1` through `stop:5`) before research; it defaults to []
-so omitted metadata cannot waive named-target checks. It accepts recent session history,
+field references existing target roles (`start`, `end`, `stop:1` through `stop:5`) before research; it defaults to [].
+It is advisory: no classification can waive identity verification. Unbound descriptions
+require an explicit place name through the existing no-write clarification. It accepts recent session history,
 keeps unknown endpoints null, and never asks the model for coordinates. The
 adapter is connected through opt-in chat. Tests use HTTP fixtures, never live providers.
 
@@ -234,7 +235,7 @@ matches or insufficient context remain unresolved without partial ingestion.
 
 Issues #76/#77 bind exact requested targets and reject unverified source-led
 substitutions before handoff/cache acceptance. The internal descriptive-target
-roles remain model-interpreted; their named-target bypass still blocks merge.
+roles remain model-interpreted and cannot authorize identity changes or cache acceptance.
 See [current evidence, limitations and #84 session proposal](IDENTITY_REVIEW.md).
 The opt-in `--include-identity` probe exposes target/resolution/OSM comparisons only
 in private JSON; default logs and public chat fields remain unchanged.

@@ -116,8 +116,8 @@ uses the existing cache, gate and deadline; no expanded radius or automatic retr
 Country-qualified names remain in queries. A truncated search hint retains the
 full sourced name; a linked settlement boundary/node pair requires matching Q ID,
 coordinates, type, aliases and linked_place evidence to select the boundary.
-Production has no city-ID or coordinate overrides. Internal descriptive roles
-remain model-interpreted; the new fd817bc classification bypass is still blocking.
+Production has no city-ID or coordinate overrides. Descriptive roles are advisory:
+every requested target is verified; unbound reinterpretations clarify without writes.
 See [current review evidence, architectural conclusions and #84 runtime solution](IDENTITY_REVIEW.md).
 Both owners must review the policy; successful routes alone do not prove that
 negative substitution controls work. Preserve source/OSM continuity and stop order.

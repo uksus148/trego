@@ -66,7 +66,8 @@ uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --incl
 ```
 
 Compare intent endpoints with resolver names and selected identities; enum-valid
-roles can still misclassify named targets. Default reports omit names/queries.
+roles can still misclassify named targets, but cannot waive verification. An unbound
+description must clarify before handoff/cache acceptance. Default reports omit names/queries.
 See [latest evidence and remaining negative controls](IDENTITY_REVIEW.md).
 Then verify saved route, stop order, sources, session, browser and media isolation;
 HTTP 200 clarification is not route acceptance. Cycling remains deferred.
