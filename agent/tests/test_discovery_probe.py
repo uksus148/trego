@@ -71,7 +71,7 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
     async with fakeredis.aioredis.FakeRedis() as cache, httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         for _ in range(2):
             assert (await run_probe(settings, client, cache, "Skok"))["status"] == "ready"
-        assert len(await cache.keys("gopstop:nominatim:search:v2:*")) == 1
+        assert len(await cache.keys("gopstop:nominatim:search:v3:*")) == 1
         assert not await cache.keys("gopstop:probe-discovery:*")
     assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 1
     assert sum(r.url.host == "api.exa.ai" for r in requests) == 2

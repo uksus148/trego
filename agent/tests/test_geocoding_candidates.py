@@ -80,7 +80,7 @@ async def test_empty_region_query_falls_back_once_and_reuses_candidates_for_new_
                                       anchors=[GeocodedPlace.model_validate(RYSY)])).osm_id == SKOK["osm_id"]
         assert await geocoder.geocode(query, name="Skok waterfall", tags=["peak"]) is None
         assert queries == [query, "Skok waterfall, Slovakia"]
-        keys = await cache.keys("gopstop:nominatim:search:v2:*")
+        keys = await cache.keys("gopstop:nominatim:search:v3:*")
         for key in keys:
             value = json.loads(await cache.get(key))
             assert isinstance(value, list)
@@ -103,7 +103,7 @@ async def test_ambiguity_or_http_failure_never_triggers_a_broader_search(rows):
         if rows == "error":
             with pytest.raises(ProviderError):
                 await geocoder.geocode("Skok waterfall, High Tatras, Slovakia")
-            assert not await cache.keys("gopstop:nominatim:search:v2:*")
+            assert not await cache.keys("gopstop:nominatim:search:v3:*")
         else:
             assert await geocoder.geocode("Skok waterfall, High Tatras, Slovakia", tags=["waterfall"]) is None
     assert len(calls) == 1
@@ -121,7 +121,7 @@ async def test_corrupt_candidates_refresh_and_empty_search_expires_without_exten
     ) as client:
         geocoder = NominatimGeocoder(client, cache, "Fixture/1.0")
         assert await geocoder.geocode("unknown") is None
-        key, = await cache.keys("gopstop:nominatim:search:v2:*")
+        key, = await cache.keys("gopstop:nominatim:search:v3:*")
         await cache.expire(key, 100)
         assert await geocoder.geocode("unknown") is None
         assert 0 < await cache.ttl(key) <= 100 and len(calls) == 1

@@ -15,6 +15,7 @@ class GeocodingCandidate(GeocodedPlace):
     namedetails: dict[str, str] = Field(default_factory=dict)
     category: str = ""
     type: str = ""
+    addresstype: str = ""
     extratags: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("extratags", mode="before")
@@ -26,7 +27,7 @@ class GeocodingCandidate(GeocodedPlace):
 FEATURE_TYPES = {
     "waterfall": {"waterfall"}, "peak": {"peak"}, "lake": {"lake"},
     "castle": {"castle"}, "village": {"village", "hamlet"},
-    "town": {"town"}, "city": {"city"}, "resort": {"winter_sports", "resort"},
+    "town": {"town"}, "city": {"city"}, "hamlet": {"hamlet"}, "resort": {"winter_sports", "resort"},
 }
 GENERIC_WORDS = {"waterfall", "peak", "mount", "mountain", "lake", "castle"}
 CONTEXT_RADIUS_KM = 25
@@ -66,6 +67,12 @@ def words(value: str) -> set[str]:
 def matches_feature(candidate: GeocodingCandidate, feature: str) -> bool:
     if candidate.type in FEATURE_TYPES.get(feature, set()):
         return True
+    if feature in {"city", "town", "village", "hamlet"} and (candidate.category, candidate.type) == ("boundary", "administrative"):
+        # Nominatim can rank a settlement's administrative relation as the search
+        # result. Do not infer a settlement from admin_level or a generic boundary.
+        labels = {label for label in (candidate.addresstype, candidate.extratags.get("place", ""))
+                  if label in {"city", "town", "village", "hamlet"}}
+        return bool(labels) and labels <= FEATURE_TYPES[feature]
     return any((candidate.category, candidate.type) == (key, value) or candidate.extratags.get(key) == value
                for key, value in FEATURE_ATTRIBUTES.get(feature, set()))
 

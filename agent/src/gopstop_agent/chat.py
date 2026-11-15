@@ -47,6 +47,7 @@ class ChatService:
             if not finding.ready_for_handoff:
                 outcome, facts = "clarification", {
                     "missingEndpoints": finding.missing_endpoints, "unresolvedPlaces": finding.unresolved,
+                    "unresolvedTargets": finding.unresolved_targets,
                 }
             else:
                 try:

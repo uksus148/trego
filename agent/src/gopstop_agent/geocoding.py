@@ -33,7 +33,7 @@ SEARCH_OPTIONS = {"format": "jsonv2", "limit": 8, "namedetails": 1, "extratags":
 class NominatimGeocoder:
     def __init__(self, client: httpx.AsyncClient, redis: Redis, user_agent: str,
                  base_url: str = "https://nominatim.openstreetmap.org",
-                 timeout_seconds: float = 20, *, cache_namespace: str = "gopstop:nominatim:search:v2") -> None:
+                 timeout_seconds: float = 20, *, cache_namespace: str = "gopstop:nominatim:search:v3") -> None:
         self._client, self._redis, self._user_agent = client, redis, user_agent
         self._cache_namespace = cache_namespace
         self._base_url = base_url.rstrip("/")
