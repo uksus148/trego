@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'api/**'
+      - 'docs/contracts/route-editing.examples.json'
       - 'agent/src/gopstop_agent/config.py'
       - 'agent/src/gopstop_agent/geocoding*.py'
       - 'agent/pyproject.toml'
