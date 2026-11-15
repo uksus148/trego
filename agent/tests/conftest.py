@@ -7,6 +7,14 @@ import pytest
 from gopstop_agent.config import Settings
 
 
+@pytest.fixture
+def valkey_url():
+    url = os.environ.get("TEST_VALKEY_URL")
+    if not url:
+        pytest.skip("Set TEST_VALKEY_URL to a disposable real Valkey instance.")
+    return url
+
+
 def pytest_configure(config):
     # Run before collection: importing main constructs its default app/settings.
     monkeypatch = pytest.MonkeyPatch()

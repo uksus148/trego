@@ -3,7 +3,7 @@
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
 or reporting an end-to-end result. Last checked: November 15, 2026, against
-`main` at `416843b` (through merged #70), plus issue #69 settlement matching under review.
+`main` at `9f65a86` (through merged #79), plus #76/#77 agent changes in #78 under review.
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -46,19 +46,37 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B10 | Distinct no-path/unmatched-waypoint handling | Murat, with agent/UI owner reviews | Merged | [#54](https://github.com/uksus148/trego./pull/54), main `41ffe14`; 265 combined agent tests; July-planning demo correction, combined browser acceptance pending |
 | B11 | Internal optional availability research | Mukhamed | Merged; not connected to HTTP chat | [#56](https://github.com/uksus148/trego./pull/56), main `cc2112e`, [core and limits](../agent/AVAILABILITY.md); 328 fixture tests; no live acceptance or public activation |
 | B12 | Optional availability-research boundary | Murat; agent/UI remain with their owners | Java input validation and wire proposal submitted for review from main `4efa575`; public research not enabled | [Contract](ROUTE_AVAILABILITY_CONTRACT.md), [fixtures](contracts/route-availability.examples.json); 204 local API tests passed, including ten strict-input cases; needs affected-owner agreement and chat/UI integration; B10/B11 are reserved by the parallel [#56](https://github.com/uksus148/trego./pull/56) |
-| B13 | Idle Valkey connection recovery | Mukhamed | Merged; live idle rerun pending | [#59](https://github.com/uksus148/trego./pull/59), main `e6b8145`; [#58](https://github.com/uksus148/trego./issues/58); 335 agent tests, including local RESP/TCP faults; no application-write or provider retries |
+| B13 | Idle Valkey connection recovery | Mukhamed | Merged; Daniil closed #58 after first-chat success following 28 minutes idle on db9b0d3 | [#59](https://github.com/uksus148/trego./pull/59), main `e6b8145`; [live evidence](https://github.com/uksus148/trego./issues/58); sampled first-chat check, not a claimed three-chat idle matrix |
 | B14 | Diagnosable provider failures and cold resolution probe | Mukhamed | Merged; both reviews; live 20B cold probe and safe 401 diagnostics verified | [#62](https://github.com/uksus148/trego./pull/62), main `5020cd5`; 372 tests; original #61 cause remains unconfirmed; separate 120B intent failure in #63 |
 | B15 | Strict structured model extraction (S1) | Mukhamed | Merged in #64; both approvals; 20B intent/resolution probes 5/5 each, preflight and browser passed | main `204058c`; 394 fixtures; independent live 120B remains; cold strict generation reached 19.5 s plus queue wait, track separately from warm latency |
 | B16 | Factual localized replies (S2) | Mukhamed | Merged in #65; both approvals; primary 20B live language/browser sample passed | main `4edccf3`; 416 fixtures, 15/15 language selections in Daniil's sample; wording follow-up and cold Rysy discovery observation tracked in S3 |
 | B17 | Discovery outcomes and read-only probe (S3) | Mukhamed | Merged in #66; both approvals; 20B cold gates captured | main `f93204d`; 446 fixtures; castle type mismatch, variable cathedral name mismatch; shared-cache Rysy failure differs from isolated research |
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
 | B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
-| B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Prepared for both-owner review; live acceptance pending quota | [Evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures, candidate v3 preserves addresstype; two public Nominatim reads; no Groq/Exa/ORS calls |
+| B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Merged in #72; #76 reports a separate resolution-substitution defect | main `4271e60`; [evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures; candidate v3 preserves addresstype |
+| B21 | Requested identity (#76/#77) and runtime #84 based on #81 | Mukhamed | PR #78: narrow MVP verification for every target; independent review and Daniil agreement pending | [Current evidence and runtime proposal](../agent/IDENTITY_REVIEW.md); fd817bc 120B routes are historical; corrected-head live acceptance remains |
+| B22 | Shared Nominatim URL identity (#75) | Murat | Merged in #79; issue closed | main `9f65a86`; Mukhamed independently passed 28 URL cases and six real Java/Python Valkey peer cases; full API/container CI passed; gate namespace/token/cooldown unchanged |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |
 | E4 | Integration environment and credentials | Murat coordinates; all owners verify clients | Backend preflight and live agent/control flow passed; consolidated preflight report pending | [Original backend evidence](#e4-live-backend-evidence) and #52 live review use distinct revisions; reconfirm the selected integrated target |
 | E5 | Full Tatras workflow | All three | Discovery passed; Rysy route blocked by #49 | #52 live discovery resolved all three objects; [#49](https://github.com/uksus148/trego./issues/49) still prevents the required route; control success is not full E5 acceptance |
+
+### Issue triage on November 15
+
+- #63 is closed as a completed historical execution report, not final release acceptance.
+  Its separate 20B/120B evidence remains accessible; latest live failures stay in #76/#77.
+- #58, #61 and #69 were already closed by the team with scope-specific evidence.
+  #61's diagnostic gap is fixed; this does not recover its historical unlogged payload.
+- #75 closed after API PR #79 merged, with independent frontend/live and agent/
+  cross-runtime review. No duplicate API patch is included in #78.
+- #76/#77 remain open for reviewed-head identity acceptance. The narrow MVP fix
+  removes the descriptive bypass; prior fd817bc 120B passes do not certify this change.
+  See [current evidence and #84 solution based on #81](../agent/IDENTITY_REVIEW.md).
+- [Daniil's ab35920 evidence](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)
+  predates the latest changes; primary 20B/browser/media acceptance remains separate.
+- #84 is implemented for review in #78 at Mukhamed's request; 409 needs both owners'
+  agreement. Deferred #17–#19 and #80 editor work remain separate.
 
 Before E1, the merged manual endpoint ignored provenance and assigned `source: "manual"`;
 the agent rejected that response after a possible committed write. E1 removes this mismatch

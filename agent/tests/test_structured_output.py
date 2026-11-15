@@ -69,7 +69,7 @@ async def test_intent_nulls_and_limits_are_validated_after_strict_extraction(mod
                 await extractor.extract("Incomplete", [])
             assert caught.value.diagnostic["reason"] == "schema_validation"
         else:
-            assert (await extractor.extract("I would like to see a waterfall.", [])).model_dump() == value
+            assert (await extractor.extract("I would like to see a waterfall.", [])).model_dump() == {**value, "descriptiveTargets": []}
     assert len(calls) == 1
 
 

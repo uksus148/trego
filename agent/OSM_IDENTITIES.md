@@ -105,3 +105,19 @@ first run geocoding/discovery fixtures, then a deliberately bounded read-only
 city probe after quota is available; verify exact identities and use a hiking
 request for route acceptance. Cycling, corridor POI search and photos from the
 original #69 prompt remain outside this bug and are not enabled by it.
+
+## Issue #76: requested settlements
+
+The fresh #76 reproduction mapped Bratislava to its castle and Vienna to Kahlenberg.
+Research now targets the requested place itself; a changed named identity requires
+independent settlement or requested-feature proof. Empty/unusable verification
+rejects the substitute before writes and positive cache promotion. Verification
+uses the existing cache, gate and deadline; no expanded radius or automatic retry.
+Country-qualified names remain in queries. A truncated search hint retains the
+full sourced name; a linked settlement boundary/node pair requires matching Q ID,
+coordinates, type, aliases and linked_place evidence to select the boundary.
+Production has no city-ID or coordinate overrides. Descriptive roles are advisory:
+every requested target is verified; unbound reinterpretations clarify without writes.
+See [current review evidence, architectural conclusions and #84 runtime solution](IDENTITY_REVIEW.md).
+Both owners must review the policy; successful routes alone do not prove that
+negative substitution controls work. Preserve source/OSM continuity and stop order.

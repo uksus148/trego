@@ -14,6 +14,14 @@ jobs:
   agent:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      valkey:
+        image: valkey/valkey:8.1-alpine
+        options: --health-cmd "valkey-cli ping" --health-interval 2s --health-timeout 1s --health-retries 10
+        ports:
+          - 6379:6379
+    env:
+      TEST_VALKEY_URL: redis://127.0.0.1:6379/0
     steps:
       - uses: actions/checkout@v6
         with:

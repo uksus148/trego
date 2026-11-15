@@ -31,6 +31,7 @@ class PlaceFinding(BaseModel):
     place: DiscoveredPlace | None = None
     outcome: Literal["not_attempted", "no_sources", "insufficient_evidence", "geocoding"] = "not_attempted"
     selection: CandidateSelection | None = None
+    resolution: SourceResolution | None = Field(default=None, exclude=True)
 
     @property
     def reason(self) -> str:
@@ -82,14 +83,16 @@ class PlaceDiscovery:
                 if intent.start is None or intent.end is None:
                     return DiscoveryResult(intent=intent)
                 resolutions: dict[str, SourceResolution] = {}
-                queries: dict[str, str] = {}
 
                 async def locate(finding: PlaceFinding, resolution: SourceResolution,
                                  anchors: list[GeocodedPlace]) -> None:
+                    finding.resolution = resolution
                     with stage("geocoding"):
                         selection = await self._geocoder.geocode_result(
                             resolution.geocodeQuery, name=resolution.name,
                             tags=resolution.tags, anchors=anchors,
+                            # Model classification cannot authorize an identity change.
+                            requested_name=finding.description,
                         )
                     finding.outcome, finding.selection = "geocoding", selection
                     finding_event(finding.reason, len(finding.sources), selection)
@@ -101,7 +104,7 @@ class PlaceDiscovery:
                         )
 
                 async def find(description: str) -> PlaceFinding:
-                    query = (f"Find hiking place: {description}. Route context: "
+                    query = (f"Find information about this exact place: {description}. Route context: "
                              f"{intent.start or 'unspecified'} to {intent.end or 'unspecified'}.")
                     with stage("research"):
                         sources = await self._search.search(query)
@@ -111,10 +114,10 @@ class PlaceDiscovery:
                         finding_event(finding.reason, 0)
                         return finding
                     with stage("resolution"):
-                        resolution = await self._resolver.resolve(query, sources)
+                        # The route-scoped search query is not the target identity.
+                        resolution = await self._resolver.resolve(description, sources)
                     if resolution is not None:
                         resolutions[description] = resolution
-                        queries[description] = query
                         await locate(finding, resolution, [])
                     else:
                         finding.outcome = "insufficient_evidence"
@@ -151,7 +154,7 @@ class PlaceDiscovery:
                     with stage("resolution_cache_validation"):
                         for name, resolution in resolutions.items():
                             finding = tasks[name].result()
-                            await self._resolver.record_selection(queries[name], finding.sources, resolution,
+                            await self._resolver.record_selection(name, finding.sources, resolution,
                                                                   accepted=finding.place is not None)
                 start = tasks[intent.start].result() if intent.start is not None else None
                 stops = [tasks[name].result() for name in intent.mustSee]

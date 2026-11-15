@@ -30,7 +30,7 @@ async def test_geocoding_rejection_is_short_lived_and_a_later_run_can_recover_wi
         await cache.set("team:keep", "keep")
         discovery = create_discovery(client, cache, settings)
         first = await discovery.discover("Skok", [])
-        assert first.start.reason == "name_mismatch"
+        assert first.start.reason == "requested_identity_mismatch"
         key, = await cache.keys("gopstop:place-resolution:v3:*")
         assert 0 < await cache.ttl(key) <= 300
         assert not ResolutionEntry.model_validate_json(await cache.get(key)).accepted

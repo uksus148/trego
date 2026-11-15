@@ -13,7 +13,10 @@ from redis.asyncio import Redis
 from gopstop_agent.diagnostics import cache_event
 from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.provider_errors import http_failure
-from gopstop_agent.geocoding_candidates import GeocodingCandidate, CandidateSelection, select_candidate_result
+from gopstop_agent.geocoding_candidates import (
+    CandidateMatch, CandidateSelection, FEATURE_ATTRIBUTES, FEATURE_TYPES, GeocodingCandidate,
+    matches_feature, matches_requested_name, select_candidate_result, words,
+)
 from gopstop_agent.geocoding_models import GeocodedPlace
 
 
@@ -28,6 +31,15 @@ return 0
 
 locations_adapter = TypeAdapter(list[GeocodingCandidate])
 SEARCH_OPTIONS = {"format": "jsonv2", "limit": 8, "namedetails": 1, "extratags": 1}
+
+
+def preserve_query_name(query: str, name: str | None) -> str:
+    """A search hint may translate a sourced name, but must not truncate it."""
+    parts = [part.strip() for part in query.split(",")]
+    if name and words(parts[0]) and words(parts[0]) < words(name.split(",")[0]):
+        parts[0] = name.split(",")[0].strip()
+        return ", ".join(parts)
+    return query
 
 
 class NominatimGeocoder:
@@ -47,10 +59,11 @@ class NominatimGeocoder:
         return (await self.geocode_result(query, name=name, tags=tags, anchors=anchors)).location
 
     async def geocode_result(self, query: str, *, name: str | None = None, tags: list[str] | None = None,
-                             anchors: list[GeocodedPlace] | None = None) -> CandidateSelection:
+                             anchors: list[GeocodedPlace] | None = None, requested_name: str | None = None) -> CandidateSelection:
         query = query.strip()
         if not query:
             raise ValueError("Geocoding query must not be blank.")
+        query = preserve_query_name(query, name)
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 candidates = await self._search(query)
@@ -59,13 +72,50 @@ class NominatimGeocoder:
                 # region qualifiers after an empty response, never after an error.
                 if not candidates and len(parts) >= 3 and all(parts):
                     candidates = await self._search(f"{parts[0]}, {parts[-1]}")
-                return select_candidate_result(candidates, name or parts[0], tags or [], anchors or [])
+                selection = select_candidate_result(candidates, name or parts[0], tags or [], anchors or [])
+                return await self._guard_settlement_identity(selection, candidates, name or parts[0], parts[0], requested_name, anchors or [])
         except (httpx.TimeoutException, TimeoutError) as exc:
             raise ProviderTimeout("Place geocoding is temporarily unavailable.", provider="nominatim",
                                   operation="geocode", reason="timeout", timeout=type(exc).__name__) from exc
         except (httpx.HTTPError, ValueError, TypeError) as exc:
             raise ProviderError("Place geocoding is temporarily unavailable.", provider="nominatim",
                                 operation="geocode", reason="transport" if isinstance(exc, httpx.HTTPError) else "response_json") from exc
+
+    async def _guard_settlement_identity(self, selection: CandidateSelection, candidates: list[GeocodingCandidate],
+                                         name: str, query_name: str, requested_name: str | None,
+                                         anchors: list[GeocodedPlace]) -> CandidateSelection:
+        if requested_name is None or selection.reason == "conflicting_identity":
+            return selection
+        identity = (selection.location.osm_type, selection.location.osm_id) if selection.location else None
+        unchanged_name = words(requested_name.split(",")[0]) == words(name) == words(query_name)
+        # Ordinary name/type/context selection already applies when the resolver
+        # retains the requested name and query. Changed identities need proof.
+        if unchanged_name:
+            return selection
+        if any((candidate.osm_type, candidate.osm_id) == identity
+               and matches_requested_name(candidate, requested_name) and matches_requested_name(candidate, name)
+               and any(matches_feature(candidate, kind) for kind in ("city", "town", "village", "hamlet"))
+               for candidate in candidates):
+            return selection
+        # Preserve evidenced local-language names for an explicitly requested
+        # feature. Its category comes from the original target, not resolver tags.
+        features = words(requested_name) & (FEATURE_TYPES.keys() | FEATURE_ATTRIBUTES.keys())
+        if features:
+            proof = select_candidate_result(candidates, requested_name.split(",")[0], sorted(features), anchors)
+            if proof.location and (proof.location.osm_type, proof.location.osm_id) == identity:
+                return selection
+        # Verify the immutable requested target independently of the source-led
+        # resolver. Exact settlement names can constrain an attraction suggestion;
+        # a free-form description does not become an inferred city by proximity.
+        requested = [candidate for candidate in await self._search(requested_name)
+                     if matches_requested_name(candidate, requested_name)
+                     and any(matches_feature(candidate, kind) for kind in ("city", "town", "village", "hamlet"))]
+        identities = {(candidate.osm_type, candidate.osm_id) for candidate in requested}
+        # Empty/unusable verification is not permission to accept a renamed POI.
+        if len(identities) == 1 and identity in identities and any(matches_requested_name(candidate, name) for candidate in requested):
+            return selection
+        return selection.model_copy(update={"reason": "requested_identity_mismatch", "location": None, "identityCount": 0,
+            "requestedMatches": [CandidateMatch(osmType=kind, osmId=number) for kind, number in sorted(identities)]})
 
     async def _search(self, query: str) -> list[GeocodingCandidate]:
         identity = json.dumps([self._base_url, query, SEARCH_OPTIONS], sort_keys=True)
