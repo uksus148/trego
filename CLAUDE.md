@@ -369,6 +369,13 @@ positive/empty metadata caching; affected owners still review compatibility. The
 the same place media without populating Route.segments. Target demo uses real services,
 mock mode uses fixtures, and uploads remain deferred. No runtime is enabled here.
 
+Issue #75's API correction canonicalizes supported Nominatim base URLs before provider
+use and shared gate hashing, matching the agent's Settings/HttpUrl path. Preserve the
+canonical default key, owner-token leases and one-second completion cooldown. Shared
+URL vectors and an actual Java/Python peer test run against disposable Valkey in API CI;
+see [media coordination and supported URL spellings](api/MEDIA.md#deadline-cache-and-coordination).
+Agent behavior and public DTOs are unchanged; cross-owner review remains required.
+
 ### Proposed extension: personalization and day plan — not agreed yet
 
 Discussed in [docs/CONTRACT_REVIEW.md](docs/CONTRACT_REVIEW.md). Move items into the contract above only after the owners agree.
