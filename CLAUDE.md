@@ -438,6 +438,14 @@ Role-specific skills listed in the original team plan follow.
   data was removed. This is not E1 merge, enabled live chat or browser/E5 acceptance;
   see the [recorded E4 evidence](docs/INTEGRATION_RUNBOOK.md#e4-live-backend-evidence).
 
+- November 15 — Mukhamed approved the [sequential agent stabilization plan](docs/AGENT_STABILIZATION_PLAN.md)
+  for a reliable route MVP. S1 replaces Groq forced tool generation with strict JSON
+  output for explicit 20B/120B profiles, locally validates shape and then business
+  rules, versions resolution-cache identity, and adds a read-only intent probe.
+  Anthropic retains tool use. No paid retries, fallback provider, chat activation or
+  public fields change. Later localized reply/discovery blocks require their own PRs
+  and owner review; the four-language reply policy is not enabled by S1.
+
 ## Open questions and completed checks
 
 - [x] Aiven PostgreSQL Free supports PostGIS and pgvector. Verified with SQL on service junction on November 14, PostgreSQL 18.7, postgis 3.6.4, vector 0.8.7. Both extensions are enabled and the spatial and vector queries passed.

@@ -29,6 +29,8 @@ This is an example, not new live evidence for #61. Available reasons:
 | `timeout` | HTTP timeout, with `timeout_kind` distinguishing connect/read/write/pool |
 | `request_schema` | Local request/schema construction failed, before a usable model response |
 | `response_json` | Response envelope is not usable JSON or lacks the expected structure |
+| `model_refusal` | The structured extraction was refused; no raw refusal text is exposed |
+| `structured_content` | Groq returned missing/non-JSON structured content |
 | `incomplete_generation` | Inspect allowlisted `finish_reason`, such as `length` or `max_tokens` |
 | `unexpected_tool` / `tool_arguments` | Wrong tool/count or unusable argument JSON/object |
 | `schema_validation` | Tool object violates the application schema; `validation_count` and up to three allowlisted `validation_types` describe it |
@@ -83,3 +85,5 @@ replay an uncertain chat POST: later-stage failures may follow committed writes.
 If the cold report confirms `tool_use_failed`, use that evidence for a focused model
 schema/generation change and owner review. Do not claim #61's original cause is fixed
 from fixtures or close it before a team live rerun identifies/verifies that cause.
+
+For the 120B intent failure in #63, use the [S1 intent-only probe](LIVE_TEST.md#verify-strict-extraction-s1); the historical 20B resolution cause remains unconfirmed.
