@@ -93,6 +93,28 @@ agent must use the same actual Valkey database and provider base URL for shared
 coordination. Do not change this namespace or protocol unilaterally. Agent source
 is unchanged. This limiter controls aggregate rate; it is not a request retry.
 
+Issue #75 correction: the API canonicalizes the Nominatim scheme/host to lowercase,
+removes default HTTPS 443 / loopback HTTP 80 and trailing slashes before both provider
+use and gate hashing, matching Python Settings -> HttpUrl -> geocoder. The canonical
+default key stays unchanged. Nondefault ports and plain ASCII path prefixes (including
+case and internal slashes) remain distinct. HTTP is limited to localhost, 127.0.0.1
+and [::1] fixtures. Escaped/non-ASCII paths, dot segments, unusual IP spellings and
+IPv6 spellings other than [::1] fail configuration binding; no guessed URL identity
+or provider request is allowed. Use a plain DNS/canonical IPv4 host or [::1].
+
+Shared key vectors live in src/test/resources/media/nominatim-gate-vectors.json.
+The Java/actual-agent concurrency test uses disposable Valkey and fixture HTTP only.
+After syncing the agent's frozen environment, run from api:
+
+```sh
+mvn --batch-mode --no-transfer-progress -Dagent.python=../agent/.venv/bin/python verify
+```
+
+CI supplies this Python path and also runs on agent configuration/geocoding or lockfile
+changes. Without agent.python, ordinary Java tests still run; the cross-runtime class
+is explicitly skipped. Tokens, leases, Lua ownership checks and one-second completion
+cooldown remain unchanged. This corrects coordination, not earlier Groq 502 causes.
+
 Media cache keys use trego:media:commons:v1 plus a hash of OSM identity and provider
 endpoints. v1 identifies the metadata/selection policy. Positive TTL is 24 hours;
 empty TTL is five minutes. Hits preserve fetchedAt and never refresh TTL. Unknown,

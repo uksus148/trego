@@ -1,0 +1,90 @@
+{
+  "accepted": [
+    {
+      "configured": "https://nominatim.openstreetmap.org",
+      "base": "https://nominatim.openstreetmap.org",
+      "key": "gopstop:nominatim:gate:v1:408720a8feacad7c61d2d836353205d03a2cf4acfcb5c5faa22db544c5387836"
+    },
+    {
+      "configured": "https://nominatim.openstreetmap.org/",
+      "base": "https://nominatim.openstreetmap.org",
+      "key": "gopstop:nominatim:gate:v1:408720a8feacad7c61d2d836353205d03a2cf4acfcb5c5faa22db544c5387836"
+    },
+    {
+      "configured": "https://nominatim.openstreetmap.org:443",
+      "base": "https://nominatim.openstreetmap.org",
+      "key": "gopstop:nominatim:gate:v1:408720a8feacad7c61d2d836353205d03a2cf4acfcb5c5faa22db544c5387836"
+    },
+    {
+      "configured": "https://NOMINATIM.openstreetmap.org:443/",
+      "base": "https://nominatim.openstreetmap.org",
+      "key": "gopstop:nominatim:gate:v1:408720a8feacad7c61d2d836353205d03a2cf4acfcb5c5faa22db544c5387836"
+    },
+    {
+      "configured": "HTTPS://NOMINATIM.openstreetmap.org:443///",
+      "base": "https://nominatim.openstreetmap.org",
+      "key": "gopstop:nominatim:gate:v1:408720a8feacad7c61d2d836353205d03a2cf4acfcb5c5faa22db544c5387836"
+    },
+    {
+      "configured": "https://nominatim.openstreetmap.org:8443/",
+      "base": "https://nominatim.openstreetmap.org:8443",
+      "key": "gopstop:nominatim:gate:v1:1542d62a39e4f02a0ace35ede4281b6ab3b4fdaf1f0b24505a9926f3cbf0b7db"
+    },
+    {
+      "configured": "https://NOMINATIM.openstreetmap.org:443/prefix/v1///",
+      "base": "https://nominatim.openstreetmap.org/prefix/v1",
+      "key": "gopstop:nominatim:gate:v1:f1af7f107fefa50d0ba5a31327079e6c0b5bf78114893d502f38350bb9ff0b79"
+    },
+    {
+      "configured": "https://example.org/a//b/",
+      "base": "https://example.org/a//b",
+      "key": "gopstop:nominatim:gate:v1:b3085b30f4ea608b3562b224804dee490a78b5ea85c383e2e38923916a9447cc"
+    },
+    {
+      "configured": "http://LOCALHOST:80/nominatim///",
+      "base": "http://localhost/nominatim",
+      "key": "gopstop:nominatim:gate:v1:2ade644b34ed0f180ee72882ff457b190f7c6e772542cc7e5882f65a5e68d929"
+    },
+    {
+      "configured": "http://localhost:8123/nominatim/",
+      "base": "http://localhost:8123/nominatim",
+      "key": "gopstop:nominatim:gate:v1:54137af51c49811b8df6655a6596f796c78536b522a08aa22c75494cdb3c1fcc"
+    },
+    {
+      "configured": "http://127.0.0.1:8123/",
+      "base": "http://127.0.0.1:8123",
+      "key": "gopstop:nominatim:gate:v1:c3663b9d5cd1cdbe7e2b6aaab081b27f277f733bb6272cf3ae4eec017c0aa5be"
+    },
+    {
+      "configured": "http://127.0.0.1:8124/",
+      "base": "http://127.0.0.1:8124",
+      "key": "gopstop:nominatim:gate:v1:fedd88a679d52cdce560ecd0c90a071270e7039ec06f8225a0d86968ad336207"
+    },
+    {
+      "configured": "http://[::1]:8123/nominatim/",
+      "base": "http://[::1]:8123/nominatim",
+      "key": "gopstop:nominatim:gate:v1:b3c77e8613cd95a6aa517990d6788aa5288f19351a81d03473462da1af28f5a7"
+    },
+    {
+      "configured": "https://example.org:0443",
+      "base": "https://example.org",
+      "key": "gopstop:nominatim:gate:v1:50d7a905e3046b88638362cc34a31a1ae534766ca55e3aa397951efe653b062b"
+    }
+  ],
+  "rejected": [
+    "//example.org",
+    "https://user:password@example.org",
+    "https://example.org?key=value",
+    "https://example.org#fragment",
+    "http://example.org",
+    "https://example.org:65536",
+    "https://example.org/a/../b",
+    "https://example.org/%2e/path",
+    "https://example.org/caf%C3%A9",
+    "https://example.org/caf\u00e9",
+    "https://127.1",
+    "https://127.000.000.001",
+    "https://0x7f000001",
+    "https://[0:0:0:0:0:0:0:1]"
+  ]
+}

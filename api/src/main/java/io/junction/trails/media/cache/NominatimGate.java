@@ -2,6 +2,7 @@ package io.junction.trails.media.cache;
 
 import io.junction.trails.media.application.MediaDeadline;
 import io.junction.trails.media.model.MediaException;
+import io.junction.trails.media.model.NominatimBaseUrl;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -29,7 +30,7 @@ public class NominatimGate {
         this.redis = redis;
         try {
             // This namespace/hash/token/one-second cooldown exactly matches the agent.
-            String base = baseUrl.toString().replaceAll("/+$", "");
+            String base = new NominatimBaseUrl(baseUrl).uri().toString();
             key = "gopstop:nominatim:gate:v1:" + HexFormat.of().formatHex(
                     MessageDigest.getInstance("SHA-256").digest(base.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException exception) {

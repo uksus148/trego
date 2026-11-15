@@ -1,5 +1,6 @@
 package io.junction.trails.media.integration;
 
+import io.junction.trails.media.model.NominatimBaseUrl;
 import java.net.URI;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,7 +22,7 @@ public record MediaProperties(
                 || userAgent == null || userAgent.isBlank() || userAgent.contains("\r") || userAgent.contains("\n")) {
             throw new IllegalArgumentException("Invalid media timeouts or user agent");
         }
-        endpoint(nominatimBaseUrl);
+        nominatimBaseUrl = new NominatimBaseUrl(nominatimBaseUrl).uri();
         endpoint(wikidataUrl);
         endpoint(commonsUrl);
     }

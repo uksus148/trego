@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'api/**'
+      - 'agent/src/gopstop_agent/config.py'
+      - 'agent/src/gopstop_agent/geocoding*.py'
+      - 'agent/pyproject.toml'
+      - 'agent/uv.lock'
       - 'infra/postgres/**'
       - '.github/workflows/api.yml'
 
@@ -24,8 +28,15 @@ jobs:
           java-version: '21'
           cache: maven
           cache-dependency-path: api/pom.xml
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v7
+      - name: Install the agent peer from its lockfile
+        working-directory: agent
+        run: uv sync --frozen
       - name: Build and test against PostGIS
         working-directory: api
-        run: mvn --batch-mode --no-transfer-progress verify
+        run: mvn --batch-mode --no-transfer-progress "-Dagent.python=$GITHUB_WORKSPACE/agent/.venv/bin/python" verify
       - name: Build API container
         run: docker build --tag trego-api:ci api
