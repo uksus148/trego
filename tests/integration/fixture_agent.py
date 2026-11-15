@@ -36,6 +36,7 @@ class FixtureTransport(httpx.AsyncBaseTransport):
             elif operation == "extract_route_intent":
                 incomplete = CORPUS["incompleteMessage"] in body["messages"][-1]["content"]
                 result = {"start": None, "end": None, "mustSee": [], "preferences": []} if incomplete else CORPUS["intent"]
+                result = {**result, "descriptiveTargets": []}
             elif operation == "resolve_place":
                 evidence = json.loads(body["messages"][-1]["content"])
                 name = evidence["sources"][0]["title"]
@@ -45,7 +46,9 @@ class FixtureTransport(httpx.AsyncBaseTransport):
                 raise AssertionError("Unexpected model operation: " + operation)
             return httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(result)}}]})
         if url.host == "api.exa.ai" and url.path == "/search":
-            name = body["query"].removeprefix("Find hiking place: ").split(". Route context:")[0]
+            prefix = "Find information about this exact place: "
+            assert body["query"].startswith(prefix), "Unexpected research query protocol"
+            name = body["query"].removeprefix(prefix).split(". Route context:")[0]
             place = next(p for p in CORPUS["places"] if p["name"] == name)
             CALLS.append("exa")
             return httpx.Response(200, json={"results": [{"title": name, "url": place["source"], "text": "Synthetic place in Slovakia"}]})

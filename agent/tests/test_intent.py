@@ -3,7 +3,21 @@ import json
 import httpx
 import pytest
 
-from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError
+from pydantic import ValidationError
+
+from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError, RouteIntent
+
+
+@pytest.mark.parametrize("role", ["stop:1", "stop:2", "historical sights", "start"])
+def test_descriptive_metadata_references_existing_roles_without_copying_place_names(role):
+    value = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": ["the waterfall near Štrbské Pleso"],
+             "preferences": [], "descriptiveTargets": [role]}
+    if role in {"stop:1", "start"}:
+        intent = RouteIntent.model_validate(value)
+        assert intent.descriptive_names == {intent.targets_by_role[role]}
+    else:
+        with pytest.raises(ValidationError):
+            RouteIntent.model_validate(value)
 
 
 def tool_response(intent):
@@ -30,7 +44,7 @@ async def test_extracts_tatras_intent_and_sends_history():
         parsed = await ClaudeIntentExtractor(client, "fixture-key", "fixture-model", timeout_seconds=0.5).extract(
             "Via Skok waterfall, I love wild scenery", history,
         )
-    assert parsed.model_dump() == intent
+    assert parsed.model_dump() == {**intent, "descriptiveTargets": []}
     assert captured[0]["messages"][:-1] == history
     assert captured[0]["model"] == "fixture-model"
     assert captured[0]["tool_choice"]["name"] == "extract_route_intent"
@@ -111,7 +125,7 @@ async def test_normalizes_empty_model_values_before_validating_limits(payload, e
         lambda _: httpx.Response(200, json=tool_response(payload)),
     )) as client:
         result = await ClaudeIntentExtractor(client, "fixture", "model").extract("Find Skok", [])
-    assert result.model_dump() == expected
+    assert result.model_dump() == {**expected, "descriptiveTargets": []}
 
 
 @pytest.mark.parametrize("payload,expected_questions", [

@@ -57,13 +57,18 @@ The browser readback is matched to the routeId returned by that browser's chat
 response, not a setup route. A failed readback must not append a new ready reply;
 any retained route must separately show a visible previous-route status label.
 
-Two desired browser assertions are deliberately marked `test.fail` for Daniil's #82:
-new ready reply plus retained previous route after readback404, and a blank React
-body after invalid route200. Preconditions run before those annotations so ordinary
-startup/request failures are not accepted as the known defect. Unexpected passes
-also fail: remove the annotations when #82 fixes the behavior. These are visible
-expected failures, not passing product acceptance and not disabled tests. No route
-activation/parser implementation is duplicated in this infrastructure PR.
+The two #82 defects were corrected by merged #86. Their browser assertions are now
+ordinary required regressions: a failed readback must suppress a new ready reply
+and label any retained previous route; invalid route200 must remain recoverable
+without blanking React. All three browser cases must pass, with no expected failures,
+unexpected failures or skips. No route activation/parser implementation is duplicated
+in this infrastructure PR.
+
+The synthetic provider protocol follows merged #78: complete and incomplete intents
+explicitly carry advisory `descriptiveTargets: []`, and research uses the exact-target
+query prefix. A factory-level compatibility test exercises both cases through actual
+discovery. Named fixture targets never gain descriptive authorization; unexpected
+provider/query protocols still fail closed.
 
 The fixture workflow does not cover the pending #80 editor, #78 named-target guard,
 same-session races, public API security, live provider quotas or navigation safety.
@@ -84,10 +89,18 @@ Inputs are synthetic public constants; never point this harness at private locat
 Existing unit suites and actual-service fixtures remain separate from live evidence.
 
 Review `run.py` for process/DB isolation and HTTP assertions, `fixture_agent.py` for
-provider boundaries, then `baseline.spec.ts` for UI faults and expected failures.
+provider boundaries, then `baseline.spec.ts` for required UI regressions.
 Shared-owner review and a reviewed integrated revision remain necessary before merge.
 
-Local verification on November 15 against main9f65a86 plus this test-only patch:
+Current integrated verification on November 15 against main `7833de8` (merged #78
+and #86) plus this PR: all HTTP/storage/cache/migration assertions passed, and all
+three Chromium cases passed in 9.8 seconds with zero expected/unexpected failures
+or skips. Six deliberate route POSTs reused one ORS fixture request; only V1–V3
+migrations were applied. The shared-corpus and outbound/protocol controls passed
+(four tests), and all 95 frontend tests, production build and lint passed. These
+results use disposable local storage and synthetic providers, not live E5 evidence.
+
+Historical verification on November 15 against main9f65a86 plus the original test-only patch:
 296 API tests (including Java/Python gate checks), 494 agent tests, the isolated
 transport-guard test and 79 frontend tests passed. Frontend production build/lint
 passed with the existing bundle-size warning. Final actual-service/browser run:

@@ -236,15 +236,14 @@ def main():
         assert browser["stats"]["unexpected"] == browser["stats"]["skipped"] == browser["stats"]["flaky"] == 0
         tests = [test for suite in browser["suites"] for spec in suite.get("specs", []) for test in spec["tests"]]
         assert len(tests) == 3
-        known_failures = sum(test["expectedStatus"] == "failed" for test in tests)
-        assert 0 <= known_failures <= 2
+        assert all(test["expectedStatus"] == "passed" for test in tests), "Baseline regressions must not expect failure"
         calls = request(agent_url + "/__fixture/calls")
         assert calls.count("nominatim") == 3 and calls.count("exa") == 3
         assert calls.count("api:POST:/api/routes") == 6
         assert count("places") == 3 and count("routes") == 6 and len(ors_calls) == 1
-        evidence.update({"result": "passed with explicit #82 expected failures" if known_failures else "passed",
+        evidence.update({"result": "passed",
                          "orsRequests": len(ors_calls), "providerFixtureCalls": calls,
-                         "browser": {"passed": 3 - known_failures, "knownExpectedFailures": known_failures, "unexpected": 0, "skipped": 0}})
+                         "browser": {"passed": 3, "knownExpectedFailures": 0, "unexpected": 0, "skipped": 0}})
         print("Fixture acceptance complete: " + evidence["result"], flush=True)
     finally:
         for proc in reversed(processes):
