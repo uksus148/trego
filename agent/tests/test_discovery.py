@@ -7,8 +7,11 @@ import httpx
 import pytest
 
 from gopstop_agent.config import Settings
+from gopstop_agent.chat import ChatService
 from gopstop_agent.discovery import DiscoveryResult, PlaceDiscovery, create_discovery
 from gopstop_agent.intent import IntentClarificationRequired, ProviderError, RouteIntent
+from gopstop_agent.localized_replies import FactualReplyWriter
+from gopstop_agent.resolution_cache import ResolutionEntry
 
 
 def settings(**overrides):
@@ -64,7 +67,7 @@ async def cache():
     await redis.aclose()
 
 
-async def test_tatras_discovery_preserves_sources_coordinates_waypoint_order_and_history(cache):
+async def test_unbound_description_clarifies_without_handoff_or_positive_cache_acceptance(cache):
     description = "the waterfall from TikTok near Štrbské Pleso"
     intent = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": [description],
               "preferences": ["wild scenery"], "descriptiveTargets": ["stop:1"]}
@@ -80,23 +83,51 @@ async def test_tatras_discovery_preserves_sources_coordinates_waypoint_order_and
         discovery = create_discovery(client, cache, settings())
         for _ in range(2):
             result = await discovery.discover("Via the waterfall, I love wild scenery", history)
-            assert result.ready_for_handoff
-            assert result.stops[0].place.name == "Skok waterfall"
-            assert (result.stops[0].place.location.lat, result.stops[0].place.location.lon) == (49.1425, 20.0506)
-            assert str(result.stops[0].place.source.sourceUrl) == "https://evidence.example/1"
-            assert result.stops[0].place.location.osm_id == 2
+            assert not result.ready_for_handoff and result.stops[0].place is None
+            assert result.stops[0].reason == "requested_identity_mismatch"
+            assert str(result.stops[0].sources[0].sourceUrl) == "https://evidence.example/1"
+            assert result.start.place.name == "Štrbské Pleso" and result.end.place.name == "Rysy"
             assert result.intent.preferences == ["wild scenery"]
-            assert result.unresolved == [] and "OpenStreetMap" in result.attribution
-            payload = result.model_dump()
-            assert "id" not in payload["stops"][0]["place"] and "routeId" not in payload
+            assert result.unresolved == [description] and "OpenStreetMap" in result.attribution
+        research, handoff, language = AsyncMock(), AsyncMock(), AsyncMock()
+        research.discover.return_value, language.select.return_value = result, "en"
+        response = await ChatService(research, handoff, FactualReplyWriter(), language).respond("Via the waterfall", history)
+        assert not response.places and response.routeId is None
+        handoff.persist.assert_not_awaited()
+        key = discovery._resolver._key(description, result.stops[0].sources)
+        assert not ResolutionEntry.model_validate_json(await cache.get(key)).accepted
+        assert 0 < await cache.ttl(key) <= 300
     assert sum(r.url.host == "api.exa.ai" for r in calls) == 3
-    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in calls) == 3
+    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in calls) == 4
     resolution = [r for r in calls if r.url.host == "api.anthropic.com"
                   and json.loads(r.content)["tool_choice"]["name"] == "resolve_place"]
     assert len(resolution) == 3  # Three cold resolutions, none on the repeated discovery.
     extraction = [json.loads(r.content) for r in calls if r.url.host == "api.anthropic.com"
                   and json.loads(r.content)["tool_choice"]["name"] == "extract_route_intent"]
     assert all(body["messages"][:-1] == history for body in extraction)
+
+
+@pytest.mark.parametrize("repeats", [1, 2])
+async def test_misclassified_named_stops_cannot_accept_a_city_substitute(cache, repeats):
+    target = "Bratislava Castle"
+    intent = {"start": "Fixture Start", "end": "Fixture End", "mustSee": [target] * repeats,
+              "descriptiveTargets": ["start", "end", *[f"stop:{i}" for i in range(1, repeats + 1)]]}
+    places = {"Fixture Start": ("Fixture Start", [row(1, "Fixture Start", 49, 20)]),
+              target: ("Bratislava", [row(2, "Bratislava", 48.14, 17.11)]),
+              "Fixture End": ("Fixture End", [row(3, "Fixture End", 49.2, 20.2)])}
+    async with httpx.AsyncClient(transport=httpx.MockTransport(provider_fixture(intent, places, []))) as client:
+        discovery = create_discovery(client, cache, settings())
+        result = await discovery.discover("Visit Bratislava Castle", [])
+        assert not result.ready_for_handoff and len(result.stops) == repeats
+        assert all(stop.place is None and stop.reason == "requested_identity_mismatch" for stop in result.stops)
+        key = discovery._resolver._key(target, result.stops[0].sources)
+        assert not ResolutionEntry.model_validate_json(await cache.get(key)).accepted
+        assert 0 < await cache.ttl(key) <= 300
+        research, handoff, language = AsyncMock(), AsyncMock(), AsyncMock()
+        research.discover.return_value, language.select.return_value = result, "en"
+        response = await ChatService(research, handoff, FactualReplyWriter(), language).respond("Visit Bratislava Castle", [])
+        assert response.routeId is None and not response.places
+        handoff.persist.assert_not_awaited()
 
 
 async def test_other_regions_ambiguity_and_missing_endpoints_keep_evidence_for_clarification(cache):

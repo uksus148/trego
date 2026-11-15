@@ -46,7 +46,7 @@ class RouteIntent(BaseModel):
 
     @property
     def descriptive_names(self) -> set[str]:
-        # A repeated target used in any named role keeps strict identity binding.
+        # Advisory metadata only; discovery verifies every requested target.
         described = {name for role, name in self.targets_by_role.items() if role in self.descriptiveTargets}
         named = {name for role, name in self.targets_by_role.items() if role not in self.descriptiveTargets}
         return described - named - {None}

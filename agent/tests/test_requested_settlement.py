@@ -33,9 +33,10 @@ STEPHANSDOM = {"osm_type": "way", "osm_id": 212496461, "name": "Stephansdom", "t
 
 
 @pytest.mark.parametrize("provider,model", [("groq", "openai/gpt-oss-20b"), ("groq", "openai/gpt-oss-120b"), ("anthropic", "fixture")])
+@pytest.mark.parametrize("classification", [[], ["start", "end"]])
 @pytest.mark.parametrize("substitute,verification", [(None, "city"), ("peak", "city"), ("cathedral", "city"),
     ("cathedral", "empty"), ("cathedral", "unrelated"), ("cathedral", "attraction")])
-async def test_actual_discovery_checks_requested_cities_before_acceptance_or_writes(provider, model, substitute, verification):
+async def test_actual_discovery_checks_requested_cities_before_acceptance_or_writes(provider, model, classification, substitute, verification):
     calls = []
     names = ["Bratislava", "Vienna"]
     resolved = ["Bratislava Castle", "Kahlenberg"] if substitute == "peak" else ["Bratislava", "Stephansdom"] if substitute else names
@@ -47,7 +48,7 @@ async def test_actual_discovery_checks_requested_cities_before_acceptance_or_wri
         if request.url.host in {"api.groq.com", "api.anthropic.com"}:
             operation = body["response_format"]["json_schema"]["name"] if provider == "groq" else body["tool_choice"]["name"]
             if operation == "extract_route_intent":
-                value = {"start": names[0], "end": names[1], "mustSee": [], "preferences": []}
+                value = {"start": names[0], "end": names[1], "mustSee": [], "preferences": [], "descriptiveTargets": classification}
             else:
                 payload = json.loads(body["messages"][1 if provider == "groq" else 0]["content"])
                 # The resolution input is ONLY this requested target, not the
@@ -77,7 +78,7 @@ async def test_actual_discovery_checks_requested_cities_before_acceptance_or_wri
     async with fakeredis.aioredis.FakeRedis(decode_responses=True) as cache, httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         discovery_service = create_discovery(client, cache, settings)
         stale_key = None
-        if verification == "attraction":
+        if verification in {"empty", "attraction"}:
             # A previously accepted substitute must be demoted, not reused for a day.
             evidence = [ResearchSource(title="Vienna", sourceUrl="https://evidence.example/1")]
             stale_key = discovery_service._resolver._key("Vienna", evidence)

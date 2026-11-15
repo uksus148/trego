@@ -18,7 +18,8 @@ from test_trails_api import identifier, place
 @pytest.mark.parametrize("stops,end", [(["Bratislava Castle", "Devín Castle"], "Vienna"),
     (["Bratislava Castle", "Devín Castle", "Devínska Kobyla"], "Stupava"),
     (["Bratislava Castle", "Devín Castle", "Bratislava Castle"], "Vienna")])
-async def test_actual_discovery_and_handoff_preserve_cities_explicit_stops_and_repeated_visits(stops, end):
+@pytest.mark.parametrize("misflagged", [False, True])
+async def test_actual_discovery_and_handoff_preserve_cities_explicit_stops_and_repeated_visits(stops, end, misflagged):
     names = list(dict.fromkeys(["Bratislava", *stops, end]))
     # Devín/Kobyla/Stupava below are synthetic transport fixtures, not captured
     # historical provider results or production coordinate overrides.
@@ -41,7 +42,8 @@ async def test_actual_discovery_and_handoff_preserve_cities_explicit_stops_and_r
         if request.url.host == "api.anthropic.com":
             operation = body["tool_choice"]["name"]
             if operation == "extract_route_intent":
-                return tool(operation, {"start": "Bratislava", "end": end, "mustSee": stops})
+                return tool(operation, {"start": "Bratislava", "end": end, "mustSee": stops,
+                    "descriptiveTargets": ["start", *[f"stop:{i}" for i in range(1, len(stops) + 1)], "end"] if misflagged else []})
             target = json.loads(body["messages"][0]["content"])["description"]
             resolutions.append(target)
             return tool(operation, {"place": {"name": target, "sourceIndex": 0, "tags": [kinds[target]],
