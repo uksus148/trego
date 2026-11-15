@@ -206,7 +206,7 @@ submitted `source`, return 400 rather than being silently ignored. See the
   unknown UUID after ingestion is a dependency inconsistency. Never expose
   credentials/provider bodies or identify errors by parsing English text.
 
-- **S2 localized replies (proposed for both-owner review):** enabled chat classifies
+- **S2 localized replies (accepted in #65):** enabled chat classifies
   user language before discovery using only the latest user wording and up to six
   previous user messages. Assistant replies and web/place evidence are excluded.
   Support English, Russian, Slovak and Finnish; unknown/unsupported language yields
@@ -262,6 +262,13 @@ submitted `source`, return 400 rather than being silently ignored. See the
   regional search, with no retries after provider errors. Candidate caches retain
   24-hour positive results and five-minute empty results in a new namespace.
   Internal/public result shapes, source binding and API handoff remain unchanged.
+
+S3 adds internal discovery reasons/counts and a [read-only diagnostic procedure](agent/DISCOVERY_DIAGNOSTICS.md).
+Missing endpoints clarify before place research; provider failures remain errors.
+The existing OSM selection rules are preserved. No public fields are added.
+The #65 reply-review follow-up aligns km/hours/minutes with frontend formatting,
+uses plain visit names and localized conjunctions, and echoes an unresolved phrase
+only when it occurs in user history; otherwise it asks for an exact waypoint.
 
 ### API container packaging
 

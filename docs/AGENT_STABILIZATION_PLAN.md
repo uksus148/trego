@@ -33,12 +33,13 @@ uksus148 and nnatthebest, including again after reviewable changes.
 | S4: evidenced identity correction | Turn captured S3 input/output into a regression; fix its demonstrated gate | Named landmarks route successfully when uniquely supported; ambiguous and wrong-Skok/type protections remain |
 | S5: integrated acceptance | One shared scenario corpus, redacted per-model/cache reports, current ledger and issue evidence | Same-revision browser/readback/session results and idle-Valkey acceptance |
 
-S1 merged in #64 at `204058c`, with both approvals and primary 20B live probes.
-S2 is prepared for review; S3-S5 are not started. The S2 implementation selects
-language in a separate structured call before discovery, replacing the former reply
-call after handoff. It uses user history only; catalogs render all current outcomes. No paid retries
-or provider fallback are introduced. Strict JSON controls structure, not geographic
-truth, language or availability. Refusals and dependency failures remain honest errors.
+S1 merged in #64 at `204058c`. S2 merged in #65 at `4edccf3` with both approvals:
+Daniil recorded 15/15 correct 20B language selections in his sample and browser
+clarification clearing. S3 is prepared for review, including his formatting nits
+and deduplication observation. S4-S5 are not started. His cold Rysy request left
+Štrbské Pleso unresolved; S3 must capture that gate before S4 changes selection.
+No paid retries or provider fallback are introduced. Strict JSON controls structure,
+not geographic truth, language or availability. Dependency failures remain errors.
 
 S3 will distinguish resolved, no sources, insufficient evidence, no geocoding candidates,
 name/type mismatch, ambiguity and conflicting identity. Errors are not ordinary ambiguity.

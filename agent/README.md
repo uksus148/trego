@@ -115,7 +115,8 @@ cases live. Unknown/unsupported language returns a selection question before dis
 
 `FactualReplyWriter` renders English/Russian/Slovak/Finnish catalogs for every current
 outcome. It uses canonical persisted visit names in order (including repeats) and
-readback metrics rounded to 2 decimals for km and integer m/min. No directions,
+readback metrics rounded to one decimal km (without redundant .0), integer ascent and
+hours/minutes matching the route summary. No directions,
 closure explanations or preference-based track changes are generated. No LLM call
 runs after route handoff; the existing session-save step still follows rendering.
 The old `ClaudeReplyWriter` remains an unwired compatibility adapter; enabled chat
@@ -292,3 +293,13 @@ Before photos are enabled, agree the API/agent policy for incomplete attribution
 or invalid photo URLs. The current strict photo model rejects an invalid photo
 with the route; empty author/license or unsafe URLs must not silently become
 verified credits. This increment leaves that future policy unchanged.
+
+## Discovery outcomes and probes (S3)
+
+Missing endpoints now stop before research; findings expose internal reason/count
+metadata while the public chat response stays unchanged. The existing geocode and
+candidate-selection helpers remain compatible, with typed result variants used by
+discovery. See [discovery diagnostics](DISCOVERY_DIAGNOSTICS.md) for the read-only
+full probe, cold-cache isolation, shared Nominatim rate gate and reason meanings.
+The #65 review's cold Rysy/Štrbské Pleso observation still needs live reproduction;
+this diagnostic block does not loosen identity matching or claim that case fixed.
