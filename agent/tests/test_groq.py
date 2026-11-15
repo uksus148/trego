@@ -7,25 +7,27 @@ import httpx
 import pytest
 
 from gopstop_agent.config import Settings
-from gopstop_agent.llm import ProviderError, ProviderTimeout, ToolModel, inline_tool_schema
+from gopstop_agent.llm import ProviderError, ProviderTimeout, ToolModel
+from gopstop_agent.structured_output import strict_schema
 from gopstop_agent.resolution_cache import CachedPlaceResolver
 from gopstop_agent.resolver import ClaudePlaceResolver
 from test_resolution_cache import PLACE, SOURCES
 
 
-def completion(name="resolve_place", value=None, finish="tool_calls"):
-    return {"choices": [{"finish_reason": finish, "message": {"tool_calls": [{
-        "type": "function", "function": {"name": name, "arguments": json.dumps(value or {"place": PLACE})},
-    }]}}]}
+def completion(name="resolve_place", value=None, finish="stop"):
+    return {"choices": [{"finish_reason": finish, "message": {
+        "content": json.dumps({"place": PLACE} if value is None else value),
+    }}]}
 
 
 def request_body():
     return ClaudePlaceResolver(None, "unused", "openai/gpt-oss-20b").request_body("Skok", SOURCES)
 
 
-@pytest.mark.parametrize("finish", ["tool_calls", "stop"])
-async def test_groq_sends_forced_function_and_normalizes_only_its_validated_input(finish):
+@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b"])
+async def test_groq_sends_strict_schema_and_normalizes_validated_json(model_id):
     original = request_body()
+    original["model"] = model_id
     snapshot = deepcopy(original)
 
     def handle(request):
@@ -34,17 +36,21 @@ async def test_groq_sends_forced_function_and_normalizes_only_its_validated_inpu
         assert "x-api-key" not in request.headers
         assert request.extensions["timeout"]["read"] == .5
         body = json.loads(request.content)
-        assert body["model"] == "openai/gpt-oss-20b" and body["reasoning_effort"] == "low"
-        assert body["max_completion_tokens"] == 2048 and not body["parallel_tool_calls"]
+        assert body["model"] == model_id and body["reasoning_effort"] == "low"
+        assert body["max_completion_tokens"] == 2048
+        assert not {"tools", "tool_choice", "parallel_tool_calls"} & body.keys()
         assert body["messages"][0]["role"] == "system"
-        parameters = body["tools"][0]["function"]["parameters"]
-        expected = deepcopy(snapshot["tools"][0]["input_schema"])
-        definition = expected.pop("$defs")["SourceResolution"]
-        expected["properties"]["place"]["anyOf"] = [definition, {"type": "null"}]
-        assert parameters == expected  # Retain required fields, bounds and extra-field rejection.
+        response_format = body["response_format"]
+        assert response_format["type"] == "json_schema"
+        assert response_format["json_schema"]["strict"] is True
+        assert response_format["json_schema"]["name"] == "resolve_place"
+        parameters = response_format["json_schema"]["schema"]
+        place_schema = parameters["properties"]["place"]["anyOf"][0]
+        assert set(place_schema["required"]) == {"name", "geocodeQuery", "sourceIndex", "tags"}
+        assert place_schema["additionalProperties"] is False
+        assert parameters["properties"]["place"]["anyOf"][1] == {"type": "null"}
         assert '"$ref"' not in json.dumps(parameters) and '"$defs"' not in json.dumps(parameters)
-        assert body["tool_choice"] == {"type": "function", "function": {"name": "resolve_place"}}
-        return httpx.Response(200, json=completion(finish=finish))
+        return httpx.Response(200, json=completion())
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         assert await ToolModel(client, "fixture-secret", "groq", .5).call(original) == {"place": PLACE}
@@ -64,22 +70,6 @@ async def test_anthropic_keeps_the_original_pydantic_schema():
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         assert await ToolModel(client, "fixture").call(body) == {"place": PLACE}
 
-
-def test_inline_schema_expands_shared_nested_refs_and_preserves_sibling_constraints():
-    schema = {
-        "$defs": {"Name": {"type": "string", "minLength": 1},
-                  "Names": {"type": "array", "items": {"$ref": "#/$defs/Name"}}},
-        "type": "object", "properties": {
-            "names": {"$ref": "#/$defs/Names"},
-            "name": {"$ref": "#/$defs/Name", "minLength": 3},
-        },
-    }
-    assert inline_tool_schema(schema) == {
-        "type": "object", "properties": {
-            "names": {"type": "array", "items": {"type": "string", "minLength": 1}},
-            "name": {"allOf": [{"type": "string", "minLength": 1}, {"minLength": 3}]},
-        },
-    }
 
 
 @pytest.mark.parametrize("schema", [
@@ -102,7 +92,7 @@ async def test_unsupported_schema_fails_safely_before_groq_request(schema):
     assert calls == []
 
 
-@pytest.mark.parametrize("bad", [{}, {"choices": []}, completion(finish="length"), completion(name="invented", finish="stop"),
+@pytest.mark.parametrize("bad", [{}, {"choices": []}, completion(finish="length"), completion(finish="tool_calls"),
                                  completion(value=[1]), {"choices": completion()["choices"] * 2},
                                  {"choices": [{"finish_reason": "stop", "message": {"tool_calls": []}}]}])
 async def test_bad_groq_response_is_a_safe_failure_without_retry(bad):
@@ -118,7 +108,7 @@ async def test_bad_groq_response_is_a_safe_failure_without_retry(bad):
     assert len(calls) == 1
 
 
-@pytest.mark.parametrize("failure", [400, 401, 429, 307, "timeout", "invalid_json", "two_tools"])
+@pytest.mark.parametrize("failure", [400, 401, 429, 307, "timeout", "invalid_json", "unexpected_tool"])
 async def test_groq_failures_do_not_leak_retry_redirect_or_fall_back(failure):
     calls = []
 
@@ -126,12 +116,12 @@ async def test_groq_failures_do_not_leak_retry_redirect_or_fall_back(failure):
         calls.append(request)
         if failure == "timeout":
             raise httpx.ReadTimeout("private upstream body")
-        if failure in ("invalid_json", "two_tools"):
+        if failure in ("invalid_json", "unexpected_tool"):
             body = completion()
             if failure == "invalid_json":
-                body["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"] = "not JSON private"
+                body["choices"][0]["message"]["content"] = "not JSON private"
             else:
-                body["choices"][0]["message"]["tool_calls"] *= 2
+                body["choices"][0]["message"]["tool_calls"] = [{"private": True}]
             return httpx.Response(200, json=body)
         return httpx.Response(failure, text="private upstream body", headers={"Location": "https://unsafe.example"})
 
@@ -182,7 +172,7 @@ async def test_resolution_cache_separates_providers_even_with_identical_model_na
     async with fakeredis.aioredis.FakeRedis(decode_responses=True) as cache:
         async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
             for provider in ("groq", "anthropic", "groq", "anthropic"):
-                resolver = ClaudePlaceResolver(client, "fixture", "same-model",
+                resolver = ClaudePlaceResolver(client, "fixture", "openai/gpt-oss-20b",
                                                tool_model=ToolModel(client, "fixture", provider))
                 assert (await CachedPlaceResolver(resolver, cache).resolve("Skok", SOURCES)).model_dump() == PLACE
         assert len(calls) == 2

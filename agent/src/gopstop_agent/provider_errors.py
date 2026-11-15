@@ -8,7 +8,7 @@ PROVIDERS = {"anthropic", "groq", "exa", "nominatim"}
 OPERATIONS = {"extract_route_intent", "resolve_place", "write_chat_reply", "assess_availability", "search", "geocode"}
 REASONS = {"http_status", "transport", "timeout", "request_schema", "response_json",
            "incomplete_generation", "unexpected_tool", "tool_arguments", "schema_validation",
-           "invalid_source_index", "no_usable_sources", "discovery_deadline"}
+           "invalid_source_index", "no_usable_sources", "discovery_deadline", "model_refusal", "structured_content"}
 CODES = {"tool_use_failed", "rate_limit_exceeded", "insufficient_quota", "invalid_api_key",
          "model_not_found", "model_decommissioned", "context_length_exceeded",
          "invalid_request_error", "authentication_error", "permission_error", "rate_limit_error",

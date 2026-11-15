@@ -17,7 +17,7 @@ from test_resolver import tool
 PLACE = {"name": "Skok", "geocodeQuery": "Skok, High Tatras, Slovakia",
          "sourceIndex": 0, "tags": ["waterfall"]}
 SOURCES = [ResearchSource(title="Skok", sourceUrl="https://evidence.example/skok", text="A Tatras waterfall.")]
-PREFIX = "gopstop:place-resolution:v1:"
+PREFIX = "gopstop:place-resolution:v2:"
 
 
 @pytest.fixture

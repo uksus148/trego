@@ -31,7 +31,7 @@ async def test_probe_is_uncached_read_only_and_reports_redacted_failure(caplog, 
             ]})
         assert request.url.host == "api.groq.com"  # Java/ORS/Nominatim are forbidden.
         body = json.loads(request.content)
-        assert body["tool_choice"]["function"]["name"] == "resolve_place"
+        assert body["response_format"]["json_schema"]["name"] == "resolve_place"
         if outcome == "groq_http":
             return httpx.Response(400, json={"error": {"code": "tool_use_failed", "failed_generation": secret}})
         return httpx.Response(200, json=completion(value={

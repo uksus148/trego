@@ -23,10 +23,9 @@ class CachedPlaceResolver:
         if not sources:
             return None
         # Covers model, prompt/schema and ordered evidence, without credentials or session IDs.
-        request = self._resolver.request_body(description, sources)
-        identity = {"provider": self._resolver.provider, "request": request}
+        identity = self._resolver.cache_identity(description, sources)
         digest = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-        key = f"gopstop:place-resolution:v1:{digest}"
+        key = f"gopstop:place-resolution:v2:{digest}"
         cached = await self._cache.get(key)
         if cached is not None:
             try:
