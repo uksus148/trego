@@ -1,0 +1,23 @@
+{
+  "profile": "synthetic-fixture-v1",
+  "message": "Fixture hike from Fixture Lake to Fixture Summit via Fixture Falls, Fixture Lake and Fixture Falls",
+  "incompleteMessage": "Fixture incomplete hike",
+  "intent": {"start": "Fixture Lake", "end": "Fixture Summit", "mustSee": ["Fixture Falls", "Fixture Lake", "Fixture Falls"], "preferences": ["quiet scenery"]},
+  "places": [
+    {"id": "10000000-0000-4000-8000-000000000001", "name": "Fixture Lake", "lat": 49.0, "lon": 20.0, "tags": [], "photos": [], "source": "https://evidence.example/lake"},
+    {"id": "10000000-0000-4000-8000-000000000002", "name": "Fixture Falls", "lat": 49.1, "lon": 20.1, "tags": [], "photos": [], "source": "https://evidence.example/falls"},
+    {"id": "10000000-0000-4000-8000-000000000003", "name": "Fixture Summit", "lat": 49.2, "lon": 20.2, "tags": [], "photos": [], "source": "https://evidence.example/summit"}
+  ],
+  "osmIds": [900000001, 900000002, 900000003],
+  "stopIndexes": [1, 0, 1],
+  "route": {
+    "id": "20000000-0000-4000-8000-000000000001",
+    "geojson": {"type": "LineString", "coordinates": [[20.0, 49.0], [20.1, 49.1], [20.0, 49.0], [20.1, 49.1], [20.2, 49.2]]},
+    "distanceKm": 7.5, "ascentM": 600.0, "durationMin": 90.0, "segments": [],
+    "places": [
+      {"id": "10000000-0000-4000-8000-000000000002", "name": "Fixture Falls", "lat": 49.1, "lon": 20.1, "tags": [], "photos": [], "source": "https://evidence.example/falls"},
+      {"id": "10000000-0000-4000-8000-000000000001", "name": "Fixture Lake", "lat": 49.0, "lon": 20.0, "tags": [], "photos": [], "source": "https://evidence.example/lake"},
+      {"id": "10000000-0000-4000-8000-000000000002", "name": "Fixture Falls", "lat": 49.1, "lon": 20.1, "tags": [], "photos": [], "source": "https://evidence.example/falls"}
+    ]
+  }
+}
