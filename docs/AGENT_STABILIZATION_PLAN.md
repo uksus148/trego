@@ -37,10 +37,11 @@ S1 merged in #64 at `204058c`. S2 merged in #65 at `4edccf3` with both approvals
 Daniil recorded 15/15 correct 20B language selections in his sample and browser
 clarification clearing. S3 merged in #66 at `f93204d`, including formatting and deduplication follow-ups.
 Its live review found the shared resolution cache could pin a failed downstream
-selection for a day. S4a now prepares selection-aware TTLs and a shared-research
-probe for review. Castle/cathedral alias/type corrections and S5 remain pending.
-The Rysy shared/isolated discrepancy motivates cache policy correction; precise
-castle/cathedral candidate evidence still gates changes to identity selection.
+selection for a day. S4a merged in #67 at `cf5fe23`, with both approvals and
+primary 20B TTL/reuse acceptance. S4b now prepares exact feature-attribute and
+religious-alias corrections using fresh public Nominatim observations, documented
+in [OSM identities](../agent/OSM_IDENTITIES.md). S5 remains pending; true Štrbské
+Pleso ambiguity still requires evidence or clarification, not a forced lake preference.
 No paid retries or provider fallback are introduced. Strict JSON controls structure,
 not geographic truth, language or availability. Dependency failures remain errors.
 

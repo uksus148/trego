@@ -216,3 +216,10 @@ Record shared and isolated findings separately on 20B and 120B. Reconfirm positi
 cache reuse and normal route persistence in the browser after reviewed deployment.
 No live acceptance was performed by the fixture author; the #66 Rysy observation
 and castle/cathedral identity issues remain separately attributed.
+
+## Verify S4b landmark identity
+
+Follow [the observed OSM evidence and acceptance](OSM_IDENTITIES.md). Use fresh
+cold probes for Castle/Cathedral and Tatras on the reviewed revision before
+claiming live model success; extra attributes are requested automatically without
+a cache flush. Then check saved browser routes and original Rysy rejection.

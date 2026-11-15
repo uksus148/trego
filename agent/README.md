@@ -212,7 +212,7 @@ Concurrent misses may still make duplicate model calls; there is no single-fligh
 
 No new configuration is needed; it uses the existing Valkey client and deadlines.
 
-Nominatim requests use up to eight candidates and include OSM name aliases. The
+Nominatim requests use up to eight candidates and include OSM name aliases and extra feature attributes. The
 resolver asks for an evidenced canonical name and country, omitting broad mountain
 regions. An empty `name, region, country` search can make one distinct
 `name, country` search; HTTP errors and ambiguous results do not trigger fallback.
@@ -220,8 +220,10 @@ Both searches share one provider deadline and the existing distributed request g
 
 Selection requires a matching name/alias (case/diacritics normalized, generic English
 feature words ignored) and a matching OSM type when an evidenced supported category
-is supplied. Recognized tags are waterfall, peak, lake, castle, village, town, city
-and resort. Unrecognized interests do not become OSM filters. For several matches,
+is supplied. Recognized tags are waterfall, peak, lake, castle, cathedral, church, village, town,
+city and resort. Recognized entity tags constrain jointly; secondary exact OSM
+attributes can support a feature when the primary category differs. Generic
+attractions are insufficient. See [landmark identity evidence](OSM_IDENTITIES.md). Unrecognized interests do not become OSM filters. For several matches,
 discovery can reconsider the candidates within 25 km of an independently resolved
 point in the same request. It accepts only one remaining OSM identity, never the
 first/nearest/most important hit. Contextual choices do not become new anchors.
@@ -303,3 +305,7 @@ discovery. See [discovery diagnostics](DISCOVERY_DIAGNOSTICS.md) for the read-on
 full probe, cold-cache isolation, shared Nominatim rate gate and reason meanings.
 The #65 review's cold Rysy/Štrbské Pleso observation still needs live reproduction;
 this diagnostic block does not loosen identity matching or claim that case fixed.
+
+S4b adds exact OSM feature-attribute checks and narrow St./Saint normalization for
+religious building aliases. [Observed records, limits and live acceptance](OSM_IDENTITIES.md)
+explain the Castle/Cathedral correction and retained Štrbské Pleso ambiguity.

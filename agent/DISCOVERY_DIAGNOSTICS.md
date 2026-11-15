@@ -116,3 +116,5 @@ The castle's repeated type mismatch and cathedral's varying name mismatch remain
 separate S4 identity work. A successful fresh resolution does not justify loosening
 these filters or claiming a Java/ORS outage. The reviewed counts identify the gate,
 but a precise alias/category correction still needs the actual candidate evidence.
+
+The next [S4b landmark correction](OSM_IDENTITIES.md) uses fresh public OSM attribute/alias evidence for the castle and cathedral. Remaining multi-identity cases still require type evidence or clarification.

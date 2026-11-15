@@ -279,6 +279,15 @@ Ignore old namespaces without flushing data. Exa and ORS retain their 24-hour ca
 The discovery probe's explicit shared-research mode uses ordinary cache writes and
 selection feedback but no Java/route/session writes. Both owners review this policy.
 
+S4b uses [observed OSM feature/alias evidence](agent/OSM_IDENTITIES.md): request
+Nominatim extra tags and permit exact castle/cathedral/church/lake attributes in
+addition to primary types. Name matching remains required; a generic attraction
+is insufficient. Normalize leading St./Saint only for church/cathedral names.
+Recognized entity tags constrain jointly. Keep multiple identities ambiguous and
+never prefer the lake solely from the name Štrbské Pleso. Shared rate gating,
+source binding, cache lifecycle, route inputs and public shapes remain unchanged.
+Both owners review these identity-selection semantics; live model acceptance is separate.
+
 ### API container packaging
 
 PR #46 prepares the existing Spring Boot API for container execution; public
