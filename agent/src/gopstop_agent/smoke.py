@@ -20,7 +20,7 @@ from gopstop_agent.exa import ExaSearch
 from gopstop_agent.geocoding import NominatimGeocoder
 from gopstop_agent.intent import ClaudeIntentExtractor
 from gopstop_agent.llm import ProviderError, create_tool_model
-from gopstop_agent.replies import ClaudeReplyWriter
+from gopstop_agent.localized_replies import LanguageSelector
 from gopstop_agent.resolver import ClaudePlaceResolver
 from gopstop_agent.sessions import ValkeySessionStore
 from gopstop_agent.trails_api import HandoffError, TrailsApi, url_adapter
@@ -72,11 +72,9 @@ async def preflight(http, cache, settings: Settings, report: dict) -> None:
     )
     report["geocoding"] = "resolved" if location else "needs_clarification"
     report["checks"].append("nominatim")
-    report["stage"] = "llm_reply"
-    await ClaudeReplyWriter(http, key, name, timeout, tool_model=model).write(
-        "Help me choose a hike.", [], "clarification", {"missingEndpoints": ["start", "end"]},
-    )
-    report["checks"].append("llm_reply")
+    report["stage"] = "reply_language"
+    require(await LanguageSelector(model, name).select("Help me choose a hike.", []) == "en")
+    report["checks"].append("reply_language")
     report["stage"] = "api_read"
     response = await http.get(str(settings.api_base_url).rstrip("/") + "/api/places",
                               params={"bbox": "20,49,21,50"}, timeout=settings.api_timeout_seconds)

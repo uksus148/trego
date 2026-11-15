@@ -12,7 +12,7 @@ from gopstop_agent.discovery import PlaceDiscovery, create_discovery
 from gopstop_agent.handoff import RouteHandoff, create_handoff
 from gopstop_agent.intent import IntentClarificationRequired, Message
 from gopstop_agent.llm import create_tool_model
-from gopstop_agent.replies import ClaudeReplyWriter
+from gopstop_agent.localized_replies import FactualReplyWriter, LanguageSelector, LANGUAGE_QUESTION
 from gopstop_agent.trails_api import HandoffError, NoHikingRoute, WaypointNotRoutable
 
 
@@ -24,16 +24,23 @@ class ChatResponse(BaseModel):
 
 class ChatService:
     def __init__(self, discovery: PlaceDiscovery, handoff: RouteHandoff,
-                 replies: ClaudeReplyWriter) -> None:
+                 replies, language_selector: LanguageSelector | None = None) -> None:
         self._discovery, self._handoff, self._replies = discovery, handoff, replies
+        self._language_selector = language_selector
 
     async def respond(self, message: str, history: list[Message]) -> ChatResponse:
+        language = "en"
+        if self._language_selector is not None:
+            with stage("language"):
+                language = await self._language_selector.select(message, history)
+            if language == "unknown":
+                return ChatResponse(reply=LANGUAGE_QUESTION, places=[])
         places, route_id = [], None
         try:
             with stage("discovery"):
                 finding = await self._discovery.discover(message, history)
         except IntentClarificationRequired as exc:
-            outcome, facts = "clarification", {"question": exc.question}
+            outcome, facts = "clarification", {"intentLimits": True}
         except RedisError as exc:
             raise HandoffError("Place research cache is temporarily unavailable.", 503) from exc
         else:
@@ -54,19 +61,19 @@ class ChatService:
                     }
                 else:
                     outcome, facts = "ready", {
-                        "places": [place.name for place in saved.places],
+                        "visits": saved.visits or [place.name for place in saved.places],
                         "intermediateStops": [place.name for place in saved.route.places],
                         "distanceKm": saved.route.distanceKm, "ascentM": saved.route.ascentM,
                         "durationMin": saved.route.durationMin,
                     }
                     places, route_id = saved.places, saved.route.id
         with stage("reply"):
-            reply = await self._replies.write(message, history, outcome, facts)
+            options = {"language": language} if self._language_selector is not None else {}
+            reply = await self._replies.write(message, history, outcome, facts, **options)
         return ChatResponse(reply=reply, places=places, routeId=route_id)
 
 
 def create_chat(client: httpx.AsyncClient, cache: Redis, settings: Settings) -> ChatService:
     model = create_tool_model(client, settings)
     return ChatService(create_discovery(client, cache, settings, model), create_handoff(client, settings),
-                       ClaudeReplyWriter(client, settings.llm_key.get_secret_value(), settings.llm_model,
-                                         settings.provider_timeout_seconds, tool_model=model))
+                       FactualReplyWriter(), LanguageSelector(model, settings.llm_model))

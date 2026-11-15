@@ -26,7 +26,7 @@ async def test_preflight_checks_real_adapters_with_fixtures_and_only_deletes_its
         if request.url.host == "api.groq.com":
             name = json.loads(request.content)["response_format"]["json_schema"]["name"]
             value = {"extract_route_intent": {"start": "A", "end": "B", "mustSee": [], "preferences": []}, "resolve_place": {"place": PLACE},
-                     "write_chat_reply": {"reply": "Where would you like to start?"}}[name]
+                     "select_reply_language": {"language": "en"}}[name]
             return httpx.Response(200, json=completion(name, value))
         if request.url.host == "api.exa.ai":
             return httpx.Response(200, json={"results": [{"title": "Skok", "url": "https://evidence.example/", "text": "Tatras"}]})

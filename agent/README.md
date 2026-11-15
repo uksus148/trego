@@ -86,10 +86,9 @@ no provider requests and cannot prove account/model availability. Managed HTTP a
 Valkey clients close on shutdown or failed startup. `create_app` accepts injected
 clients/service for fixtures; the caller retains ownership of injected resources.
 
-Chat loads the latest six exchanges, discovers places, clarifies incomplete or
-excessive intent without ingestion, or calls the existing route handoff. Claude
-phrases the known outcome in the latest user's language (conversation language
-for a name/link-only follow-up). After generation, store the exchange before 200.
+Chat loads the latest six exchanges and selects a supported reply language before
+discovery. It clarifies incomplete/excessive intent or calls the route handoff,
+renders the known result locally, then stores the exchange before 200. See S2 below.
 Verified no-path and unmatched-waypoint results produce distinct normal clarifications
 under issue #49's extension, pending affected-owner review. Neither identifies a closure,
 season or difficulty as its cause. Provider/invalid-response failures return 502, storage/cache failures 503, and deadlines 504, with safe detail.
@@ -97,12 +96,32 @@ Failed requests do not record success; already committed API data may survive
 reply/storage failure or cancellation. Never automatically retry uncertain POSTs.
 
 `AGENT_CHAT_TIMEOUT_SECONDS` defaults to 180 (maximum 300) and covers history,
-discovery, handoff, reply generation and session storage. Existing shorter stage
+language classification, discovery, handoff, local reply rendering and session storage. Existing shorter stage
 limits still apply. `logging.json` enables stage elapsed time/outcome logs with a
 random request trace and hashed session label, without message text, keys or raw
 session IDs. [Provider diagnostics](DIAGNOSTICS.md) explains safe status/code/schema
 metadata, cache events, queue/quota timing and the read-only cold resolution probe.
 These are internal diagnostics, not new public response fields.
+
+## Factual localized replies (S2)
+
+The enabled factory selects language before discovery through a dedicated structured
+`select_reply_language` task, using only current and previous user messages (six
+maximum). Assistant messages may contain the #60 error and are not used. Place names,
+URLs and quoted text are not evidence of the user's conversational language. A place/
+link-only follow-up inherits the previous substantive user language. This is model
+classification, not a guaranteed language detector; verify mixed-name and follow-up
+cases live. Unknown/unsupported language returns a selection question before discovery.
+
+`FactualReplyWriter` renders English/Russian/Slovak/Finnish catalogs for every current
+outcome. It uses canonical persisted visit names in order (including repeats) and
+readback metrics rounded to 2 decimals for km and integer m/min. No directions,
+closure explanations or preference-based track changes are generated. No LLM call
+runs after route handoff; the existing session-save step still follows rendering.
+The old `ClaudeReplyWriter` remains an unwired compatibility adapter; enabled chat
+and preflight no longer use it. Preflight replaces `llm_reply` with `reply_language`.
+The language call replaces the former reply-generation call, under the total chat
+deadline and shared quota gate. It is outside discovery's shorter timeout.
 
 ## Intent extraction
 

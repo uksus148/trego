@@ -15,6 +15,7 @@ from gopstop_agent.trails_api import HandoffError, TrailsApi
 class HandoffResult(BaseModel):
     route: ApiRoute
     places: list[ApiPlace]
+    visits: list[str] = []
     attribution: str
 
 
@@ -48,7 +49,7 @@ class RouteHandoff:
                 for place in visits:
                     unique.setdefault(place.id, place)
                 return HandoffResult(route=saved, places=list(unique.values()),
-                                     attribution=discovery.attribution)
+                                     attribution=discovery.attribution, visits=[place.name for place in visits])
         except TimeoutError as exc:
             raise HandoffError("Route handoff exceeded its time limit.", 504) from exc
 

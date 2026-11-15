@@ -52,7 +52,7 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
 ## Sequential blocks
 
 Follow the approved [stabilization sequence S1-S5](AGENT_STABILIZATION_PLAN.md).
-#62 merged at `5020cd5`; S1 strict extraction is now prepared for review. The earlier
+#64 merged S1 at `204058c`; S2 factual localized replies are prepared for review. The earlier
 language/reliability findings are tracked against both separately attributed #63 runs.
 
 
@@ -64,7 +64,7 @@ safe provider status/code/schema diagnostics, cache/wait evidence and an explici
 [read-only cold resolution probe](../agent/DIAGNOSTICS.md). The historical cause is
 unconfirmed; fixtures cannot replace the team's live reproduction. No paid retries
 or changed public chat behavior are introduced. The separately assigned language
-issue [#60](https://github.com/uksus148/trego./issues/60) is stabilization block S2, after S1 review/merge.
+issue [#60](https://github.com/uksus148/trego./issues/60) is stabilization block S2, now submitted for both-owner review.
 
 The #54 review is complete and the typed routing correction merged at `41ffe14`
 (265 agent tests). Mukhamed requested his optional availability-research slice next.
