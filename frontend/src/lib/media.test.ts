@@ -59,6 +59,8 @@ describe('parsePlaceMedia', () => {
     ['a different placeId', { ...ready, placeId: 'other' }],
     ['a full image on the thumbnail host', withPhoto({ url: 'https://thumb.wikimedia.org/full.jpg' })],
     ['a thumbnail on a lookalike host', withPhoto({ thumbUrl: 'https://thumb.wikimedia.org.evil.example/t.jpg' })],
+    ['a thumbnail on a subdomain of the thumbnail host', withPhoto({ thumbUrl: 'https://evil.thumb.wikimedia.org/t.jpg' })],
+    ['a non-HTTPS thumbnail on the thumbnail host', withPhoto({ thumbUrl: 'http://thumb.wikimedia.org/t.jpg' })],
     ['ready without photos', { ...ready, photos: [] }],
     ['empty with a photo', { ...empty, photos: [photo] }],
     ['more than one photo', { ...ready, photos: [photo, photo] }],
