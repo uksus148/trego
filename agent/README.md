@@ -230,6 +230,16 @@ first/nearest/most important hit. Contextual choices do not become new anchors.
 This is a conservative ambiguity filter, not a route-distance limit; several local
 matches or insufficient context remain unresolved without partial ingestion.
 
+Issue #76 separates a requested target from route-wide search context. Resolution
+must identify that place itself, not replace a city with a castle/peak found in a
+hiking article. When name/query identity is not preserved by the selected OSM
+result, one cached lookup of the original target can independently
+establish an exact settlement identity. An incompatible result reports internal
+`requested_identity_mismatch` and clarifies before handoff; it never silently swaps
+coordinates or broadens the radius. This verification shares the provider deadline
+and distributed gate, may add one public lookup, and adds no model retry. See
+[evidence and limits](OSM_IDENTITIES.md#issue-76-requested-settlements).
+
 `gopstop:nominatim:search:v3` caches validated candidate arrays for 24 hours, or an
 empty array for five minutes. Selection is recomputed from name/tags/context, so an
 ambiguous decision is not frozen as null. Cache identity includes host, exact query

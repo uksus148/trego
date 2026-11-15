@@ -21,6 +21,7 @@ distinguish the following outcomes:
 | `type_mismatch` | Name matches exist, but none passes the known object-type filter |
 | `ambiguous_candidates` | Multiple distinct accepted OSM identities remain |
 | `conflicting_identity` | Accepted entries for the same OSM identity disagree on coordinates |
+| `requested_identity_mismatch` | Original-target lookup establishes a settlement inconsistent with the source-led resolution, or cannot distinguish its identities |
 | `outside_context` | Several matches existed, and none survived the existing independent-anchor context filter |
 | `resolved` | One identity is accepted with source binding and coordinates |
 
@@ -29,7 +30,31 @@ identity counts. Contextual reconsideration emits a second result using the same
 candidate index. These are outcomes, not HTTP exceptions: `stage=... outcome=ok`
 alone still does not prove resolution. Provider/timeouts/storage failures remain
 errors, never normal ambiguity. Nominatim HTTP failures now retain safe status/code.
-Selection rules, OSM provenance, query broadening limits and routing inputs are unchanged.
+OSM provenance and routing inputs are unchanged. The
+[issue #76 verification](OSM_IDENTITIES.md#issue-76-requested-settlements) can perform
+one cached original-target lookup to reject a settlement/attraction substitution.
+
+## Issue #76: inspect requested identity
+
+The explicit probe includes `matches`: name/type-matched `osmType`, `osmId` and
+minimum `distanceKm` to independent anchors before contextual filtering. Distances
+are null without anchors. `requestedMatches` contains independently evidenced
+settlement type/IDs on an identity mismatch. Counts therefore no longer hide which
+objects the resolver found. Routine logs keep counts only; treat the local report
+as location data, without publishing private configuration.
+
+From `agent/` on the reviewed revision, using the team's existing private configuration:
+
+```sh
+uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --message "Hike from Bratislava to Vienna."
+uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --message "Walk from Bratislava, Slovakia to Vienna, Austria."
+```
+
+Each is an explicit run that can spend model/Exa credits on cache misses. Stop on
+quota/provider errors. Expected success uses city relations 1702499 and 109166,
+not Bratislava Castle or either Kahlenberg peak. An identity mismatch must clarify
+without Java/route/session writes. A probe success still needs normal browser and
+persisted-route acceptance. Keep 20B and 120B evidence separate; never flush team caches.
 
 ## Full discovery probe on the team's machine
 

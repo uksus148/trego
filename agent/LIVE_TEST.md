@@ -234,6 +234,11 @@ unresolved, the reply must identify start/end/stop role when a normalized intent
 name is absent literally from the user's wording. Do not promise a successful
 long-distance route, cycling, corridor POIs or photos from this discovery check.
 
+For #76, run [requested-identity diagnostics](DISCOVERY_DIAGNOSTICS.md#issue-76-inspect-requested-identity).
+The expected endpoints are the cities, not Bratislava Castle and Kahlenberg.
+Inspect exact OSM IDs before route creation. A normal clarification after detecting
+a substitution is a safety check, not a successful city-to-city route acceptance.
+
 The #68 review confirmed a separate Groq 20B **daily token** limit (TPD), even
 while the per-minute bucket had room. Spacing calls by a minute does not establish
 that daily capacity is available. Avoid repeated cold runs until the account has

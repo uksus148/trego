@@ -268,6 +268,16 @@ submitted `source`, return 400 rather than being silently ignored. See the
   24-hour positive results and five-minute empty results in a new namespace.
   Internal/public result shapes, source binding and API handoff remain unchanged.
 
+  Issue #76's follow-up separates the exact requested target from route-wide Exa
+  research context and tells the resolver not to substitute hiking attractions.
+  When the name/query identity is not preserved by the selected OSM result,
+  the agent may make one cached Nominatim query for the original target, within
+  the same provider deadline and shared gate. An exact independently evidenced
+  settlement constrains the accepted OSM identity; conflicting/ambiguous identity
+  clarifies before writes. This is an identity verification, not an expanded-radius
+  fallback or an automatic model retry. Both owners review this policy. Public
+  chat/intent schemas, ingestion, routing and the 25 km ambiguity filter stay unchanged.
+
 S3 adds internal discovery reasons/counts and a [read-only diagnostic procedure](agent/DISCOVERY_DIAGNOSTICS.md).
 Missing endpoints clarify before place research; provider failures remain errors.
 The existing OSM selection rules are preserved. No public fields are added.

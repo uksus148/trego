@@ -105,3 +105,55 @@ first run geocoding/discovery fixtures, then a deliberately bounded read-only
 city probe after quota is available; verify exact identities and use a hiking
 request for route acceptance. Cycling, corridor POI search and photos from the
 original #69 prompt remain outside this bug and are not enabled by it.
+
+## Issue #76: requested settlements
+
+The initial 20B report on main `db9b0d3` inferred two Vienna candidates followed by
+`outside_context`. Daniil's subsequent shared-cache discovery inspection changed
+the diagnosis: the resolver mapped requested Bratislava to Bratislava Castle
+(way 1128350263), and requested Vienna to Kahlenberg, with two peak nodes
+195763017 and 12962364097. This was a fresh run, not recovery of the original
+unlogged payloads. A wider radius could route to an unrequested mountain.
+
+Independent public searches on November 15 used the project's contact User-Agent,
+the usual limit/format/name/extra options, and more than one second between calls.
+`Vienna` and `Vienna, Austria` each returned city relation 109166, Q1741.
+`Kahlenberg, Austria` returned the two reported peak nodes at 48.2763418/16.3330680
+and 48.2282682/15.4749161. Reduced records with OSM attribution are preserved in
+`tests/test_requested_settlement.py`. No live Groq/Exa/ORS calls were made here.
+
+Research now asks for information about the exact target; route context is only
+research context. The resolver receives the target string itself, not a route-wide
+"Find hiking place" instruction. Its prompt prohibits attraction substitution.
+Changed prompt/input identity naturally bypasses old resolution-cache entries;
+changed research queries have distinct Exa keys. No shared keys are flushed.
+
+Application verification supplements the prompt. An unchanged name/query with
+attested aliases, or a settlement with aliases for both requested/resolved names,
+needs no extra request. Otherwise search the original target once using the normal
+Nominatim cache/options/gate. An attraction sharing a city's alias does not bypass
+verification when the resolver changes the name or query. Only exact
+name/alias matches with city/town/village/hamlet evidence can constrain the identity;
+do not infer a city from a nearby peak or an arbitrary boundary. Country qualifiers
+remain in the verification query; the name comparison uses its first comma component.
+If an independently established settlement conflicts with the resolution, or has
+multiple identities, return `requested_identity_mismatch`, with no place or route
+writes. Never substitute the verification coordinates into an attraction result or
+invent a supporting research source. Attested multilingual city aliases need no
+extra request. Descriptive landmark discovery remains supported when the original
+phrase does not establish a settlement. Model interpretation is still fallible.
+
+The verification adds at most one original-target lookup per geocode invocation,
+sharing its existing total timeout. Contextual reconsideration reuses the candidate
+cache; errors remain errors, with no automatic provider/model retries. Candidate
+v3 already stores the required fields. Positive/empty TTLs, selection feedback and
+the 25 km ambiguity filter are unchanged. A rejected resolution cannot be promoted
+to the accepted 24-hour lifetime.
+
+Internal/probe `matches` retain resolver-name/type-matched OSM type/IDs and minimum
+anchor distance before contextual filtering. `requestedMatches` records constraining
+settlement identities on a mismatch. No names, queries or source bodies are added
+to routine logs or public chat JSON. Both owners review the policy; live closure
+requires the two original English prompts on the reviewed revision with exact
+city identities, then saved route/browser/source checks. Fixture success alone
+does not establish that the live model now resolves both cities.
