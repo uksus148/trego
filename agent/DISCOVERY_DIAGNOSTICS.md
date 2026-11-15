@@ -21,7 +21,7 @@ distinguish the following outcomes:
 | `type_mismatch` | Name matches exist, but none passes the known object-type filter |
 | `ambiguous_candidates` | Multiple distinct accepted OSM identities remain |
 | `conflicting_identity` | Accepted entries for the same OSM identity disagree on coordinates |
-| `requested_identity_mismatch` | Original-target lookup establishes a settlement inconsistent with the source-led resolution, or cannot distinguish its identities |
+| `requested_identity_mismatch` | A changed named target lacks usable independent identity proof: missing, nonmatching, incompatible or ambiguous verification |
 | `outside_context` | Several matches existed, and none survived the existing independent-anchor context filter |
 | `resolved` | One identity is accepted with source binding and coordinates |
 
@@ -55,6 +55,35 @@ quota/provider errors. Expected success uses city relations 1702499 and 109166,
 not Bratislava Castle or either Kahlenberg peak. An identity mismatch must clarify
 without Java/route/session writes. A probe success still needs normal browser and
 persisted-route acceptance. Keep 20B and 120B evidence separate; never flush team caches.
+
+## Locate an incorrect successful destination (#77)
+
+Use the explicit `--include-identity` option to compare the normalized intent with
+the source-led resolution and selected OSM identity. It adds `intentTargets` and
+per-finding `identity` containing `requestedTarget`, `resolution` (name, geocodeQuery,
+sourceIndex, tags) and `selectedOsm`. These fields describe derived place data, not
+raw provider bodies. They remain absent by default; normal server logs do not change.
+The flag adds no provider calls or writes beyond the chosen probe profile. Keep
+this location data private in ignored local artifacts and redact it before sharing.
+
+```sh
+uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --include-identity --message "проложи маршрут от братиславы до вены на велике, я хочу увидеть исторические места по пути и поделать фотографий"
+```
+
+If intent itself ends at Stephansdom, inspect intent/history handling; if intent
+retains Vienna but resolution selects Stephansdom, inspect source-led resolution
+and the settlement guard. Compare `selectedOsm` against both candidate arrays.
+`intentTargets.descriptiveTargets` records which phrases the intent stage classified
+as descriptions before research. Named targets default to strict binding; empty
+verification must clarify. The guard constrains extracted intent, not the raw user sentence; its fixture pass
+cannot establish that an upstream rewrite is fixed. The #77 original payloads
+were not captured, so do not declare one stage proven from its successful HTTP response.
+
+Also rerun both exact multi-stop prompts in #76 on the reviewed revision. Preserve
+city/town endpoints, all named stops, order and repeats. Synthetic multi-stop fixtures
+verify discovery/handoff wiring, not those live model choices. Follow with saved
+route/readback, source/session and media ready/empty/error-isolation checks. Cycling
+and category-based corridor search remain outside the MVP; no routing fallback is added.
 
 ## Full discovery probe on the team's machine
 

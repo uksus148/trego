@@ -276,7 +276,20 @@ submitted `source`, return 400 rather than being silently ignored. See the
   settlement constrains the accepted OSM identity; conflicting/ambiguous identity
   clarifies before writes. This is an identity verification, not an expanded-radius
   fallback or an automatic model retry. Both owners review this policy. Public
-  chat/intent schemas, ingestion, routing and the 25 km ambiguity filter stay unchanged.
+  chat/Java wire shapes, ingestion, routing and the 25 km ambiguity filter stay unchanged.
+  Internal intent adds `descriptiveTargets`: only exact requested target strings
+  explicitly classified as descriptions before Exa may be interpreted as another
+  evidenced name. The default empty list treats targets as named. Changed named
+  identities with empty/unusable verification must clarify, never fall through to
+  the substitute. Translated city aliases and explicit requested feature identity
+  remain supported by OSM evidence. Both owners review this internal schema/policy.
+
+  Issue #77 adds an explicit intent rule preserving named city endpoints and the
+  latest requested stop order. The private read-only discovery probe can opt into
+  `--include-identity`: extracted targets, resolution names/queries and selected OSM
+  IDs appear only in local JSON. Default reports and routine logs remain redacted.
+  This distinguishes an intent rewrite from a later source-led substitution; the
+  original #77 internal payloads were not captured. Live acceptance remains separate.
 
 S3 adds internal discovery reasons/counts and a [read-only diagnostic procedure](agent/DISCOVERY_DIAGNOSTICS.md).
 Missing endpoints clarify before place research; provider failures remain errors.

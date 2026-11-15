@@ -3,7 +3,7 @@
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
 or reporting an end-to-end result. Last checked: November 15, 2026, against
-`main` at `db9b0d3` (through merged #74), plus issue #76 requested-settlement verification under review.
+`main` at `9f65a86` (through merged #79), plus #76/#77 agent changes in #78 under review.
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -46,7 +46,7 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B10 | Distinct no-path/unmatched-waypoint handling | Murat, with agent/UI owner reviews | Merged | [#54](https://github.com/uksus148/trego./pull/54), main `41ffe14`; 265 combined agent tests; July-planning demo correction, combined browser acceptance pending |
 | B11 | Internal optional availability research | Mukhamed | Merged; not connected to HTTP chat | [#56](https://github.com/uksus148/trego./pull/56), main `cc2112e`, [core and limits](../agent/AVAILABILITY.md); 328 fixture tests; no live acceptance or public activation |
 | B12 | Optional availability-research boundary | Murat; agent/UI remain with their owners | Java input validation and wire proposal submitted for review from main `4efa575`; public research not enabled | [Contract](ROUTE_AVAILABILITY_CONTRACT.md), [fixtures](contracts/route-availability.examples.json); 204 local API tests passed, including ten strict-input cases; needs affected-owner agreement and chat/UI integration; B10/B11 are reserved by the parallel [#56](https://github.com/uksus148/trego./pull/56) |
-| B13 | Idle Valkey connection recovery | Mukhamed | Merged; live idle rerun pending | [#59](https://github.com/uksus148/trego./pull/59), main `e6b8145`; [#58](https://github.com/uksus148/trego./issues/58); 335 agent tests, including local RESP/TCP faults; no application-write or provider retries |
+| B13 | Idle Valkey connection recovery | Mukhamed | Merged; Daniil closed #58 after first-chat success following 28 minutes idle on db9b0d3 | [#59](https://github.com/uksus148/trego./pull/59), main `e6b8145`; [live evidence](https://github.com/uksus148/trego./issues/58); sampled first-chat check, not a claimed three-chat idle matrix |
 | B14 | Diagnosable provider failures and cold resolution probe | Mukhamed | Merged; both reviews; live 20B cold probe and safe 401 diagnostics verified | [#62](https://github.com/uksus148/trego./pull/62), main `5020cd5`; 372 tests; original #61 cause remains unconfirmed; separate 120B intent failure in #63 |
 | B15 | Strict structured model extraction (S1) | Mukhamed | Merged in #64; both approvals; 20B intent/resolution probes 5/5 each, preflight and browser passed | main `204058c`; 394 fixtures; independent live 120B remains; cold strict generation reached 19.5 s plus queue wait, track separately from warm latency |
 | B16 | Factual localized replies (S2) | Mukhamed | Merged in #65; both approvals; primary 20B live language/browser sample passed | main `4edccf3`; 416 fixtures, 15/15 language selections in Daniil's sample; wording follow-up and cold Rysy discovery observation tracked in S3 |
@@ -54,12 +54,33 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
 | B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
 | B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Merged in #72; #76 reports a separate resolution-substitution defect | main `4271e60`; [evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures; candidate v3 preserves addresstype |
-| B21 | Preserve requested settlements against attraction substitution (#76) | Mukhamed | Prepared for both-owner review; live acceptance pending | [Evidence and limits](../agent/OSM_IDENTITIES.md#issue-76-requested-settlements); 507 fixtures passed; exact-target resolution, cached OSM verification and diagnostic IDs; no radius expansion or live Groq/Exa/ORS calls |
+| B21 | Preserve requested settlements against attraction substitution (#76/#77) | Mukhamed | PR #78 under both-owner review; latest-head acceptance pending | [Evidence and limits](../agent/OSM_IDENTITIES.md#issue-76-requested-settlements); 529 agent fixtures passed; named targets fail closed; internal descriptiveTargets precedes Exa; private opt-in identity capture; no live Groq/Exa/ORS calls here |
+| B22 | Shared Nominatim URL identity (#75) | Murat | Merged in #79; issue closed | main `9f65a86`; Mukhamed independently passed 28 URL cases and six real Java/Python Valkey peer cases; full API/container CI passed; gate namespace/token/cooldown unchanged |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |
 | E4 | Integration environment and credentials | Murat coordinates; all owners verify clients | Backend preflight and live agent/control flow passed; consolidated preflight report pending | [Original backend evidence](#e4-live-backend-evidence) and #52 live review use distinct revisions; reconfirm the selected integrated target |
 | E5 | Full Tatras workflow | All three | Discovery passed; Rysy route blocked by #49 | #52 live discovery resolved all three objects; [#49](https://github.com/uksus148/trego./issues/49) still prevents the required route; control success is not full E5 acceptance |
+
+### Issue triage on November 15
+
+- #63 is closed as a completed historical execution report, not final release acceptance.
+  Its separate 20B/120B evidence remains accessible; latest live failures stay in #76/#77.
+- #58, #61 and #69 were already closed by the team with scope-specific evidence.
+  #61's diagnostic gap is fixed; this does not recover its historical unlogged payload.
+- #75 closed after API PR #79 merged, with independent frontend/live and agent/
+  cross-runtime review. No duplicate API patch is included in #78.
+- #76/#77 remain open pending reviewed code and exact live prompts, named-stop order,
+  saved readback and media-error isolation. A safe clarification is not a route pass.
+  #77's failing stage must be captured rather than inferred. The agent solution is
+  proposed in the existing #78; deferred draft PRs #17–#19 remain unchanged.
+
+Daniil's [20B review on ab35920](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)
+passed both #76 English prompts, city identities, browser route/readback, sources
+and city media. His shorter Russian city prompt also retained Vienna. This predates
+the fail-closed review correction/internal descriptive metadata and is not a pass
+of #77's exact longer Russian request or the latest head's multi-stop matrix.
+Both owners must review the updated branch; preserve separate model/revision evidence.
 
 Before E1, the merged manual endpoint ignored provenance and assigned `source: "manual"`;
 the agent rejected that response after a possible committed write. E1 removes this mismatch

@@ -238,6 +238,9 @@ For #76, run [requested-identity diagnostics](DISCOVERY_DIAGNOSTICS.md#issue-76-
 The expected endpoints are the cities, not Bratislava Castle and Kahlenberg.
 Inspect exact OSM IDs before route creation. A normal clarification after detecting
 a substitution is a safety check, not a successful city-to-city route acceptance.
+For #77, use [opt-in identity capture](DISCOVERY_DIAGNOSTICS.md#locate-an-incorrect-successful-destination-77)
+to distinguish intent rewriting from resolution. Keep the Russian 120B report and
+the primary 20B acceptance separate, and include the exact #76 two/three-stop cases.
 
 The #68 review confirmed a separate Groq 20B **daily token** limit (TPD), even
 while the per-minute bucket had room. Spacing calls by a minute does not establish

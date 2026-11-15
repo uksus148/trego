@@ -127,11 +127,13 @@ deadline and shared quota gate. It is outside discovery's shorter timeout.
 ## Intent extraction
 
 `ClaudeIntentExtractor` validates tool use through shared `ToolModel` and the internal
-`{start, end, mustSee[], preferences[]}` result. It accepts recent session history,
+`{start, end, mustSee[], preferences[], descriptiveTargets[]}` result. The last
+field binds exact descriptive target strings before research; it defaults to []
+so omitted metadata cannot waive named-target checks. It accepts recent session history,
 keeps unknown endpoints null, and never asks the model for coordinates. The
 adapter is connected through opt-in chat. Tests use HTTP fixtures, never live providers.
 
-Blank endpoints become null, and blank list items are removed before validation.
+Blank endpoints become null; blank mustSee/preference items are removed before validation.
 If the result still exceeds five intermediate stops or twelve preferences,
 `extract()` raises `IntentClarificationRequired` with a user-facing `question`.
 Chat phrases that question as a normal reply rather than reporting a provider
@@ -239,6 +241,13 @@ establish an exact settlement identity. An incompatible result reports internal
 coordinates or broadens the radius. This verification shares the provider deadline
 and distributed gate, may add one public lookup, and adds no model retry. See
 [evidence and limits](OSM_IDENTITIES.md#issue-76-requested-settlements).
+Internal intent's `descriptiveTargets` lists exact phrases classified as descriptions
+before Exa; its default empty list keeps named targets strict. Changed named targets
+with empty/unusable verification clarify before handoff, while an explicit description
+can resolve to a different evidenced name. Public chat fields remain unchanged.
+For #77, the probe's explicit `--include-identity` option captures intent targets,
+resolution names/queries and selected OSM IDs only in local JSON; default reports
+and routine logs remain redacted. See [stage comparison](DISCOVERY_DIAGNOSTICS.md#locate-an-incorrect-successful-destination-77).
 
 `gopstop:nominatim:search:v3` caches validated candidate arrays for 24 hours, or an
 empty array for five minutes. Selection is recomputed from name/tags/context, so an

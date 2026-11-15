@@ -128,8 +128,9 @@ research context. The resolver receives the target string itself, not a route-wi
 Changed prompt/input identity naturally bypasses old resolution-cache entries;
 changed research queries have distinct Exa keys. No shared keys are flushed.
 
-Application verification supplements the prompt. An unchanged name/query with
-attested aliases, or a settlement with aliases for both requested/resolved names,
+Application verification supplements the prompt. An unchanged name/query retains
+ordinary name/type/context selection. A settlement with aliases for both names,
+or the same identity selected using an explicitly requested feature and OSM evidence,
 needs no extra request. Otherwise search the original target once using the normal
 Nominatim cache/options/gate. An attraction sharing a city's alias does not bypass
 verification when the resolver changes the name or query. Only exact
@@ -140,8 +141,17 @@ If an independently established settlement conflicts with the resolution, or has
 multiple identities, return `requested_identity_mismatch`, with no place or route
 writes. Never substitute the verification coordinates into an attraction result or
 invent a supporting research source. Attested multilingual city aliases need no
-extra request. Descriptive landmark discovery remains supported when the original
-phrase does not establish a settlement. Model interpretation is still fallible.
+extra request. Empty/nonmatching/nonsettlement verification also rejects a changed
+named identity; absence is never permission to persist a source-led substitute.
+
+The internal intent schema adds `descriptiveTargets`, at most seven exact target
+strings, validated as members of start/end/mustSee. Classification happens before
+web research. Only those explicitly descriptive phrases may be interpreted as a
+different evidenced name (for example the TikTok-waterfall description); named
+targets default to strict binding. No extra model/classifier call or word-count
+heuristic is added. City/country and landmark names must not be marked descriptive.
+Model interpretation remains fallible; this is an internal schema change under
+both-owner review, not a change to public chat/Java wire fields.
 
 The verification adds at most one original-target lookup per geocode invocation,
 sharing its existing total timeout. Contextual reconsideration reuses the candidate
@@ -157,3 +167,19 @@ to routine logs or public chat JSON. Both owners review the policy; live closure
 requires the two original English prompts on the reviewed revision with exact
 city identities, then saved route/browser/source checks. Fixture success alone
 does not establish that the live model now resolves both cities.
+
+Issue #77 separately records a successful 120B response with Stephansdom as the
+destination instead of Vienna. Its intent/resolution payloads are unavailable;
+the precise stage remains unconfirmed. A fresh public Stephansdom lookup returned
+way 212496461, amenity/place_of_worship with extra building=cathedral. This is the
+regression fixture, not a claim to have recovered the saved route's OSM provenance.
+Both Groq profiles and Anthropic fixtures reject this source-resolution substitution
+before handoff, even though the cathedral is near the correct city's centre.
+
+The intent prompt also preserves explicit city endpoints and the latest user's
+named-stop order. This remains model-interpreted; a separate upstream rewrite is
+not deterministically ruled out by the settlement guard. Use the opt-in
+[identity capture](DISCOVERY_DIAGNOSTICS.md#locate-an-incorrect-successful-destination-77)
+to locate it. Fixtures additionally carry two/three named stops and a repeated visit
+through actual discovery and persisted handoff/readback, preserving cities/sources.
+No evidence justifies dropping a stop, changing categories or expanding the radius.
