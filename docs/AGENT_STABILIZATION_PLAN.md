@@ -33,7 +33,10 @@ uksus148 and nnatthebest, including again after reviewable changes.
 | S4: evidenced identity correction | Turn captured S3 input/output into a regression; fix its demonstrated gate | Named landmarks route successfully when uniquely supported; ambiguous and wrong-Skok/type protections remain |
 | S5: integrated acceptance | One shared scenario corpus, redacted per-model/cache reports, current ledger and issue evidence | Same-revision browser/readback/session results and idle-Valkey acceptance |
 
-S1 is implemented for review in this branch; S2-S5 are not started. No paid retries
+S1 merged in #64 at `204058c`, with both approvals and primary 20B live probes.
+S2 is prepared for review; S3-S5 are not started. The S2 implementation selects
+language in a separate structured call before discovery, replacing the former reply
+call after handoff. It uses user history only; catalogs render all current outcomes. No paid retries
 or provider fallback are introduced. Strict JSON controls structure, not geographic
 truth, language or availability. Refusals and dependency failures remain honest errors.
 

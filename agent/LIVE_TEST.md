@@ -172,3 +172,26 @@ Record commit/model/cache state and all outcomes. Stop on quota errors; no autom
 retry or uncertain chat POST replay. Then repeat the full preflight and browser matrix.
 Fixture success does not establish live strict-mode access or close #61; the original
 20B resolution cause and the observed 120B intent failure remain separately attributed.
+
+## Verify factual localized replies (S2)
+
+Run the reviewed preflight: its seven checks now include `reply_language` instead
+of `llm_reply`. Restart the agent from the tested commit; retain primary 20B config.
+With mocks off, repeat #60's July prompt and English round-trip correction five times
+in deliberately chosen sessions, allowing quota to replenish. Expect English fixed
+phrasing and saved-route metrics, no bearings, closure claims or preference changes.
+Repeat in Russian, Slovak and Finnish, and switch languages in the same session.
+Try a name/link-only follow-up after an English request and a deliberately unsupported
+language: the former inherits user language; the latter asks to choose EN/RU/SK/FI
+and creates no places/routes. A fresh session containing only a place/link asks too.
+
+Check `stage=language` before discovery. After handoff there must be no `stage=model`
+call for reply generation; `reply` is local and `session_save` still completes before
+200. For round trips, the reply retains the repeated endpoint, while map records
+remain deduplicated. Compare metrics with saved GET. Model classification can still
+be wrong: record the input language, output language and tested profile/commit, and
+keep #60 open if any mismatch occurs. Attribute 120B results separately.
+
+Track the #64 cold observation (19.5 s generation plus another candidate's 19.5 s
+queue wait). Warm/cold latency and model profiles are separate measurements; warming
+one demo query is not acceptance of the general flow.

@@ -206,6 +206,18 @@ submitted `source`, return 400 rather than being silently ignored. See the
   unknown UUID after ingestion is a dependency inconsistency. Never expose
   credentials/provider bodies or identify errors by parsing English text.
 
+- **S2 localized replies (proposed for both-owner review):** enabled chat classifies
+  user language before discovery using only the latest user wording and up to six
+  previous user messages. Assistant replies and web/place evidence are excluded.
+  Support English, Russian, Slovak and Finnish; unknown/unsupported language yields
+  a four-language selection question before discovery or writes. Place/link-only
+  follow-ups inherit the most recent substantive user's language. Model classification
+  remains fallible and needs live acceptance; no local word-count heuristic is used.
+  Render ready/clarification/routing outcomes from application catalogs and authoritative
+  saved data; preserve canonical start/stops/end names including repeated visits.
+  No model is called after handoff to compose the reply. Session storage and existing
+  502/503/504 semantics remain. This PR changes language support and wording, not JSON.
+
 - **Chat completion (D5):** retain `{sessionId,message}` and `{reply,places,routeId?}`.
   Read recent history before discovery. Missing/ambiguous places or excessive
   intent limits produce a normal 200 clarification with `places: []`, no routeId,
