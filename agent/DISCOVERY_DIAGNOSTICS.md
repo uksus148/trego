@@ -49,7 +49,8 @@ provider deadlines. Missing endpoints avoid all subsequent research. The probe
 does not classify reply language, call Java/ORS, create places/routes or write chat
 history. It is not route or browser acceptance. No retries or fallback providers.
 
-Exa/resolution use a unique temporary cache namespace for every probe. `--cold`
+By default, Exa/resolution use a unique temporary namespace for every probe.
+The explicit shared-research profile below uses the current chat caches instead. `--cold`
 also isolates Nominatim candidate caching; without it, Nominatim uses the ordinary
 shared candidate cache, including normal writes on misses. Both profiles retain
 the same shared Nominatim rate gate and cooldown; cold mode is not a rate-limit
@@ -81,3 +82,37 @@ case-insensitive matches in current/previous user messages are echoed; otherwise
 the catalog asks for an exact waypoint name/location. This avoids publishing a
 translated or invented intent phrase as if it were the user's wording. Persisted
 canonical visit names and intentional repeated route visits remain unchanged.
+
+## S4a: reproduce a sticky research cache
+
+The #66 live review found ordinary chat unresolved at Štrbské Pleso with shared
+resolution-cache hits, while isolated research plus the same shared Nominatim cache
+was ready. The old v2 cache could retain a structurally valid but ungeocodable result
+for 24 hours. v3 bounds new/null/unconfirmed results to five minutes and promotes
+only final accepted selections. Old v2 records expire naturally; they are not flushed.
+
+To inspect the **current chat cache policy** on a fresh-session message:
+
+```sh
+uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --message "I want to hike from Štrbské Pleso to Rysy via the Skok waterfall. I love wild scenery." > target/discovery-shared-20b.json 2> target/discovery-shared-20b.log
+```
+
+This uses ordinary Exa, v3 resolution and Nominatim caches, including their normal
+writes/TTL feedback on misses or selection. It never deletes shared keys. It is
+read-only with respect to Java/places/routes/chat sessions, not Valkey. A hit does
+not extend TTL. `--cold --shared-research` is rejected. The default isolated-research
+profile and `--cold` behavior remain available for comparison; only their UUID
+namespace is cleaned. No mode bypasses the shared Nominatim rate gate.
+
+Compare identical prompts, model profiles and fresh sessions at the same commit.
+The probe supplies no conversation history and cannot recreate a history-dependent
+intent. Old v2 sticky entries are ignored by both new chat and the new probe; the
+new comparison is against v3. Record `cache=resolution result=promoted|demoted` and
+`stage=resolution_cache_validation` together with finding reasons. Failed feedback
+is a storage error before any API writes, not a reason to bypass cache or repeat a
+paid call. Allow the short TTL to expire before a deliberate new model attempt.
+
+The castle's repeated type mismatch and cathedral's varying name mismatch remain
+separate S4 identity work. A successful fresh resolution does not justify loosening
+these filters or claiming a Java/ORS outage. The reviewed counts identify the gate,
+but a precise alias/category correction still needs the actual candidate evidence.

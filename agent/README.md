@@ -195,21 +195,21 @@ required location is missing. Repeated targets reuse work without removing visit
 Up to three unique candidate chains run concurrently, retaining requested order;
 all unfinished chains are cancelled and joined on failure or cancellation.
 
-`CachedPlaceResolver` wraps Claude resolution in the production discovery factory.
-Valkey retains validated results, including unresolved results, for 24 hours.
-The v2 SHA-256 key covers provider, format version, effective request and local validation
-schema: model, prompt/response schema,
-description and ordered source titles, URLs and text (only the three sent to Claude).
-Old v1 entries are ignored without deletion. Changing any of those inputs requires a new resolution; credentials and session IDs
-are excluded. Cache values contain only the typed resolution or null, never the
-original request, keys or conversation history. Intent and replies remain per-message.
+`CachedPlaceResolver` wraps resolution in the production discovery factory. v3 hashes
+provider, effective request and local validation schema; old v1/v2 keys are ignored
+without deletion. Every new result, including null, starts with a five-minute TTL.
+Only after final geocoding/context selection succeeds does discovery atomically
+promote the exact matching resolution to 24 hours. A later failed selection demotes
+an accepted entry to at most five minutes, preserving a shorter remaining TTL.
+Repeated hits and repeated accepted/rejected feedback do not extend lifetime.
+Compare-and-update Lua prevents feedback for an older concurrent value from changing
+its replacement. Expired keys are not recreated by feedback. Failure/cancellation
+before final selection leaves new entries provisional; dependency outages do not
+become negative geographic evidence. Any cache/feedback failure propagates before
+API ingestion, without a paid retry. Context is recomputed on every discovery.
+Standalone `resolve()` callers do not obtain the long TTL without selection feedback.
+Concurrent misses may still make duplicate model calls; there is no single-flight guarantee.
 
-Hits do not refresh TTL. Expiry requires a fresh model call; malformed entries or
-out-of-range source references refresh through the existing validated adapter.
-A cache-read outage stops before the model; a write outage propagates after one
-possibly paid call. Chat maps either to a safe 503 before ingestion. Failed or
-cancelled provider work is not cached/retried. Concurrent first misses may still
-make duplicate calls; this cache adds no distributed coalescing guarantee.
 No new configuration is needed; it uses the existing Valkey client and deadlines.
 
 Nominatim requests use up to eight candidates and include OSM name aliases. The

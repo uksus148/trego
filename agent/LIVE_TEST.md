@@ -204,3 +204,15 @@ No Java/route/session writes are made. Capture the exact failing reason before
 selecting an identity correction. Check #65 wording in the browser: 15.2 km and
 5 h 02 min for the July route, natural endpoint joining, no JSON quotes, and no
 repeated or translated intent strings in clarification. Round-trip visits still repeat.
+
+## Verify selection-aware resolution caching (S4a)
+
+Follow the [shared-research comparison](DISCOVERY_DIAGNOSTICS.md#s4a-reproduce-a-sticky-research-cache).
+New resolution v3 entries start at five minutes. Verify promotion only after final
+geocoding acceptance, and no TTL refresh on repeat. A rejected model result must
+not be retained for a day. Re-run a rejected case deliberately after short TTL expiry,
+with the same evidence cache; do not flush team data or automatically retry calls.
+Record shared and isolated findings separately on 20B and 120B. Reconfirm positive
+cache reuse and normal route persistence in the browser after reviewed deployment.
+No live acceptance was performed by the fixture author; the #66 Rysy observation
+and castle/cathedral identity issues remain separately attributed.

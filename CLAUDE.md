@@ -270,6 +270,15 @@ The #65 reply-review follow-up aligns km/hours/minutes with frontend formatting,
 uses plain visit names and localized conjunctions, and echoes an unresolved phrase
 only when it occurs in user history; otherwise it asks for an exact waypoint.
 
+The S4a cache follow-up supersedes the earlier 24-hour unresolved-resolution policy:
+new/null/unconfirmed model results use a five-minute TTL in namespace v3. Only final
+accepted geocoding/context selection promotes an exact matching result to 24 hours;
+a later rejection shortens accepted caching. Hits do not refresh TTL. Atomic payload
+comparison protects concurrent replacements; expired keys are not resurrected.
+Ignore old namespaces without flushing data. Exa and ORS retain their 24-hour caches.
+The discovery probe's explicit shared-research mode uses ordinary cache writes and
+selection feedback but no Java/route/session writes. Both owners review this policy.
+
 ### API container packaging
 
 PR #46 prepares the existing Spring Boot API for container execution; public

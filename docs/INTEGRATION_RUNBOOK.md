@@ -3,7 +3,7 @@
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
 or reporting an end-to-end result. Last checked: November 15, 2026, against
-`main` at `4edccf3` (through merged #65), plus S3 discovery diagnostics under review.
+`main` at `f93204d` (through merged #66), plus S4a resolution-cache validation under review.
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -50,7 +50,8 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B14 | Diagnosable provider failures and cold resolution probe | Mukhamed | Merged; both reviews; live 20B cold probe and safe 401 diagnostics verified | [#62](https://github.com/uksus148/trego./pull/62), main `5020cd5`; 372 tests; original #61 cause remains unconfirmed; separate 120B intent failure in #63 |
 | B15 | Strict structured model extraction (S1) | Mukhamed | Merged in #64; both approvals; 20B intent/resolution probes 5/5 each, preflight and browser passed | main `204058c`; 394 fixtures; independent live 120B remains; cold strict generation reached 19.5 s plus queue wait, track separately from warm latency |
 | B16 | Factual localized replies (S2) | Mukhamed | Merged in #65; both approvals; primary 20B live language/browser sample passed | main `4edccf3`; 416 fixtures, 15/15 language selections in Daniil's sample; wording follow-up and cold Rysy discovery observation tracked in S3 |
-| B17 | Discovery outcomes and read-only probe (S3) | Mukhamed | Prepared for both-owner review; live identity diagnosis pending | [Procedure](../agent/DISCOVERY_DIAGNOSTICS.md); 446 fixture tests; #65 formatting/dedup nits addressed; Castle/Cathedral and Rysy gate capture precedes S4 |
+| B17 | Discovery outcomes and read-only probe (S3) | Mukhamed | Merged in #66; both approvals; 20B cold gates captured | main `f93204d`; 446 fixtures; castle type mismatch, variable cathedral name mismatch; shared-cache Rysy failure differs from isolated research |
+| B18 | Selection-aware resolution caching (S4a) | Mukhamed | Prepared for review; live TTL/shared-profile acceptance pending | v3 five-minute provisional cache, final acceptance promotes to 24 h, atomic non-refreshing feedback; shared-research probe; 454 fixture tests; no cache flush or paid retries |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |
