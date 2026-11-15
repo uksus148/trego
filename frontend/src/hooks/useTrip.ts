@@ -250,7 +250,10 @@ export function useTrip() {
     else if (pickMode === 'edit-end') updateDraft((draft) => ({ ...draft, end: rawEndpoint(point) }))
     else if (pickMode === 'start') { setStart(point); setShowingPreviousRoute(route !== null) }
     else if (pickMode === 'end') { setEnd(point); setShowingPreviousRoute(route !== null) }
-    else if (pickMode === 'place') setPendingPoint(point)
+    else if (pickMode === 'place') {
+      setPendingPoint(point)
+      setShowingPreviousRoute(route !== null)
+    }
     setPickModeState(null)
   }
   const setPickMode = (mode: PickMode) => {
@@ -269,12 +272,15 @@ export function useTrip() {
         const place = await api.addPlace({ name, tags: [tag], ...point })
         setPlaces((previous) => [...previous, place])
         setPendingPoint(null)
+        setShowingPreviousRoute(route !== null)
       } catch (cause) { setError(getErrorMessage(cause)) }
       finally { release(token) }
     })()
   }
   const removePlace = (id: string) => {
-    if (!busy && lock.current === null) setPlaces((previous) => previous.filter((place) => place.id !== id))
+    if (busy || lock.current !== null || !places.some((place) => place.id === id)) return
+    setPlaces((previous) => previous.filter((place) => place.id !== id))
+    setShowingPreviousRoute(route !== null)
   }
 
   const buildRoute = () => {

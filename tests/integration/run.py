@@ -236,7 +236,7 @@ def main():
         browser = json.loads((OUT / "browser-results.json").read_text())
         assert browser["stats"]["unexpected"] == browser["stats"]["skipped"] == browser["stats"]["flaky"] == 0
         tests = [test for suite in browser["suites"] for spec in suite.get("specs", []) for test in spec["tests"]]
-        assert len(tests) == (4 if args.editor else 3)
+        assert len(tests) == (5 if args.editor else 4)
         assert all(test["expectedStatus"] == "passed" for test in tests), "Baseline regressions must not expect failure"
         calls = request(agent_url + "/__fixture/calls")
         assert calls.count("nominatim") == 3 and calls.count("exa") == 3

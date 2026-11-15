@@ -60,9 +60,9 @@ any retained route must separately show a visible previous-route status label.
 The two #82 defects were corrected by merged #86. Their browser assertions are now
 ordinary required regressions: a failed readback must suppress a new ready reply
 and label any retained previous route; invalid route200 must remain recoverable
-without blanking React. All three browser cases must pass, with no expected failures,
-unexpected failures or skips. No route activation/parser implementation is duplicated
-in this infrastructure PR.
+without blanking React. A separate manual-planner browser case intercepts writes to verify
+that stop changes label the saved route as previous without changing its track or starting
+a new build. All four baseline browser cases must pass, with no failures or skips.
 
 The synthetic provider protocol follows merged #78: complete and incomplete intents
 explicitly carry advisory `descriptiveTargets: []`, and research uses the exact-target
@@ -112,7 +112,7 @@ with both PostGIS and pgvector was used. This is fixture evidence, not live E5.
 ## Saved-route editor profile
 
 With the matching API and frontend editor, run `bash tests/integration/check.sh --editor`.
-This enables the real editor for the local frontend and adds a fourth browser case.
+This enables the real editor for the local frontend and adds a fifth browser case.
 The case starts from a manual API save, removes one repeated visit, reorders the
 remaining visits, swaps endpoints and explicitly binds an endpoint to a saved Place.
 It verifies the new route/context, unchanged source route, preserved preferences,

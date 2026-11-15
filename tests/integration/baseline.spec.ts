@@ -106,6 +106,79 @@ test('invalid route 200 remains recoverable without blanking React (#82)', async
 })
 
 
+test('manual stop changes label the saved route as previous until the next build', async ({ page }) => {
+  const stopIds: string[][] = []
+  const addedPlaces: Array<(typeof corpus.places)[number]> = []
+  const cors = { 'Access-Control-Allow-Origin': services.frontend }
+  await page.route(`${services.api}/api/places`, async route => {
+    const input = route.request().postDataJSON()
+    const place = { ...input, id: crypto.randomUUID(), source: 'manual', photos: [] }
+    addedPlaces.push(place)
+    await route.fulfill({ status: 201, headers: cors, json: place })
+  })
+  await page.route(`${services.api}/api/places/*/media`, route => route.fulfill({
+    headers: cors,
+    json: { placeId: new URL(route.request().url()).pathname.split('/')[3],
+      status: 'empty', fetchedAt: null, placeDescription: null, photos: [] },
+  }))
+  await page.route(`${services.api}/api/routes`, async route => {
+    const { start, end, placeIds } = route.request().postDataJSON()
+    stopIds.push(placeIds)
+    await route.fulfill({ status: 201, headers: cors, json: {
+      ...corpus.route,
+      id: crypto.randomUUID(),
+      distanceKm: stopIds.length === 1 ? 12.3 : 5.2,
+      geojson: { type: 'LineString', coordinates: [[start.lon, start.lat], [end.lon, end.lat]] },
+      places: placeIds.map((id: string) => addedPlaces.find(place => place.id === id)),
+    } })
+  })
+
+  await page.goto(services.frontend)
+  await page.getByRole('tab', { name: 'Plan on map' }).click()
+  const map = page.locator('canvas.maplibregl-canvas')
+  await page.getByRole('button', { name: /Start \(A\)/ }).click()
+  await map.click({ position: { x: 250, y: 300 } })
+  await page.getByRole('button', { name: /Finish \(B\)/ }).click()
+  await map.click({ position: { x: 500, y: 330 } })
+  const pickStop = async () => {
+    await page.getByRole('button', { name: '+ Add on map', exact: true }).click()
+    await map.click({ position: { x: 380, y: 310 } })
+  }
+  const saveStop = async (name: string) => {
+    await page.getByPlaceholder('Name, e.g. Skok waterfall').fill(name)
+    await page.getByRole('button', { name: 'Save place', exact: true }).click()
+    await expect(page.getByRole('button', { name: `Remove ${name}`, exact: true })).toBeVisible()
+  }
+  const build = page.getByRole('button', { name: 'Build route', exact: true })
+  const previous = page.getByRole('status').filter({ hasText: 'Showing a previous route.' })
+  const firstMarker = page.getByRole('button', { name: 'Manual stop: show details', exact: true })
+  await pickStop()
+  await saveStop('Manual stop')
+  await build.click()
+  await expect(page.getByText('12.3 km', { exact: true })).toBeVisible()
+  await expect(previous).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Remove Manual stop', exact: true }).click()
+  await expect(page.getByText('No places yet.')).toBeVisible()
+  await expect(previous).toBeVisible()
+  await expect(page.getByText('12.3 km', { exact: true })).toBeVisible()
+  await expect(firstMarker).toBeVisible()
+  expect(stopIds).toEqual([[addedPlaces[0].id]])
+
+  await build.click()
+  await expect(page.getByText('5.2 km', { exact: true })).toBeVisible()
+  await expect(previous).toHaveCount(0)
+  await expect(firstMarker).toHaveCount(0)
+
+  await pickStop()
+  await expect(previous).toBeVisible()
+  await saveStop('Pending stop')
+  await expect(previous).toBeVisible()
+  await expect(page.getByText('5.2 km', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Pending stop: show details', exact: true })).toHaveCount(0)
+  expect(stopIds).toEqual([[addedPlaces[0].id], []])
+})
+
 if (process.env.E2E_EDITOR === '1') {
   test('manual editor rebuilds a new snapshot and restores bindings without agent calls', async ({ page }) => {
     const oldContext = await (await page.request.get(`${services.api}/api/routes/${services.route.id}/editing-context`)).json()
