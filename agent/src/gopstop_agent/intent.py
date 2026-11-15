@@ -1,5 +1,6 @@
 """Extract place names with validated tool use; coordinates come from geocoding."""
 
+import unicodedata
 from typing import Annotated, Literal, TypedDict
 
 import httpx
@@ -70,6 +71,41 @@ class RouteIntent(BaseModel):
         return value
 
 
+def _folded(text: str) -> str:
+    plain = unicodedata.normalize("NFKD", text.casefold())
+    return " ".join("".join(c for c in plain if not unicodedata.combining(c)).split())
+
+
+def drop_stale_stops(intent: RouteIntent, message: str, history: list[Message]) -> RouteIntent:
+    """Keep a complete new request from inheriting stops of abandoned follow-ups.
+
+    A latest message naming both endpoints is self-contained. A stop the user typed
+    only in an earlier message, which never became part of a built route, is stale.
+    Names absent from all user wording (model-normalized) are left untouched.
+    """
+    latest = _folded(message)
+    if intent.start is None or intent.end is None or not all(
+            _folded(name) in latest for name in (intent.start, intent.end)):
+        return intent
+    earlier = [_folded(item["content"]) for item in history if item["role"] == "user"]
+    routes = [_folded(item["content"]) for item in history
+              if item["role"] == "assistant" and "→" in item["content"]]
+
+    def stale(name: str) -> bool:
+        folded = _folded(name)
+        return (folded not in latest and any(folded in text for text in earlier)
+                and not any(folded in text for text in routes))
+
+    kept = [index for index, name in enumerate(intent.mustSee, 1) if not stale(name)]
+    if len(kept) == len(intent.mustSee):
+        return intent
+    renumbered = {f"stop:{old}": f"stop:{new}" for new, old in enumerate(kept, 1)}
+    roles = [renumbered.get(role, role) for role in intent.descriptiveTargets
+             if not role.startswith("stop:") or role in renumbered]
+    return intent.model_copy(update={"mustSee": [intent.mustSee[index - 1] for index in kept],
+                                     "descriptiveTargets": roles})
+
+
 class ClaudeIntentExtractor:
     def __init__(self, client: httpx.AsyncClient, api_key: str, model: str,
                  timeout_seconds: float = 20, *, tool_model: ToolModel | None = None) -> None:
@@ -94,6 +130,12 @@ class ClaudeIntentExtractor:
                     "a landmark or recommended attraction in that city. Stated interests "
                     "do not authorize adding or substituting places. Explicit endpoints and stop "
                     "order in the latest user message override earlier route suggestions in history. "
+                    "A latest message that states both its own start and destination is a complete "
+                    "new request: return only the places named in that message and do not carry over "
+                    "stops from earlier turns. A message such as 'add a stop at X' or 'remove X' edits "
+                    "the most recent route in the conversation: keep its start, destination and other "
+                    "stops, and insert a new stop where it best fits the visit order. A stop the "
+                    "assistant asked to clarify is kept only while the user is still clarifying it. "
                     "descriptiveTargets contains only roles of actual targets phrased as descriptions: "
                     "start, end, or stop:1 through stop:5 (one-based mustSee positions). For a first "
                     "stop 'the waterfall from TikTok near Strbske Pleso', use ['stop:1']. Never put "
@@ -111,7 +153,7 @@ class ClaudeIntentExtractor:
                 }],
                 "tool_choice": {"type": "tool", "name": "extract_route_intent"},
             })
-            return RouteIntent.model_validate(result)
+            return drop_stale_stops(RouteIntent.model_validate(result), message, history)
         except ValidationError as exc:
             questions = {
                 ("mustSee",): f"Please choose at most {MAX_STOPS} intermediate stops for this route.",

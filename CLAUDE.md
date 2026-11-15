@@ -342,6 +342,14 @@ ignored without flushing. Unresolved normalized names use start/end/stop role
 clarification when literal user wording is unavailable. No fuzzy name guesses,
 travel modes, corridor POIs or photo capabilities are added. Both owners review.
 
+Follow-up stops (proposed, owner review pending): a latest message naming both endpoints
+is a complete request, so a stop typed only in an earlier follow-up that never became part
+of a built route is not carried over. Model-normalized names are never dropped. An explicit
+name without usable web evidence may resolve to the single exactly named OSM object within
+25 km of independently resolved route points, using a bounded Nominatim search; its recorded
+source is the OSM object URL. Several local matches still clarify; nothing is ranked.
+Public shapes, caches for unbounded searches and the shared rate gate are unchanged.
+
 ### API container packaging
 
 PR #46 prepares the existing Spring Boot API for container execution; public

@@ -103,6 +103,20 @@ class PlaceDiscovery:
                             source=finding.sources[resolution.sourceIndex], location=location,
                         )
 
+                async def locate_nearby(finding: PlaceFinding, anchors: list[GeocodedPlace]) -> None:
+                    with stage("geocoding"):
+                        selection = await self._geocoder.geocode_nearby(finding.description, anchors)
+                    location = selection.location
+                    if location is None:
+                        return
+                    name = location.display_name.split(",")[0].strip()
+                    finding.outcome, finding.selection = "geocoding", selection
+                    finding.place = DiscoveredPlace(
+                        name=name, tags=[], location=location,
+                        source=ResearchSource(title=name, sourceUrl=location.osm_url),
+                    )
+                    finding_event(finding.reason, len(finding.sources), selection)
+
                 async def find(description: str) -> PlaceFinding:
                     query = (f"Find information about this exact place: {description}. Route context: "
                              f"{intent.start or 'unspecified'} to {intent.end or 'unspecified'}.")
@@ -150,6 +164,13 @@ class PlaceDiscovery:
                         if task.result().place is None and name in resolutions:
                             with candidate_scope(index):
                                 await locate(task.result(), resolutions[name], anchors)
+                    # An explicit name without usable web evidence may still be one exactly
+                    # named OSM object beside the route; OSM is then its recorded source.
+                    for index, task in enumerate(tasks.values()):
+                        finding = task.result()
+                        if finding.place is None and finding.outcome in ("no_sources", "insufficient_evidence"):
+                            with candidate_scope(index):
+                                await locate_nearby(finding, anchors)
                 if isinstance(self._resolver, CachedPlaceResolver):
                     with stage("resolution_cache_validation"):
                         for name, resolution in resolutions.items():
