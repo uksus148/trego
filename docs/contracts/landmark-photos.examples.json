@@ -1,0 +1,122 @@
+{
+  "fixtureNotice": "Synthetic hybrid-contract examples; no actual verified photos or facts. Never fetch dummy Wikimedia paths.",
+  "ready": {
+    "placeId": "00000000-0000-4000-8000-000000000002",
+    "status": "ready",
+    "fetchedAt": "2026-11-15T00:00:00Z",
+    "placeDescription": null,
+    "photos": [
+      {
+        "id": "commons:123456",
+        "provider": "wikimedia_commons",
+        "url": "https://upload.wikimedia.org/fixture-full.jpg",
+        "thumbUrl": "https://upload.wikimedia.org/fixture-thumb.jpg",
+        "title": "Synthetic landmark image",
+        "description": {
+          "text": "Synthetic source caption identifying the landmark.",
+          "sourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg"
+        },
+        "author": "Fixture photographer",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+        "associationSourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+        "photoLocation": null
+      }
+    ]
+  },
+  "empty": {
+    "placeId": "00000000-0000-4000-8000-000000000002",
+    "status": "empty",
+    "fetchedAt": null,
+    "placeDescription": null,
+    "photos": []
+  },
+  "problems": [
+    {
+      "type": "about:blank",
+      "title": "Bad Request",
+      "status": 400,
+      "detail": "The place ID or query parameters are invalid.",
+      "code": "invalid_request"
+    },
+    {
+      "type": "about:blank",
+      "title": "Not Found",
+      "status": 404,
+      "detail": "The requested place does not exist.",
+      "code": "place_not_found"
+    },
+    {
+      "type": "about:blank",
+      "title": "Service Unavailable",
+      "status": 503,
+      "detail": "Place storage is temporarily unavailable.",
+      "code": "storage_unavailable"
+    },
+    {
+      "type": "about:blank",
+      "title": "Bad Gateway",
+      "status": 502,
+      "detail": "Photo metadata is temporarily unavailable.",
+      "code": "photo_provider_error"
+    },
+    {
+      "type": "about:blank",
+      "title": "Gateway Timeout",
+      "status": 504,
+      "detail": "Photo lookup exceeded its deadline.",
+      "code": "photo_timeout"
+    }
+  ],
+  "invalidResponses": [
+    {
+      "case": "ready_without_photos",
+      "response": {
+        "placeId": "00000000-0000-4000-8000-000000000002",
+        "status": "ready",
+        "fetchedAt": null,
+        "placeDescription": null,
+        "photos": []
+      }
+    },
+    {
+      "case": "empty_with_photos",
+      "response": {
+        "placeId": "00000000-0000-4000-8000-000000000002",
+        "status": "empty",
+        "fetchedAt": "2026-11-15T00:00:00Z",
+        "placeDescription": null,
+        "photos": [
+          {
+            "id": "commons:123456",
+            "provider": "wikimedia_commons",
+            "url": "https://upload.wikimedia.org/fixture-full.jpg",
+            "thumbUrl": "https://upload.wikimedia.org/fixture-thumb.jpg",
+            "title": "Synthetic landmark image",
+            "description": {
+              "text": "Synthetic source caption identifying the landmark.",
+              "sourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg"
+            },
+            "author": "Fixture photographer",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+            "sourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+            "associationSourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+            "photoLocation": null
+          }
+        ]
+      }
+    }
+  ],
+  "emptyWithInformation": {
+    "placeId": "00000000-0000-4000-8000-000000000002",
+    "status": "empty",
+    "fetchedAt": null,
+    "placeDescription": {
+      "text": "Synthetic verified place information, independent of photo availability.",
+      "sourceUrl": "https://www.wikidata.org/wiki/Q42"
+    },
+    "photos": []
+  }
+}

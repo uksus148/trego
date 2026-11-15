@@ -346,6 +346,20 @@ consumed quota. Do not retry ORS or silently bypass the required cache. Check re
 before cache access. Concurrent first misses can still issue duplicate provider requests;
 distributed request coalescing requires a separate decision before relying on that guarantee.
 
+### Landmark information/photos — hybrid scope selected, owner review pending
+
+Murat expanded the curated-only plan: multiple verified demos with at least two
+photographed landmarks each, plus automatic discovery for uncatalogued supported
+places. Hover/focus/tap marker cards always retain place information; an absent photo
+simply omits the image area. The proposed separate GET /api/places/{id}/media serves
+catalog/automatic results with a nullable-location DTO and optional sourced place
+description; legacy Photo, Place, Route and chat shapes remain compatible. See the
+[revised contract](docs/LANDMARK_PHOTOS_CONTRACT.md) and fixtures for owner review;
+Murat selected a 12-second lookup budget, shared Nominatim gating and 24-hour/five-minute
+positive/empty metadata caching; affected owners still review compatibility. The frontend strip reuses
+the same place media without populating Route.segments. Target demo uses real services,
+mock mode uses fixtures, and uploads remain deferred. No runtime is enabled here.
+
 ### Proposed extension: personalization and day plan — not agreed yet
 
 Discussed in [docs/CONTRACT_REVIEW.md](docs/CONTRACT_REVIEW.md). Move items into the contract above only after the owners agree.
