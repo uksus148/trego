@@ -10,7 +10,9 @@ export class MediaContractError extends Error {
   }
 }
 
-const IMAGE_HOST = 'upload.wikimedia.org'
+// Exact hosts from the contract (section 5): originals only on upload, thumbnails on upload or thumb. No wildcards.
+const IMAGE_HOSTS = ['upload.wikimedia.org'] as const
+const THUMB_HOSTS = ['upload.wikimedia.org', 'thumb.wikimedia.org'] as const
 const COMMONS_ID = /^commons:[1-9]\d*$/
 const MAX_TITLE = 300
 const MAX_TEXT = 1000
@@ -29,8 +31,8 @@ function text(value: unknown, field: string, max: number): string {
   return value
 }
 
-/** HTTPS only, no embedded credentials or explicit port, optionally on one exact host. */
-function httpsUrl(value: unknown, field: string, host?: string): string {
+/** HTTPS only, no embedded credentials or explicit port, optionally limited to exact hosts. */
+function httpsUrl(value: unknown, field: string, hosts?: readonly string[]): string {
   if (typeof value !== 'string') fail(`${field} must be a URL`)
   let url: URL
   try {
@@ -39,7 +41,7 @@ function httpsUrl(value: unknown, field: string, host?: string): string {
     return fail(`${field} must be a URL`)
   }
   const safe = url.protocol === 'https:' && url.username === '' && url.password === '' && url.port === ''
-  if (!safe || (host !== undefined && url.hostname !== host)) fail(`${field} is not an allowed HTTPS URL`)
+  if (!safe || (hosts !== undefined && !hosts.includes(url.hostname))) fail(`${field} is not an allowed HTTPS URL`)
   return value
 }
 
@@ -66,8 +68,8 @@ function photo(value: unknown): LandmarkPhoto {
   return {
     id: value.id,
     provider: 'wikimedia_commons',
-    url: httpsUrl(value.url, 'url', IMAGE_HOST),
-    thumbUrl: httpsUrl(value.thumbUrl, 'thumbUrl', IMAGE_HOST),
+    url: httpsUrl(value.url, 'url', IMAGE_HOSTS),
+    thumbUrl: httpsUrl(value.thumbUrl, 'thumbUrl', THUMB_HOSTS),
     title: text(value.title, 'title', MAX_TITLE),
     description: sourcedText(value.description, 'description'),
     author: text(value.author, 'author', MAX_AUTHOR),
