@@ -1,10 +1,9 @@
 # Route editing — backend implementation
 
-This branch implements Murat's Java slice of the agreed-by-Murat
-[local proposal](../docs/ROUTE_EDITING_CONTRACT.md). The proposed wire contract and
-[shared examples](../docs/contracts/route-editing.examples.json) remain unchanged.
-This is draft work for review; shared approval, frontend implementation and joint
-browser acceptance remain separate. No agent code or frontend presentation is changed.
+The Java API merged in #80 and the matching frontend in #87, with independent
+owner reviews. The [accepted contract](../docs/ROUTE_EDITING_CONTRACT.md) and
+[shared examples](../docs/contracts/route-editing.examples.json) define v1.
+No agent implementation change is required. Deployment/live acceptance is separate.
 
 ## Read/rebuild flow
 
@@ -35,7 +34,7 @@ fail safely instead of guessing a replacement or silently moving a point.
 
 Migration `V4__add_route_endpoint_places.sql` adds nullable foreign keys and
 partial indexes. It changes neither old migration files nor old rows' bindings.
-Before integration, confirm V4 is still the next unused shared migration number.
+V4 is committed on main after V1–V3; apply it through Flyway on the selected target.
 Referenced endpoints cannot be deleted while saved routes use them; deleting a route
 does not delete its places. Read/mapping keeps JPA entities inside the persistence layer.
 
@@ -77,10 +76,10 @@ errors or skipped tests, including the Java/Python Nominatim peer checks. The ex
 Dockerfile also built `trego-api:route-editing-local` successfully. Logs and the
 verification summary are under ignored `api/target/route-editing-*` paths.
 
-Backend acceptance does not implement the frontend draft controls, sessionStorage,
-photo-store updates or new-chat-session transition. Daniil owns those through the
-unchanged contract/frontend handoff. Complete the joint browser matrix on a reviewed
-combined revision before claiming feature #2 ready end to end.
+Frontend #87 supplies draft controls, sessionStorage restoration, committed media
+state and the new-session transition. API and frontend remain separate layers.
+The combined fixture profile below covers their integration; live acceptance
+requires the selected deployed revision and real provider evidence.
 
 
 ## Joint backend/frontend integration check
@@ -96,5 +95,12 @@ passed four Chromium scenarios in12.8s with V4 applied. The manual editor case
 removes one repeated visit, reorders remaining stops, swaps endpoints, binds a saved
 Place, saves a new ID and restores the binding after reload. It verifies that the
 source route/context stay unchanged and the editor sends zero requests to the agent.
-Provider/map/photo inputs are synthetic fixtures; no Aiven migration, live hiking
-correctness, deployment or shared-owner approval is claimed by this result.
+Provider/map/photo inputs are synthetic fixtures; this historical run did not
+establish live geographic correctness or deployment.
+
+Final #87 head fbdc527 passed 125 frontend tests, lint/build and six actual-service
+Chromium cases (20.9 seconds) in [CI](https://github.com/uksus148/trego./actions/runs/43687062740).
+They include manual stop changes, a chat-origin route with unbound endpoints, an
+HTML504 uncertain save, cancelled resubmission, a confirmed new route and a fresh
+chat session. Replayed original/snapped marker and HTML502/504 regressions also
+passed. Retargeting after #80 produced an identical source tree; #87 merged as 7688227.

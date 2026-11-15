@@ -61,4 +61,4 @@ The root CLAUDE.md holds architecture, the shared API contract, and team decisio
 
 README describes the project and setup. CONTRIBUTING.md defines commit, PR, and review conventions. This document describes branch protection. Write all repository files and GitHub collaboration content in English.
 
-[Active ruleset](https://github.com/uksus148/trego/rules/27240390).
+[Active ruleset](https://github.com/uksus148/trego./rules/27240390).

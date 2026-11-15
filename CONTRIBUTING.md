@@ -33,7 +33,7 @@ Name the first file to open and changes to the API, database schema, or Kafka ev
 Provide commands or steps, inputs, and actual results.
 ```
 
-Agree shared API changes with the affected developers before implementation, and record the decision in the root `CLAUDE.md`. Include an example request or response in the PR. Current cross-service questions are listed in the [contract review](docs/CONTRACT_REVIEW.md).
+Agree shared API changes with the affected developers before implementation, and record the decision in the root `CLAUDE.md`. Include an example request or response in the PR. Find accepted contracts and explicitly deferred proposals in the [documentation index](docs/README.md).
 
 ## Review and merge
 

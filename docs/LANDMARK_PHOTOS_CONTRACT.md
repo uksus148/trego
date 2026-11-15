@@ -4,9 +4,9 @@
 two photographed landmarks each, plus automatic photo discovery for other supported
 places. Marker cards always show place information, whether or not photos exist.
 This supersedes the earlier catalog-only delivery scope. Technical wire/provider
-details remain proposed and still need affected-owner PR
-review. The draft Java implementation is described in [api/MEDIA.md](../api/MEDIA.md);
-its existence does not establish shared contract approval or final image/demo acceptance.
+details were reviewed in merged #73/#71/#74. The Java implementation is described
+in [api/MEDIA.md](../api/MEDIA.md); code review and fixture acceptance do not
+establish final live image/demo acceptance.
 Read canonical [CLAUDE.md](../CLAUDE.md) first; existing chat/routing contracts remain.
 
 ## 1. Deliver before feature freeze
@@ -38,9 +38,8 @@ remains as documented in CLAUDE. These are delivery gates, not a guarantee of du
 Local backend activation is explicit: API_MEDIA_ENABLED=true. Default false keeps
 the endpoint/workers disabled (404) on the existing MVP profile. See
 [API environment example](../api/media.env.example) and
-[backend handoff notes](LANDMARK_MEDIA_BACKEND_HANDOFF.md). Do not turn the feature on
-implicitly while stabilizing/versioning the route MVP. Peer review and frontend
-integration are still required before joint activation.
+[media compatibility notes](../api/MEDIA.md#compatibility-notes-for-reviewers). Do not turn the feature on
+implicitly while stabilizing/versioning the route MVP. The frontend is merged; verify the selected target and live assets before joint activation.
 
 ## 2. General discovery and remaining technical agreement
 
@@ -65,18 +64,16 @@ A catalog-only milestone may be demonstrated with explicit limited coverage, but
 does not complete the newly requested general-discovery feature. Preserve the
 deadline and report that gap if the automatic path is not finished or verified.
 
-## 3. Current code — corrections from frontend review
+## 3. Historical frontend corrections — delivered in #71
 
-`frontend/src/api/wikimedia.ts` currently searches a 1,500 m radius, substitutes Place
+Before #71, `frontend/src/api/wikimedia.ts` searched a 1,500 m radius, substitutes Place
 coordinates for missing image coordinates and supplies unknown-author/license strings.
-**Its caller is mockStore.ts, not the real-service frontend.** There is no current
-live geosearch fallback to remove. The mock path must be changed for this feature so
-that it consumes agreed fixtures instead of making live proximity searches.
+**Its caller is mockStore.ts, not the real-service frontend.** The merged mock path now consumes explicit fixtures; it makes no live proximity
+photo search. The old wikimedia.ts helper has been removed.
 
-The existing PhotoViewer renders thumbUrl. Adapt it to display the gallery's **url**,
-without coercing LandmarkPhoto into legacy Photo by inventing lat/lon.
-The existing along-the-way component reads Route.segments; these remain empty on
-live routes. The first-slice gallery below is built from place media, not new segments.
+PhotoViewer now displays the gallery's **url** without inventing legacy Photo
+coordinates. Along-the-way media comes from canonical place media and ordered route
+visits; Route.segments remains unchanged. These are delivered behaviors, not open work.
 
 ## 4. Catalog preparation and identity proof
 

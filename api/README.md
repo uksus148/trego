@@ -1,6 +1,6 @@
 # trego. Places API
 
-For hiking route creation, storage, ORS configuration, and errors, see [Hiking routes](ROUTES.md).
+For walking route creation, storage, ORS configuration, and errors, see [Walking routes](ROUTES.md).
 
 For the Java 21 runtime image, private environment configuration and certificate mounts,
 see [API container](CONTAINER.md).
@@ -107,7 +107,7 @@ curl -i 'http://localhost:8080/api/places' \
   -d '{"name":"Skok waterfall","lat":49.1536,"lon":20.0417,"tags":["waterfall","nature"]}'
 ```
 
-Without provenance, the implementation returns HTTP **201 Created** and a `Place` with a generated UUID, the supplied coordinates, `photos: []`, and server-assigned `source: "manual"`. These manual-write semantics were confirmed in [PR #33](https://github.com/uksus148/trego/pull/33) and the canonical [API contract](../CLAUDE.md#api-contract). The accepted researched-write extension is implemented in this branch; see [ingestion behavior, concurrency and review evidence](INGESTION.md).
+Without provenance, the implementation returns HTTP **201 Created** and a `Place` with a generated UUID, the supplied coordinates, `photos: []`, and server-assigned `source: "manual"`. These manual-write semantics were confirmed in [PR #33](https://github.com/uksus148/trego./pull/33) and the canonical [API contract](../CLAUDE.md#api-contract). The accepted researched-write extension is implemented on main; see [ingestion behavior, concurrency and review evidence](INGESTION.md).
 
 Name, latitude, longitude, and tags are required. Name must contain non-whitespace characters; coordinates must be finite and within WGS84 ranges. Tags may be empty; each supplied entry must be non-null and non-blank. Names and tags are stripped of surrounding whitespace, and repeated tags are removed while preserving order and case. Clients omit `source`; unknown fields now return HTTP 400 under the accepted ingestion contract. Invalid or malformed input inserts no row. Recognized input/storage errors have dedicated mapping; unexpected failures remain server errors.
 

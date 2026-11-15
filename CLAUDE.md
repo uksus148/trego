@@ -1,8 +1,11 @@
 # trego. — Junction 2026
 
-An AI hiking navigator. Users describe what they want to see in chat or mark places on a map
-(castles, waterfalls, scenic views) and receive a walking route from A to B through those places,
-with real photos of views along the way and links to their sources.
+A travel navigator for city sightseeing and outdoor trips. Users describe the places
+they want to visit or mark them on a map, build a route through them, and explore
+landmark information and photos with sources. Current routing uses ORS `foot-hiking`
+for walking; driving, cycling and public transport are not implemented. AI supports
+research and chat rather than defining the product category. See the
+[documentation index](docs/README.md) for current contracts and implementation guides.
 
 This file is the team's single source of truth for developers and AI assistants. Update it whenever a decision is made.
 
@@ -14,18 +17,18 @@ The [baseline fixture acceptance](tests/integration/README.md) provides disposab
 actual-service integration tests without live keys. Its small shared corpus contains
 accepted baseline HTTP examples, not new fields. External providers/maps/images are
 explicit fixtures; the two browser defects fixed in #86 are mandatory passing regressions.
-Fixture success does not establish live-provider or editor acceptance. Frontend and
-fixture CI are conditional and do not add required ruleset checks. Consumer review
-of this test policy is requested from Daniil and Mukhamed under #83.
+The editor profile also covers manual and chat-origin editing, uncertain saves and
+fresh-session behavior. Fixture success does not establish live-provider acceptance.
+Frontend and fixture CI remain conditional and do not add required ruleset checks.
+The shared acceptance policy merged with independent owner review in #85.
 
-The [MVP recovery baseline](docs/RELEASE_BASELINE.md) records the published
-`v0.1.0-mvp-baseline` tag at `cfc4c648495511e6b8d21464f835028965cda388`,
-recovery boundaries, and the process for subsequent versions. It is a source
-checkpoint before local landmark-media work, not final live MVP acceptance.
+The [release and recovery guide](docs/RELEASE_BASELINE.md) records the third source
+checkpoint `v0.3.0`, the two earlier immutable baselines and recovery boundaries.
+A source release does not establish deployment or new live-provider acceptance.
 
 ## Project language and branches
 
-- The product name is **trego.**, lowercase with the trailing period. The GitHub repository slug is `trego`.
+- The product name is **trego.**, lowercase with the trailing period. The GitHub repository is `uksus148/trego.`.
 
 - English is the project language. Write repository files, code comments, documentation, commit messages, PR titles, descriptions, and reviews in English.
 - Use descriptive branch names such as `feat/places-bbox`, `fix/route-distance`, `docs/api-contract`, `infra/local-database`, or `chore/dependencies`.
@@ -60,11 +63,11 @@ Use partner credits and free tiers. All times in this document are local to the 
 | Coding assistance | Codex $100, Claude Code | Credits |
 | Database | **Aiven PostgreSQL** Free with PostGIS and pgvector | Free |
 | Cache | **Aiven Valkey** Free | Free |
-| Events | **Aiven Kafka**, minimal plan using $50 credits, turn off while unused | Credits |
+| Events, deferred | **Aiven Kafka**, only after upload/event design and budget agreement | Not provisioned by the current application |
 | Observability, stretch goal | Aiven ClickHouse if credits remain | Credits |
 | Map | MapLibre GL and OpenFreeMap tiles | Free, no key |
 | Points of interest | OSM Overpass API, `historic=castle`, `waterway=waterfall`, `tourism=viewpoint`, `natural=peak` | Free |
-| Hiking routes | OpenRouteService `foot-hiking`, approximately 2,000 requests per day | Free API key |
+| Walking routes | OpenRouteService `foot-hiking`, approximately 2,000 requests per day | Free API key |
 | Photos | Wikimedia Commons API, Mapillary, Exa. User uploads may use Cloudinary Free | Free |
 | API and agent hosting | Aiven Runtime if credits suffice, Modal $100 as a fallback | Credits |
 | Frontend hosting | Cloudflare Pages or Vercel Free | Free |
@@ -78,16 +81,21 @@ Cache Exa and routing responses in Valkey. Use a query hash as the key and a 24-
 ```text
 frontend (React + Vite + Tailwind + MapLibre)
    | REST
-   +---> api (Spring Boot, Java)  — places, routes, uploads, PostGIS queries, ORS routing
-   |       | Kafka: photo.uploaded, route.requested
-   +---> agent (FastAPI, Python) — chat, LLM intent extraction, Exa, embeddings, photo pipeline
-           |
-   Aiven PostgreSQL (PostGIS + pgvector), Aiven Valkey (cache and chat sessions), Aiven Kafka
+   +---> api (Spring Boot, Java) — places, routes, editing context, landmark media
+   +---> agent (FastAPI, Python) — chat, LLM intent, Exa, place resolution
+             | REST -> api for canonical places and saved routes
+   Aiven PostgreSQL (PostGIS; pgvector available), Aiven Valkey
 ```
 
-### Required demo scenario
+Uploads, Kafka events, embeddings and vector ranking remain deferred. The installed
+pgvector extension does not mean that embeddings are generated or queried.
 
-High Tatras. “I want to hike from Štrbské Pleso to Rysy via the Skok waterfall. I love wild scenery.”
+### Demo scenarios and historical routing regression
+
+Use city sightseeing walks and outdoor trips. The app's Tatras example is:
+“Plan a summer hike in July from Štrbské Pleso to Popradské pleso via the Skok waterfall.
+I love wild scenery.” Rysy is retained as the original provider-matching regression,
+not a required successful endpoint.
 
 The agent finds the requested places, builds a route through them, and displays the track,
 places, and photos with sources. A judge must also be able to enter a different request.
@@ -142,7 +150,7 @@ Agree changes with the affected developers and record them here.
   The accepted researched-write extension below merged in #45.
 - `POST /api/routes` `{start:{lat,lon}, end:{lat,lon}, placeIds[], preferences[]}` → `Route` (api)
 - `GET /api/routes/{id}` → `Route`
-- `POST /api/photos` multipart `{file, lat, lon}` publishes Kafka event `photo.uploaded`
+- Deferred, not implemented: `POST /api/photos` multipart `{file, lat, lon}` and Kafka event `photo.uploaded`
 - `Place = {id, name, lat, lon, tags[], photos:[Photo], source}`
 - `Photo = {url, thumbUrl, author, license, sourceUrl, lat, lon}`
 - `Route = {id, geojson(LineString), distanceKm, ascentM, durationMin, places:[Place], segments:[{fromKm,toKm,photos:[Photo]}]}`
@@ -150,8 +158,8 @@ Agree changes with the affected developers and record them here.
 ### Accepted sourced place and route handoff
 
 The design in [docs/AGENT_API_HANDOFF.md](docs/AGENT_API_HANDOFF.md) was accepted
-in merged PR #34: [Murat accepted D1–D4 personally](https://github.com/uksus148/trego/pull/34#pullrequestreview-5904059886),
-and [Daniil accepted D1/D3/D4/D5 and the clarified frontend work](https://github.com/uksus148/trego/pull/34#pullrequestreview-5903913530).
+in merged PR #34: [Murat accepted D1–D4 personally](https://github.com/uksus148/trego./pull/34#pullrequestreview-5904059886),
+and [Daniil accepted D1/D3/D4/D5 and the clarified frontend work](https://github.com/uksus148/trego./pull/34#pullrequestreview-5903913530).
 Mukhamed owns the agent implementation. Agreement is not runtime availability:
 main includes manual creation, persisted routes (#39), the required routing cache (#41),
 and the internal agent handoff (#40). E2 HTTP orchestration merged in #43 after
@@ -194,9 +202,9 @@ submitted `source`, return 400 rather than being silently ignored. See the
   and photos are allowed. Preferences remain descriptive interests, without an
   implied routing/ranking effect. Route POST is not idempotent; no automatic POST
   retries, including lost responses. Earlier places/routes may survive failures.
-  The current Java boundary change rejects unknown request fields with 400
-  `invalid_request` instead of ignoring them: only the four documented root fields
-  and endpoint `lat`/`lon` are accepted. This tightening needs affected-owner review.
+  Java rejects unknown request fields with 400 `invalid_request`. The four baseline
+  root fields and optional `startPlaceId`/`endPlaceId` bindings accepted in #80 are
+  supported; nested endpoints contain only `lat`/`lon`. See the editor contract below.
   Dates and research metadata belong to the proposed chat extension, never route input.
 
   ```json
@@ -363,7 +371,7 @@ synthetic routes or ordinary no-route results. POST has no automatic retries or 
 guarantee; separate requests can create separate saved route IDs.
 
 Murat explicitly staged the required Valkey routing cache in a separate focused PR.
-[Mukhamed confirmed this rollout from the agent side](https://github.com/uksus148/trego/pull/39#pullrequestreview-5904312512):
+[Mukhamed confirmed this rollout from the agent side](https://github.com/uksus148/trego./pull/39#pullrequestreview-5904312512):
 the reviewed routing baseline in #39 may merge first, followed immediately by the cache PR.
 The uncached baseline makes one bounded provider request per valid POST. This staged delivery
 preserves the team's 24-hour cache requirement and does not establish live agent/MVP acceptance.
@@ -385,46 +393,48 @@ consumed quota. Do not retry ORS or silently bypass the required cache. Check re
 before cache access. Concurrent first misses can still issue duplicate provider requests;
 distributed request coalescing requires a separate decision before relying on that guarantee.
 
-### Landmark information/photos — hybrid scope selected, owner review pending
+### Landmark information/photos — merged, opt-in
 
-Murat expanded the curated-only plan: multiple verified demos with at least two
-photographed landmarks each, plus automatic discovery for uncatalogued supported
-places. Hover/focus/tap marker cards always retain place information; an absent photo
-simply omits the image area. The proposed separate GET /api/places/{id}/media serves
-catalog/automatic results with a nullable-location DTO and optional sourced place
-description; legacy Photo, Place, Route and chat shapes remain compatible. See the
-[revised contract](docs/LANDMARK_PHOTOS_CONTRACT.md) and fixtures for owner review;
-Murat selected a 12-second lookup budget, shared Nominatim gating and 24-hour/five-minute
-positive/empty metadata caching; affected owners still review compatibility. The frontend strip reuses
-the same place media without populating Route.segments. Target demo uses real services,
-mock mode uses fixtures, and uploads remain deferred. No runtime is enabled here.
+The Java media implementation merged in #73; frontend cards/gallery and timestamp
+validation merged in #71/#74. The [media contract](docs/LANDMARK_PHOTOS_CONTRACT.md)
+and [implementation guide](api/MEDIA.md) define canonical OSM identity, sourced
+information, verified catalog/automatic Commons lookup, nullable image location,
+12-second lookup budget, shared Nominatim gating and 24-hour/five-minute metadata TTLs.
+Empty photos keep place information visible. Legacy Photo/Place/Route/chat shapes
+remain compatible; Route.segments is not populated by this feature.
 
-Issue #75's API correction canonicalizes supported Nominatim base URLs before provider
-use and shared gate hashing, matching the agent's Settings/HttpUrl path. Preserve the
-canonical default key, owner-token leases and one-second completion cooldown. Shared
-URL vectors and an actual Java/Python peer test run against disposable Valkey in API CI;
-see [media coordination and supported URL spellings](api/MEDIA.md#deadline-cache-and-coordination).
-Agent behavior and public DTOs are unchanged; cross-owner review remains required.
+Enable explicitly with API_MEDIA_ENABLED=true. Default false remains supported.
+The frontend uses the separate GET and does not rely on uploads or new agent fields.
+Shared Nominatim URL identity was corrected in #79 with actual Java/Python peer tests.
+Synthetic service/browser coverage is available; live catalog association, regional
+coverage, provider quotas and final target deployment remain separate checks.
 
-### Route editing — Murat's decisions selected, shared contract review pending
+### Route editing — accepted and merged in #80/#87
 
 Murat selected independent new route IDs, a separate editing-context GET, original
 endpoint coordinates with optional Place UUID bindings, a local draft plus explicit
-Rebuild route, and a fresh chat session after successful manual editing. The local
-[route-editing proposal](docs/ROUTE_EDITING_CONTRACT.md) and
-[synthetic fixtures](docs/contracts/route-editing.examples.json) define the proposed
-GET /api/routes/{id}/editing-context and optional startPlaceId/endPlaceId POST fields.
-The draft backend implements this proposal while preserving existing Route/chat shapes
-and four-field writes. See the [implementation and review guide](api/ROUTE_EDITING.md).
-Murat and Daniil own this slice; agent code is not required. Legacy/unbound endpoints
-remain coordinate-only, and the fresh agent session receives no edited-route context.
-V4 adds nullable endpoint bindings without backfill; its upgrade is tested on disposable
-data. Shared review, applying the migration, frontend integration and same-revision E2E
-remain pending; the backend draft does not establish full editor acceptance.
+Rebuild route, and a fresh chat session after successful manual editing. Both owners'
+reviews accepted the [v1 contract](docs/ROUTE_EDITING_CONTRACT.md) and
+[shared examples](docs/contracts/route-editing.examples.json). See the
+[API implementation guide](api/ROUTE_EDITING.md) and [frontend guide](frontend/README.md).
+
+GET /api/routes/{id}/editing-context returns original endpoints/bindings, repeated
+ordered stops and descriptive preferences. Optional startPlaceId/endPlaceId extend
+POST /api/routes; four-field clients and the Route/chat response shapes stay compatible.
+V4 adds nullable endpoint bindings with no inferred backfill. Committed markers stay
+at the saved track endpoints; editing context supplies draft coordinates and metadata.
+Ambiguous saves require explicit resubmission confirmation and are never retried automatically.
+A successful rebuild creates a new UUID and rotates the local chat session, with no
+edited-route context sent to the agent. Murat and Daniil own this feature; no agent
+implementation change was needed. Current fixture CI covers six browser scenarios,
+including manual and chat-origin editing. Deploy API/V4 before enabling the real
+frontend editor with VITE_ENABLE_ROUTE_EDITOR=true; live activation is separate.
 
 ### Proposed extension: personalization and day plan — not agreed yet
 
-Discussed in [docs/CONTRACT_REVIEW.md](docs/CONTRACT_REVIEW.md). Move items into the contract above only after the owners agree.
+These historical proposals remain deferred. Broader travel positioning does not
+approve new transport modes, endpoints or personalization. Move an item into the
+accepted contract only after the affected owners agree.
 
 - Chat request adds `mode: 'route'|'day'` and `preferences`; the response adds `mode`, `itineraryId?` and `preferencesPatch?` with preferences understood from the message.
 - `Preferences = {interests[], dislikes[], pace: 'relaxed'|'normal'|'intense', maxWalkKm, budget: 0-3, avoidCrowds}`
@@ -447,7 +457,7 @@ Application tables are managed by Flyway migrations in `api`. Keep credentials i
 
 ### Java API organization
 
-The Spring Boot API is a single Maven module. Group Java packages by feature under `io.junction.trails`. The current `places` feature separates HTTP handlers and error mapping in `web`, transaction boundaries and workflows in `application`, framework-independent values and response data in `model`, and JPA entities and repositories in `persistence`. Keep entities out of HTTP responses. Use Spring Data JPA and Hibernate Spatial for ordinary persistence; native queries preserve PostGIS-specific search behavior. JDBC remains available for complex queries when it offers a concrete benefit. Future `routes` and `photos` features follow the same feature-based organization. Tests mirror production package paths. Flyway owns the schema; Hibernate validates it and Open EntityManager in View is disabled. See the [API code map and review order](api/README.md#code-map).
+The Spring Boot API is a single Maven module. Group Java packages by feature under `io.junction.trails`. The current `places` feature separates HTTP handlers and error mapping in `web`, transaction boundaries and workflows in `application`, framework-independent values and response data in `model`, and JPA entities and repositories in `persistence`. Keep entities out of HTTP responses. Use Spring Data JPA and Hibernate Spatial for ordinary persistence; native queries preserve PostGIS-specific search behavior. JDBC remains available for complex queries when it offers a concrete benefit. The implemented `routes` and `media` features follow the same feature-based organization; future uploads should do so too. Tests mirror production package paths. Flyway owns the schema; Hibernate validates it and Open EntityManager in View is disabled. See the [API code map and review order](api/README.md#code-map).
 
 Shared Spring MVC configuration applies CORS to `/api/**` for GET and POST with Content-Type. `API_CORS_ALLOWED_ORIGINS` configures a comma-separated list of exact frontend origins; the default is `http://localhost:5173`. See the API README for local and deployed frontend configuration.
 
@@ -457,42 +467,35 @@ Use Lombok `@RequiredArgsConstructor` for constructor-based dependency injection
 
 - React 19, TypeScript, Vite 8, Tailwind 4 and MapLibre 6 with OpenFreeMap tiles. The UI is in English.
 - Runs on in-browser mocks by default (`VITE_USE_MOCKS=true`). Set it to `false` and fill `VITE_API_BASE_URL` and `VITE_AGENT_BASE_URL` to use the real services.
-- Demo and fallback photos come from Wikimedia Commons geosearch: free, CORS enabled, with author and license.
+- Mock photos use explicit synthetic fixtures. Real landmark media comes from the separate Java GET with OSM/Wikidata/Commons verification, author, license and source links; there is no proximity-photo fallback.
 - MapLibre 6 with Vite needs an explicit worker URL. MapLibre's CSS overrides Tailwind's `absolute`, so the map element sits inside a wrapper.
 
 ## Team and tasks
 
 ### Murat — backend, Java, Spring Boot, SQL, Docker, tests
 
-1. Set up the monorepo, `.gitignore`, `.env.example`, and Docker Compose for local PostgreSQL, PostGIS, and pgvector.
-2. Set up Aiven PostgreSQL Free and enable `postgis` and `vector`. Application tables are `places`, `photos`, `routes`, and `route_places`.
-3. Implement `/api/places` with PostGIS bbox and tag filters, and `/api/routes` with ORS `foot-hiking`, waypoints, and persistence.
-4. Import Tatras points of interest from Overpass using a one-time script.
-5. Find photos along routes using `ST_DWithin(photo.geom, route.geom, 300m)` and group them into route segments.
-6. Produce Kafka event `photo.uploaded` and cache ORS responses in Valkey.
-7. Test PostGIS queries and deploy the API.
+Delivered: monorepo/governance, local PostgreSQL18/PostGIS/pgvector/Valkey, verified
+Aiven extensions, place search/creation/researched ingestion, persisted walking
+routes and cache, landmark media, endpoint-binding migration/editor API, Java
+container and shared actual-service fixture acceptance. Own deployment verification,
+database compatibility, infrastructure and backend-facing integration follow-ups.
 
-### Mukhamed — AI agent, Python, LLM, RAG
+### Mukhamed — agent, Python, LLM and research
 
-1. Build FastAPI `/api/chat` with sessions in Valkey.
-2. Extract intent from free text as `{start, end, mustSee[], preferences[]}` using Claude tool use or structured output.
-3. Use Exa to research descriptions such as “the waterfall from TikTok near Štrbské Pleso”. Unbound reinterpretations require an explicit place name before persistence; automatic descriptor resolution is not guaranteed. **Always retain sourceUrl.**
-4. Geocode results with Nominatim/OSM into `Place`.
-5. Embed places and photo captions with Gemini, store them in pgvector, and rank results by user preferences.
-6. Consume `photo.uploaded`, extract EXIF location, generate embeddings, and associate photos with nearby trails.
-7. Cache Exa results in Valkey. Attend the Exa workshop on Saturday at 16:30, Loft fourth floor.
+Delivered: FastAPI chat, Valkey sessions/turn protection, Groq/Anthropic adapters,
+structured intent, sourced Exa research, identity-checked Nominatim discovery,
+Java handoff and factual localized replies. Own remaining same-revision live
+acceptance, model/provider diagnostics and quota-aware validation. Availability
+research is an internal core only; embeddings/ranking/uploads remain deferred.
 
-### Daniil — frontend, product, and pitch, React and Tailwind
+### Daniil — frontend, product and pitch, React and Tailwind
 
-1. Set up Vite, React, Tailwind, MapLibre, and OpenFreeMap.
-2. Build the map and side panel with chat and manual place creation.
-3. Render GeoJSON routes and place markers. Show photos and sources when selected.
-4. Build a horizontal “What you will see along the way” gallery by route segment, synchronized with the map.
-5. Support user photo uploads.
-6. Use contract-based mocks while the backend services are being built.
-7. Deploy the frontend, record the two-minute video, prepare the pitch deck PDF, and write the final submission.
+Delivered: map/chat/manual planning, validated real-service boundaries, sourced
+place cards, landmark gallery/viewer, previous-route state and saved-route editor.
+Own final browser/demo coverage, frontend deployment, video, deck and submission.
+Mocks remain available for development and do not establish live-provider coverage.
 
-## Timeline
+## Historical delivery schedule
 
 | Time | Goal |
 |---|---|
@@ -506,24 +509,24 @@ Use Lombok `@RequiredArgsConstructor` for constructor-based dependency injection
 | **Sunday, 09:30** | **Submit Final**, deadline 10:00 |
 | Sunday, 10:30 | Peer review, all team members present |
 
-## Claude Code tools
+## Development workflow
 
-MCP `context7` for library documentation is connected. Add Exa MCP and Aiven MCP, following https://aiven.io/docs/tools/mcp-server.
-
-```sh
-claude mcp add --transport http exa https://mcp.exa.ai/mcp
-```
-
-Role-specific skills listed in the original team plan follow.
-
-- Murat — `ecc:springboot-patterns`, `ecc:springboot-tdd`, `ecc:postgres-patterns`, `ecc:docker-patterns`, `ecc:java-reviewer` agent.
-- Mukhamed — `ecc:fastapi-patterns`, `ecc:exa-search`, `claude-api`, `ecc:rag-pipeline-reviewer` agent, `ecc:redis-patterns`, compatible with Valkey.
-- Daniil — `ecc:react-patterns`, `impeccable` or `ecc:frontend-design-direction`, frontend slides or `anthropic-skills:pptx`, video work through `ecc:remotion-video-creation`.
-- Everyone — `ecc:api-design`, `code-review`, and a final `ecc:security-review` for committed credentials.
+Use the instructions in this file, [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[repository rules](docs/REPOSITORY_RULES.md). Component READMEs own reproducible
+setup/test commands. Tool installations and private assistant configuration belong
+to each developer's environment, not the shared application contract.
 
 ## Decision log
 
-- November 14 — Murat confirmed the product name **trego.**. Use this spelling in documentation and visible product names; the GitHub repository is `uksus148/trego`.
+- November 15 — Murat broadened the product positioning to a **travel navigator**,
+  including city sightseeing and outdoor trips. Current routing remains walking via
+  ORS foot-hiking. Technical identifiers and protocol/cache names stay compatible.
+  #80 merged at be38fa7 and #87 at 7688227 after independent reviews; the third
+  source checkpoint is v0.3.0. Completed one-off handoffs are consolidated into
+  current contracts/guides; useful acceptance history and deferred designs remain.
+  Earlier entries below describe decisions and evidence at their original revisions.
+
+- November 14 — Murat confirmed the product name **trego.**. Use this spelling in documentation and visible product names; the GitHub repository is `uksus148/trego.`.
 
 - November 13 — Main challenge is Exa Internet Butler, technical challenge is Aiven. The product delegates live web research and presents sources.
 - November 13 — Use partner credits and free tiers for the project budget.
@@ -568,4 +571,5 @@ Role-specific skills listed in the original team plan follow.
 
 - [x] Aiven PostgreSQL Free supports PostGIS and pgvector. Verified with SQL on service junction on November 14, PostgreSQL 18.7, postgis 3.6.4, vector 0.8.7. Both extensions are enabled and the spatial and vector queries passed.
 - [ ] Check Aiven Runtime credit pricing and select API and agent hosting.
-- [ ] Display photo authors and source links. For TikTok links or descriptions supplied by users, use Exa to find relevant sources.
+- [x] Implement source-linked place cards and photo author/license/source display (#71/#73/#74). Live association and final demo acceptance remain separate.
+- [ ] Complete same-revision live acceptance on the selected model and deployment; retain provider/quota failures honestly.

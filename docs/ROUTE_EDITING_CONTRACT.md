@@ -1,11 +1,11 @@
 # Route editing — backend/frontend contract v1
 
-Status: implemented v1 under Murat and Daniil review, November 15, 2026. Murat explicitly
-selected the five decisions below. Shared API agreement and implementation review
-are still pending; this document does not claim a deployed editor or completed E2E.
-Integrated baseline: main `930cb25` (including #78, #85 and #86). Read [CLAUDE.md](../CLAUDE.md) first.
+Status: accepted and merged on November 15, 2026: API #80 at be38fa7 and frontend
+#87 at 7688227, after independent reviews. Murat selected the five decisions below.
+The six-case actual-service fixture CI passed on reviewed head fbdc527. Deployment
+and live-provider acceptance are separate. Read [CLAUDE.md](../CLAUDE.md) first.
 Use [the synthetic examples](contracts/route-editing.examples.json) for both services'
-fixtures. No real place, source, photograph or hiking measurement is asserted by them.
+fixtures. No real place, source, photograph or route measurement is asserted by them.
 
 ## 1. Selected decisions and scope
 
@@ -41,8 +41,7 @@ Existing `start_geom` / `end_geom` remain the original requested coordinates;
 ordered intermediate occurrences. Retain `preferences` unchanged as descriptive
 strings; they do not become routing constraints in this feature.
 
-Use the next unused migration version agreed before parallel implementation. Never
-rewrite V1–V3. Existing endpoint bindings stay null; do not backfill from nearest
+V4__add_route_endpoint_places.sql implements these bindings. Never rewrite V1–V4. Existing endpoint bindings stay null; do not backfill from nearest
 places, names, equal coordinates or track ends. Referenced places must not be
 cascade-deleted with a route; foreign keys prevent dangling endpoint references.
 
@@ -88,8 +87,8 @@ Malformed UUID/unsupported query yields 400 `invalid_request`; missing route yie
 Unexpected corrupted persistence remains a safe server failure, not a guessed binding.
 Read/map within a short read-only transaction, with Open EntityManager in View disabled.
 
-Keep `GET /api/routes/{id}` and its existing Route JSON unchanged. Before implementation,
-the new path does not exist; the frontend must not assume its presence on older APIs.
+Keep `GET /api/routes/{id}` and its existing Route JSON unchanged. Deploy the
+API with V4 before enabling the frontend editor; older APIs do not expose this GET.
 
 ## 4. Write API: backward-compatible POST /api/routes extension
 
@@ -106,9 +105,9 @@ Keep the four baseline fields required. Add two optional root fields only:
 }
 ```
 
-The baseline implementation currently rejects these new fields. Implement/agree this
-extension before the real frontend sends them. Existing four-field agent/manual
-requests remain valid and mean null endpoint bindings; no agent change is required.
+The merged API accepts these fields. Older APIs reject them, so deploy API/V4
+before frontend activation. Existing four-field agent/manual requests remain valid
+and mean null endpoint bindings; no agent change is required.
 
 Rules:
 

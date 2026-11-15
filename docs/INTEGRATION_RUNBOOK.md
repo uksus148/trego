@@ -3,7 +3,10 @@
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
 or reporting an end-to-end result. Last checked: November 15, 2026, against
-`main` at `9f65a86` (through merged #79), plus #76/#77 agent changes in #78 under review.
+`main` at `7688227` (through merged #78, #85, #86, #80 and #87), before the
+travel-positioning documentation update. trego. is a travel navigator; its current
+route provider remains ORS foot-hiking. Release evidence lives in
+[the recovery guide](RELEASE_BASELINE.md).
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -34,7 +37,7 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 
 | ID | Work | Owner | State at the checked revision | Evidence / next gate |
 |---|---|---|---|---|
-| B1 | Manual places and persisted hiking routes | Murat | Merged | #33, #39; real database/provider-fixture checks |
+| B1 | Manual places and persisted walking routes | Murat | Merged | #33, #39; real database/provider-fixture checks |
 | B2 | Required 24-hour routing cache | Murat | Merged; sequential live reuse verified | #41; [live Aiven/ORS evidence](#e4-live-backend-evidence); concurrent miss coalescing is not implemented |
 | B3 | Discovery and internal API handoff | Mukhamed | Merged internally | #31, #40; fixtures do not enable HTTP chat |
 | B4 | Frontend route/source/error compatibility | Daniil | Merged | #35-#37; live browser acceptance pending |
@@ -45,7 +48,7 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B9 | Evidenced Nominatim candidate selection for #51 | Mukhamed | Merged; live control passed | [#52](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; 259 fixture tests; Daniil's live discovery/control browser evidence below; #49 still blocks Rysy |
 | B10 | Distinct no-path/unmatched-waypoint handling | Murat, with agent/UI owner reviews | Merged | [#54](https://github.com/uksus148/trego./pull/54), main `41ffe14`; 265 combined agent tests; July-planning demo correction, combined browser acceptance pending |
 | B11 | Internal optional availability research | Mukhamed | Merged; not connected to HTTP chat | [#56](https://github.com/uksus148/trego./pull/56), main `cc2112e`, [core and limits](../agent/AVAILABILITY.md); 328 fixture tests; no live acceptance or public activation |
-| B12 | Optional availability-research boundary | Murat; agent/UI remain with their owners | Java input validation and wire proposal submitted for review from main `4efa575`; public research not enabled | [Contract](ROUTE_AVAILABILITY_CONTRACT.md), [fixtures](contracts/route-availability.examples.json); 204 local API tests passed, including ten strict-input cases; needs affected-owner agreement and chat/UI integration; B10/B11 are reserved by the parallel [#56](https://github.com/uksus148/trego./pull/56) |
+| B12 | Optional availability-research boundary | Murat; agent/UI remain with their owners | Strict Java input validation and the wire proposal merged in #57; public research not enabled | [Contract](ROUTE_AVAILABILITY_CONTRACT.md), [fixtures](contracts/route-availability.examples.json); 204 local API tests passed, including ten strict-input cases; needs affected-owner agreement and chat/UI integration; B10/B11 are reserved by the parallel [#56](https://github.com/uksus148/trego./pull/56) |
 | B13 | Idle Valkey connection recovery | Mukhamed | Merged; Daniil closed #58 after first-chat success following 28 minutes idle on db9b0d3 | [#59](https://github.com/uksus148/trego./pull/59), main `e6b8145`; [live evidence](https://github.com/uksus148/trego./issues/58); sampled first-chat check, not a claimed three-chat idle matrix |
 | B14 | Diagnosable provider failures and cold resolution probe | Mukhamed | Merged; both reviews; live 20B cold probe and safe 401 diagnostics verified | [#62](https://github.com/uksus148/trego./pull/62), main `5020cd5`; 372 tests; original #61 cause remains unconfirmed; separate 120B intent failure in #63 |
 | B15 | Strict structured model extraction (S1) | Mukhamed | Merged in #64; both approvals; 20B intent/resolution probes 5/5 each, preflight and browser passed | main `204058c`; 394 fixtures; independent live 120B remains; cold strict generation reached 19.5 s plus queue wait, track separately from warm latency |
@@ -54,8 +57,12 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
 | B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
 | B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Merged in #72; #76 reports a separate resolution-substitution defect | main `4271e60`; [evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures; candidate v3 preserves addresstype |
-| B21 | Requested identity (#76/#77) and runtime #84 based on #81 | Mukhamed | PR #78: narrow MVP verification for every target; independent review and Daniil agreement pending | [Current evidence and runtime proposal](../agent/IDENTITY_REVIEW.md); fd817bc 120B routes are historical; corrected-head live acceptance remains |
+| B21 | Requested identity (#76/#77) and runtime #84 based on #81 | Mukhamed | Merged in #78 at 7833de8 after owner reviews; live identity acceptance remains separate | [Current evidence and runtime proposal](../agent/IDENTITY_REVIEW.md); fd817bc 120B routes are historical; corrected-head live acceptance remains |
 | B22 | Shared Nominatim URL identity (#75) | Murat | Merged in #79; issue closed | main `9f65a86`; Mukhamed independently passed 28 URL cases and six real Java/Python Valkey peer cases; full API/container CI passed; gate namespace/token/cooldown unchanged |
+| B23 | Landmark media and cards/gallery | Murat, Daniil | Merged, opt-in | #73/#71/#74; fixture/browser coverage; final live catalog/viewer acceptance separate |
+| B24 | Strict frontend responses and previous-route state | Daniil | Merged in #86; #82 closed | main e09a353; mandatory browser regressions pass |
+| B25 | Shared actual-service fixture acceptance | Murat, with consumer reviews | Merged in #85 | main 930cb25; Java/Python/React with PostgreSQL/PostGIS/vector/Valkey and synthetic providers |
+| B26 | Saved-route editing | Murat, Daniil | Merged in #80/#87 | main be38fa7/7688227; accepted v1, V4, 125 frontend tests and six browser cases on fbdc527; deployment/activation separate |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |
@@ -75,8 +82,9 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
   See [current evidence and #84 solution based on #81](../agent/IDENTITY_REVIEW.md).
 - [Daniil's ab35920 evidence](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)
   predates the latest changes; primary 20B/browser/media acceptance remains separate.
-- #84 is implemented for review in #78 at Mukhamed's request; 409 needs both owners'
-  agreement. Deferred #17–#19 and #80 editor work remain separate.
+- #84 implementation merged in #78 with owner reviews, including busy-turn 409.
+  The issue remains open; further live acceptance is not implied by merge.
+  Deferred #17–#19 remain separate. The editor merged in #80/#87 without agent work.
 
 Before E1, the merged manual endpoint ignored provenance and assigned `source: "manual"`;
 the agent rejected that response after a possible committed write. E1 removes this mismatch
@@ -96,7 +104,7 @@ Local evidence: 259 agent fixture tests pass, including HTTP Tatras handoff, unr
 local ambiguity, retained no-route handling, candidate cache/fallback behavior and
 isolation from an enabled dotenv/process environment. Compilation and frozen lock checks pass.
 
-### Live findings in #48, #49 and #51
+### Historical live findings in #48, #49 and #51
 
 Daniil ran main `08726c3` with real Aiven PostgreSQL/Valkey, ORS, Groq and Exa,
 enabled chat and frontend mocks off. The Tatras request returned 502 after successful
@@ -154,12 +162,13 @@ workspace or a public deployment of the merged API container.
 
 These results confirm the #51 geocoding fix on that snapshot. Rebase reconciliation
 preserves the agent runtime/tests unchanged; fresh checks and both re-reviews still
-apply to the rebased head. Keep the required Rysy demo and remaining acceptance
-matrix pending; the control request does not replace the agreed scenario.
+apply to the rebased head. At that stage the Rysy demo and remaining matrix were pending. #55 later
+changed the successful demo candidate to July/Popradské pleso; Rysy stays a regression.
 
 Separately, [#49](https://github.com/uksus148/trego./issues/49), assigned to Murat,
 reports ORS code 2010 (no routable point within 350 m) for Rysy/Chata pod Rysmi.
-The API currently maps both 2009 and 2010 to 422 `no_hiking_route`.
+At that historical revision both mapped to 422 `no_hiking_route`. Merged #54 now
+maps 2009 to `no_hiking_route` and 2010 to `waypoint_not_routable`.
 Štrbské Pleso -> Skok and -> Popradské Pleso return 201 / 4.6 km and 5.7 km;
 an unlimited snap radius produces a 69 km detour and is not an accepted fix.
 Murat investigates the provider/waypoint boundary. This agent fix retains current
@@ -389,7 +398,7 @@ Run sequentially with a unique session label; keep all three owners available fo
 | 9 | No-route and isolated dependency failures | Distinct no-path/unmatched-waypoint clarification and honest 502/503/504 failures; no fake track/success |
 | 10 | Follow-up in the same session; another region | Recent history is used and a different supported request completes across real services |
 
-Issue #49's revised E5 candidate, pending affected-owner review, is: "Plan a summer hike
+Issue #49's revised E5 candidate, adopted in #55, is: "Plan a summer hike
 in July from Štrbské Pleso to Popradské pleso via the Skok waterfall. I love wild scenery."
 Keep the original Rysy request as an unmatched-waypoint regression. See
 [exact live coordinates, results and independent seasonal evidence](ROUTING_DIAGNOSTICS.md).
@@ -401,7 +410,8 @@ same resolved payload and provider-call evidence. Sequential hits do not prove s
 miss coalescing; that guarantee is not implemented. GET must remain independent of ORS/Valkey.
 
 Existing API tests use real containers/provider fixtures; agent handoff tests use HTTP
-fixtures. Current CI covers API and infrastructure, not the entire browser/agent workflow.
+fixtures. Current CI also covers agent/frontend checks and actual-service browser
+acceptance with synthetic external providers. This does not establish live-provider acceptance.
 After the first successful run, owners can propose a fixture-backed cross-service regression
 check. Live provider calls should remain deliberate and bounded, not an automatic CI dependency.
 
