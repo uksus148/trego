@@ -232,22 +232,12 @@ first/nearest/most important hit. Contextual choices do not become new anchors.
 This is a conservative ambiguity filter, not a route-distance limit; several local
 matches or insufficient context remain unresolved without partial ingestion.
 
-Issue #76 separates a requested target from route-wide search context. Resolution
-must identify that place itself, not replace a city with a castle/peak found in a
-hiking article. When name/query identity is not preserved by the selected OSM
-result, one cached lookup of the original target can independently
-establish an exact settlement identity. An incompatible result reports internal
-`requested_identity_mismatch` and clarifies before handoff; it never silently swaps
-coordinates or broadens the radius. This verification shares the provider deadline
-and distributed gate, may add one public lookup, and adds no model retry. See
-[evidence and limits](OSM_IDENTITIES.md#issue-76-requested-settlements).
-Internal intent's `descriptiveTargets` lists existing target roles classified as descriptions
-before Exa; its default empty list keeps named targets strict. Changed named targets
-with empty/unusable verification clarify before handoff, while an explicit description
-can resolve to a different evidenced name. Public chat fields remain unchanged.
-For #77, the probe's explicit `--include-identity` option captures intent targets,
-resolution names/queries and selected OSM IDs only in local JSON; default reports
-and routine logs remain redacted. See [stage comparison](DISCOVERY_DIAGNOSTICS.md#locate-an-incorrect-successful-destination-77).
+Issues #76/#77 bind exact requested targets and reject unverified source-led
+substitutions before handoff/cache acceptance. The internal descriptive-target
+roles remain model-interpreted; their named-target bypass still blocks merge.
+See [current evidence, limitations and #84 session proposal](IDENTITY_REVIEW.md).
+The opt-in `--include-identity` probe exposes target/resolution/OSM comparisons only
+in private JSON; default logs and public chat fields remain unchanged.
 
 `gopstop:nominatim:search:v3` caches validated candidate arrays for 24 hours, or an
 empty array for five minutes. Selection is recomputed from name/tags/context, so an

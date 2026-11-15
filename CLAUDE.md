@@ -268,34 +268,23 @@ submitted `source`, return 400 rather than being silently ignored. See the
   24-hour positive results and five-minute empty results in a new namespace.
   Internal/public result shapes, source binding and API handoff remain unchanged.
 
-  Issue #76's follow-up separates the exact requested target from route-wide Exa
-  research context and tells the resolver not to substitute hiking attractions.
-  When the name/query identity is not preserved by the selected OSM result,
-  the agent may make one cached Nominatim query for the original target, within
-  the same provider deadline and shared gate. An exact independently evidenced
-  settlement constrains the accepted OSM identity; conflicting/ambiguous identity
-  clarifies before writes. This is an identity verification, not an expanded-radius
-  fallback or an automatic model retry. Both owners review this policy. Public
-  chat/Java wire shapes, ingestion, routing and the 25 km ambiguity filter stay unchanged.
-  Internal intent adds `descriptiveTargets`: enum roles `start`, `end`, and
-  `stop:1` through `stop:5` classify existing targets as descriptions before Exa.
-  Only those targets may be interpreted as another evidenced name. The default
-  empty list treats targets as named. Changed named
-  identities with empty/unusable verification must clarify, never fall through to
-  the substitute. Translated city aliases and explicit requested feature identity
-  remain supported by OSM evidence. A target repeated in a named role retains
-  strict binding. Both owners review this
-  internal schema/policy. The review follow-up also preserves a sourced full name
-  when a search hint truncates it, and proposes selecting a linked settlement
-  boundary only with matching Q ID, coordinates, type and linked_place evidence;
-  see [review evidence and open gates](agent/IDENTITY_REVIEW.md).
+  Issues #76/#77 in PR #78 bind research/resolution to requested targets.
+  Changed named identities need settlement/feature proof; empty verification
+  clarifies before writes. Internal descriptiveTargets uses existing enum roles
+  start/end/stop:1–stop:5; its observed named-target bypass still blocks merge.
+  Query correction retains full sourced names. Linked settlement boundary selection
+  requires matching type/aliases/Q ID/coordinates/linked_place; both owners review.
+  The private --include-identity probe captures stage comparisons without routine
+  names/query logging. See [current evidence and review gates](agent/IDENTITY_REVIEW.md).
 
-  Issue #77 adds an explicit intent rule preserving named city endpoints and the
-  latest requested stop order. The private read-only discovery probe can opt into
-  `--include-identity`: extracted targets, resolution names/queries and selected OSM
-  IDs appear only in local JSON. Default reports and routine logs remain redacted.
-  This distinguishes an intent rewrite from a later source-led substitution; the
-  original #77 internal payloads were not captured. Live acceptance remains separate.
+  At Mukhamed's instruction, #84's runtime solution based on audit #81 is proposed
+  in the same #78, as a separate increment. A Valkey owner-token lease encloses
+  history/respond/save across workers. Contention returns 409 before provider work;
+  expiry fences stale session appends, and release cannot delete another owner.
+  Exchanges must satisfy the reader's nonblank 1–4000 character bound before writes;
+  invalid writes retain previous history and return 503 without truncation.
+  This new 409 behavior needs both owners' agreement before merge. No Java POST
+  fencing/idempotency is claimed after process suspension. See the linked report.
 
 S3 adds internal discovery reasons/counts and a [read-only diagnostic procedure](agent/DISCOVERY_DIAGNOSTICS.md).
 Missing endpoints clarify before place research; provider failures remain errors.

@@ -39,10 +39,8 @@ clarification clearing. S3 merged in #66 at `f93204d`, including formatting and 
 Its live review found the shared resolution cache could pin a failed downstream
 selection for a day. S4a merged in #67 at `cf5fe23`, with both approvals and
 primary 20B TTL/reuse acceptance. S4b merged in #68 at `cfc4c64`; primary 20B had one successful cold landmark
-run, then daily Groq quota blocked further acceptance. #72 merged issue #69's
-settlement matching and role-specific clarification. #76 now prepares exact-target
-resolution and independent settlement verification against attraction substitution,
-documented in
+run, then quota blocked acceptance. #72 merged settlement matching; #78 prepares
+requested-identity protection. Current evidence is documented in
 [OSM identities](../agent/OSM_IDENTITIES.md). S5 remains pending; true Štrbské
 Pleso ambiguity still requires evidence or clarification, not a forced lake preference.
 No paid retries or provider fallback are introduced. Strict JSON controls structure,

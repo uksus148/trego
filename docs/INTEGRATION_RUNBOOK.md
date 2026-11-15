@@ -54,7 +54,7 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
 | B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
 | B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Merged in #72; #76 reports a separate resolution-substitution defect | main `4271e60`; [evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures; candidate v3 preserves addresstype |
-| B21 | Preserve requested settlements against attraction substitution (#76/#77) | Mukhamed | PR #78 under both-owner review; latest-head acceptance pending | [Evidence and limits](../agent/OSM_IDENTITIES.md#issue-76-requested-settlements); 549 tests passed; [review corrections and real Nominatim/Valkey evidence](../agent/IDENTITY_REVIEW.md); target-role intent and linked-boundary selection need both reviews; exact Groq/Exa/ORS acceptance pending |
+| B21 | Requested identity (#76/#77) and runtime #84 based on #81 | Mukhamed | PR #78: independent review pending; named/descriptive bypass still blocks merge | [Current evidence and runtime proposal](../agent/IDENTITY_REVIEW.md); fd817bc 120B routes passed; #84 adds session leases/validation and proposes 409 |
 | B22 | Shared Nominatim URL identity (#75) | Murat | Merged in #79; issue closed | main `9f65a86`; Mukhamed independently passed 28 URL cases and six real Java/Python Valkey peer cases; full API/container CI passed; gate namespace/token/cooldown unchanged |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
@@ -70,18 +70,13 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
   #61's diagnostic gap is fixed; this does not recover its historical unlogged payload.
 - #75 closed after API PR #79 merged, with independent frontend/live and agent/
   cross-runtime review. No duplicate API patch is included in #78.
-- #76/#77 remain open pending reviewed code and exact live prompts, named-stop order,
-  saved readback and media-error isolation. A safe clarification is not a route pass.
-  #77's original wrong-destination stage is unknown; the new 120B intent-validation
-  failure and two named-stop blockers are recorded in [review evidence](../agent/IDENTITY_REVIEW.md). The solution is
-  proposed in the existing #78; deferred draft PRs #17–#19 remain unchanged.
-
-Daniil's [20B review on ab35920](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)
-passed both #76 English prompts, city identities, browser route/readback, sources
-and city media. His shorter Russian city prompt also retained Vienna. This predates
-the fail-closed review correction/internal descriptive metadata and is not a pass
-of #77's exact longer Russian request or the latest head's multi-stop matrix.
-Both owners must review the updated branch; preserve separate model/revision evidence.
+- #76/#77 remain open for fd817bc's named/descriptive bypass. Murat's latest 120B
+  review passed all five routes; earlier Russian/castle/Stupava failures are superseded.
+  See [current evidence and #84 solution based on #81](../agent/IDENTITY_REVIEW.md).
+- [Daniil's ab35920 evidence](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)
+  predates the latest changes; primary 20B/browser/media acceptance remains separate.
+- #84 is implemented for review in #78 at Mukhamed's request; 409 needs both owners'
+  agreement. Deferred #17–#19 and #80 editor work remain separate.
 
 Before E1, the merged manual endpoint ignored provenance and assigned `source: "manual"`;
 the agent rejected that response after a possible committed write. E1 removes this mismatch

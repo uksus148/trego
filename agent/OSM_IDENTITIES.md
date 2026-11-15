@@ -108,78 +108,16 @@ original #69 prompt remain outside this bug and are not enabled by it.
 
 ## Issue #76: requested settlements
 
-The initial 20B report on main `db9b0d3` inferred two Vienna candidates followed by
-`outside_context`. Daniil's subsequent shared-cache discovery inspection changed
-the diagnosis: the resolver mapped requested Bratislava to Bratislava Castle
-(way 1128350263), and requested Vienna to Kahlenberg, with two peak nodes
-195763017 and 12962364097. This was a fresh run, not recovery of the original
-unlogged payloads. A wider radius could route to an unrequested mountain.
-
-Independent public searches on November 15 used the project's contact User-Agent,
-the usual limit/format/name/extra options, and more than one second between calls.
-`Vienna` and `Vienna, Austria` each returned city relation 109166, Q1741.
-`Kahlenberg, Austria` returned the two reported peak nodes at 48.2763418/16.3330680
-and 48.2282682/15.4749161. Reduced records with OSM attribution are preserved in
-`tests/test_requested_settlement.py`. No live Groq/Exa/ORS calls were made here.
-
-Research now asks for information about the exact target; route context is only
-research context. The resolver receives the target string itself, not a route-wide
-"Find hiking place" instruction. Its prompt prohibits attraction substitution.
-Changed prompt/input identity naturally bypasses old resolution-cache entries;
-changed research queries have distinct Exa keys. No shared keys are flushed.
-
-Application verification supplements the prompt. An unchanged name/query retains
-ordinary name/type/context selection. A settlement with aliases for both names,
-or the same identity selected using an explicitly requested feature and OSM evidence,
-needs no extra request. Otherwise search the original target once using the normal
-Nominatim cache/options/gate. An attraction sharing a city's alias does not bypass
-verification when the resolver changes the name or query. Only exact
-name/alias matches with city/town/village/hamlet evidence can constrain the identity;
-do not infer a city from a nearby peak or an arbitrary boundary. Country qualifiers
-remain in the verification query; the name comparison uses its first comma component.
-If an independently established settlement conflicts with the resolution, or has
-multiple identities, return `requested_identity_mismatch`, with no place or route
-writes. Never substitute the verification coordinates into an attraction result or
-invent a supporting research source. Attested multilingual city aliases need no
-extra request. Empty/nonmatching/nonsettlement verification also rejects a changed
-named identity; absence is never permission to persist a source-led substitute.
-
-The internal intent schema adds `descriptiveTargets`, at most seven enum roles
-(`start`, `end`, `stop:1` through `stop:5`), validated as existing route targets. Classification happens before
-web research. Only targets in explicitly descriptive roles may be interpreted as a
-different evidenced name (for example the TikTok-waterfall description); named
-targets default to strict binding. No extra model/classifier call or word-count
-heuristic is added. City/country and landmark names must not be marked descriptive.
-Model interpretation remains fallible; this is an internal schema change under
-both-owner review, not a change to public chat/Java wire fields.
-
-The verification adds at most one original-target lookup per geocode invocation,
-sharing its existing total timeout. Contextual reconsideration reuses the candidate
-cache; errors remain errors, with no automatic provider/model retries. Candidate
-v3 already stores the required fields. Positive/empty TTLs, selection feedback and
-the 25 km ambiguity filter are unchanged. A rejected resolution cannot be promoted
-to the accepted 24-hour lifetime.
-
-Internal/probe `matches` retain resolver-name/type-matched OSM type/IDs and minimum
-anchor distance before contextual filtering. `requestedMatches` records constraining
-settlement identities on a mismatch. No names, queries or source bodies are added
-to routine logs or public chat JSON. Both owners review the policy; live closure
-requires the two original English prompts on the reviewed revision with exact
-city identities, then saved route/browser/source checks. Fixture success alone
-does not establish that the live model now resolves both cities.
-
-Issue #77 separately records a successful 120B response with Stephansdom as the
-destination instead of Vienna. Its intent/resolution payloads are unavailable;
-the precise stage remains unconfirmed. A fresh public Stephansdom lookup returned
-way 212496461, amenity/place_of_worship with extra building=cathedral. This is the
-regression fixture, not a claim to have recovered the saved route's OSM provenance.
-Both Groq profiles and Anthropic fixtures reject this source-resolution substitution
-before handoff, even though the cathedral is near the correct city's centre.
-
-The intent prompt also preserves explicit city endpoints and the latest user's
-named-stop order. This remains model-interpreted; a separate upstream rewrite is
-not deterministically ruled out by the settlement guard. Use the opt-in
-[identity capture](DISCOVERY_DIAGNOSTICS.md#locate-an-incorrect-successful-destination-77)
-to locate it. Fixtures additionally carry two/three named stops and a repeated visit
-through actual discovery and persisted handoff/readback, preserving cities/sources.
-No evidence justifies dropping a stop, changing categories or expanding the radius.
+The fresh #76 reproduction mapped Bratislava to its castle and Vienna to Kahlenberg.
+Research now targets the requested place itself; a changed named identity requires
+independent settlement or requested-feature proof. Empty/unusable verification
+rejects the substitute before writes and positive cache promotion. Verification
+uses the existing cache, gate and deadline; no expanded radius or automatic retry.
+Country-qualified names remain in queries. A truncated search hint retains the
+full sourced name; a linked settlement boundary/node pair requires matching Q ID,
+coordinates, type, aliases and linked_place evidence to select the boundary.
+Production has no city-ID or coordinate overrides. Internal descriptive roles
+remain model-interpreted; the new fd817bc classification bypass is still blocking.
+See [current review evidence, architectural conclusions and #84 runtime solution](IDENTITY_REVIEW.md).
+Both owners must review the policy; successful routes alone do not prove that
+negative substitution controls work. Preserve source/OSM continuity and stop order.

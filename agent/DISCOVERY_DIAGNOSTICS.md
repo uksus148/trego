@@ -58,32 +58,18 @@ persisted-route acceptance. Keep 20B and 120B evidence separate; never flush tea
 
 ## Locate an incorrect successful destination (#77)
 
-Use the explicit `--include-identity` option to compare the normalized intent with
-the source-led resolution and selected OSM identity. It adds `intentTargets` and
-per-finding `identity` containing `requestedTarget`, `resolution` (name, geocodeQuery,
-sourceIndex, tags) and `selectedOsm`. These fields describe derived place data, not
-raw provider bodies. They remain absent by default; normal server logs do not change.
-The flag adds no provider calls or writes beyond the chosen probe profile. Keep
-this location data private in ignored local artifacts and redact it before sharing.
+Run the exact #76/#77 corpus at the reviewed revision with separate model/cache
+reports. Explicit private capture includes intent roles, resolution/query and OSM IDs:
 
 ```sh
 uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --include-identity --message "проложи маршрут от братиславы до вены на велике, я хочу увидеть исторические места по пути и поделать фотографий"
 ```
 
-If intent itself ends at Stephansdom, inspect intent/history handling; if intent
-retains Vienna but resolution selects Stephansdom, inspect source-led resolution
-and the settlement guard. Compare `selectedOsm` against both candidate arrays.
-`intentTargets.descriptiveTargets` records which target roles the intent stage classified
-as descriptions before research. Named targets default to strict binding; empty
-verification must clarify. The guard constrains extracted intent, not the raw user sentence; its fixture pass
-cannot establish that an upstream rewrite is fixed. The #77 original payloads
-were not captured, so do not declare one stage proven from its successful HTTP response.
-
-Also rerun both exact multi-stop prompts in #76 on the reviewed revision. Preserve
-city/town endpoints, all named stops, order and repeats. Synthetic multi-stop fixtures
-verify discovery/handoff wiring, not those live model choices. Follow with saved
-route/readback, source/session and media ready/empty/error-isolation checks. Cycling
-and category-based corridor search remain outside the MVP; no routing fallback is added.
+Compare intent endpoints with resolver names and selected identities; enum-valid
+roles can still misclassify named targets. Default reports omit names/queries.
+See [latest evidence and remaining negative controls](IDENTITY_REVIEW.md).
+Then verify saved route, stop order, sources, session, browser and media isolation;
+HTTP 200 clarification is not route acceptance. Cycling remains deferred.
 
 ## Full discovery probe on the team's machine
 

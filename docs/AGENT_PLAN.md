@@ -54,9 +54,7 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
 Follow the approved [stabilization sequence S1-S5](AGENT_STABILIZATION_PLAN.md).
 #68 merged S4b at `cfc4c64`, with both reviews and one successful primary 20B
 cold landmark run; daily token quota then blocked remaining live acceptance.
-Issue #69 merged settlement metadata matching and role-specific clarification in #72.
-Issue #76 now prepares requested-settlement verification against attraction substitution,
-with the original 25 km policy unchanged and live acceptance still required.
+Issue #69 merged in #72; #78 prepares requested-identity protection with live acceptance pending.
 S5 remains pending; safe quota-window diagnostics are a separate follow-up.
 See [OSM evidence and limits](../agent/OSM_IDENTITIES.md).
 
