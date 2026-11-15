@@ -29,7 +29,7 @@ changes. It uses no live provider credentials; live acceptance remains an explic
 
 Frontend CI runs tests, production build and lint on frontend/shared-example changes.
 The fixture acceptance workflow covers actual local service integration with synthetic
-external providers; its documented expected browser failures remain tracked in #82.
+external providers; the two #82 cases fixed in #86 are required passing browser regressions.
 Both workflows are conditional. Required statuses remain unchanged until every PR
 can receive the required result; fixture evidence is separate from live acceptance.
 

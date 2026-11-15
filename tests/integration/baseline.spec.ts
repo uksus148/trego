@@ -94,11 +94,13 @@ test('readback 404 does not associate a new ready answer with an old route (#82)
 test('invalid route 200 remains recoverable without blanking React (#82)', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.route(`${services.api}/api/routes/*`, route => route.fulfill({ json: { id: services.route.id } }))
+  await page.route(`${services.api}/api/routes/*`, route => {
+    const requestedId = new URL(route.request().url()).pathname.split('/').at(-1)
+    return route.fulfill({ status: 200, json: { id: requestedId } })
+  })
   await page.goto(services.frontend)
   await send(page)
-  await expect.poll(async () => errors.length + await page.getByRole('alert').count()).toBeGreaterThan(0)
-  if (errors.length) expect(errors[0]).toMatch(/Cannot read properties.*map/)
+  await expect(page.getByRole('alert')).toContainText('The server returned invalid route data.')
   expect(errors).toEqual([])
   await expect(page.getByRole('textbox')).toBeVisible()
 })
