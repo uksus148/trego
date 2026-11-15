@@ -290,21 +290,23 @@ submitted `source`, return 400 rather than being silently ignored. See the
   clarifies before writes or positive cache promotion. Internal descriptiveTargets
   (start/end/stop:1–stop:5) is advisory and cannot waive verification. Murat agreed
   the narrow MVP policy on November 15: unbound descriptions ask for an explicit
-  place name, adding a clarification turn. Daniil's agreement and reviewed-head
-  acceptance remain merge gates; server-bound candidate confirmation is deferred.
+  place name, adding a clarification turn. Owner reviews accepted this policy and
+  #78 merged at 7833de8. Same-revision live acceptance for the still-open #76/#77
+  issues remains separate; server-bound candidate confirmation is deferred.
   Query correction retains full sourced names. Linked settlement boundary selection
   requires matching type/aliases/Q ID/coordinates/linked_place; both owners review.
   The private --include-identity probe captures stage comparisons without routine
   names/query logging. See [current evidence and review gates](agent/IDENTITY_REVIEW.md).
 
-  At Mukhamed's instruction, #84's runtime solution based on audit #81 is proposed
-  in the same #78, as a separate increment. A Valkey owner-token lease encloses
+  At Mukhamed's instruction, #84's runtime solution based on audit #81 was
+  reviewed and merged in #78 as a separate increment. A Valkey owner-token lease encloses
   history/respond/save across workers. Contention returns 409 before provider work;
   expiry fences stale session appends, and release cannot delete another owner.
   Exchanges must satisfy the reader's nonblank 1–4000 character bound before writes;
   invalid writes retain previous history and return 503 without truncation.
-  This new 409 behavior needs both owners' agreement before merge. No Java POST
-  fencing/idempotency is claimed after process suspension. See the linked report.
+  Both owners reviewed the new 409 behavior before #78 merged. #84 remains open
+  for its separate acceptance/follow-up; merge does not close that live gate. No
+  Java POST fencing/idempotency is claimed after process suspension. See the linked report.
 
 S3 adds internal discovery reasons/counts and a [read-only diagnostic procedure](agent/DISCOVERY_DIAGNOSTICS.md).
 Missing endpoints clarify before place research; provider failures remain errors.
@@ -487,6 +489,8 @@ structured intent, sourced Exa research, identity-checked Nominatim discovery,
 Java handoff and factual localized replies. Own remaining same-revision live
 acceptance, model/provider diagnostics and quota-aware validation. Availability
 research is an internal core only; embeddings/ranking/uploads remain deferred.
+For agent PRs, retain Mukhamed's agreed requests to both uksus148 and nnatthebest,
+including after reviewable changes. This does not increase the one-approval minimum.
 
 ### Daniil — frontend, product and pitch, React and Tailwind
 

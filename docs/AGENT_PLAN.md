@@ -16,8 +16,10 @@ without a new agent feature. The public chat envelope remains unchanged. trego. 
 a travel navigator with current walking routing; embeddings, uploads, day planning
 and public availability research remain deferred. Same-revision live/model coverage
 and the still-open #76/#77/#84 issues must be assessed separately from merge.
-The [runbook](INTEGRATION_RUNBOOK.md) is the current delivery ledger. Request reviewers
-by affected ownership, with at least one independent approval on every PR.
+The [runbook](INTEGRATION_RUNBOOK.md) is the current delivery ledger. For agent PRs,
+Mukhamed requests both uksus148 and nnatthebest, including again after reviewable
+changes. This agreed request policy is retained; the repository still requires at
+least one independent approval, not two approvals.
 
 ## Historical delivery baseline
 
@@ -61,7 +63,7 @@ about pending implementation there are not the current ledger.
   Review/live rerun and Murat's separate ORS/Rysy investigation
   ([#49](https://github.com/uksus148/trego./issues/49)) still gate E3/E5.
 - Mukhamed implements the agent; Murat owns the API/storage boundary; Daniil owns
-  the frontend/chat boundary. Request reviewers for the affected service boundaries under the current repository rules.
+  the frontend/chat boundary. For agent PRs, request both uksus148 and nnatthebest, including again after reviewable changes, as agreed with Mukhamed; the approval minimum stays one.
 
 ## Sequential blocks
 

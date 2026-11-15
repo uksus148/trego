@@ -27,8 +27,10 @@ review and a CLAUDE.md update in its implementation PR; this transport PR does n
 ## Sequential delivery
 
 Every block starts from current main after the preceding PR's review, fixes and merge.
-Keep each PR below 1000 changed lines and split it into logical commits. Request affected component owners under current repository rules, including
-again after reviewable changes; every PR requires an independent approval.
+Keep each PR below 1000 changed lines and split it into logical commits. For this
+agent sequence, request both uksus148 and nnatthebest, including again after
+reviewable changes, as agreed with Mukhamed. This reviewer-request policy does
+not change the repository minimum of one independent approval.
 
 | Block | Implementation | Acceptance gate |
 |---|---|---|
