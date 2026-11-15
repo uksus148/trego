@@ -235,8 +235,7 @@ export function useTrip() {
           setPlaces([])
           setStart(null); setEnd(null)
         } else {
-          activate(null)
-          setChatPlaces([])
+          // A clarification builds nothing: the last route stays, labelled as previous.
           setPlaces((previous) => mergePlaces(previous, response.places))
         }
       } catch (cause) { setError(getErrorMessage(cause)) }

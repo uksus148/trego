@@ -269,3 +269,14 @@ it('keeps a labelled previous route and suppresses a new ready reply when readba
   expect(trip.showingPreviousRoute).toBe(true)
   expect(trip.messages.some(item => item.text === 'Unverified new ready answer')).toBe(false)
 })
+
+it('keeps the last route, labelled as previous, when the chat asks for clarification', async () => {
+  let trip = await startChatRoute()
+  apiMock.chat.mockResolvedValue({ reply: 'Please provide a more precise name or location for: Heldenplatz.', places: [] })
+  await trip.sendMessage('Add a stop at Heldenplatz')
+  trip = renderTrip()
+  expect(trip.route?.id).toBe(ids.route)
+  expect(trip.showingPreviousRoute).toBe(true)
+  expect(trip.chatPlaces.length).toBeGreaterThan(0)
+  expect(trip.messages.at(-1)?.text).toContain('Heldenplatz')
+})
