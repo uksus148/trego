@@ -18,6 +18,11 @@ from gopstop_agent.resolution_cache import CachedPlaceResolver
 from gopstop_agent.resolver import ClaudePlaceResolver, SourceResolution
 
 
+# Identity guards (requested_identity_mismatch, conflicting_identity, outside_context) are final.
+NEARBY_LOOKUP_REASONS = frozenset({"no_sources", "insufficient_evidence", "no_geocoding_candidates",
+                                   "name_mismatch", "type_mismatch", "ambiguous_candidates"})
+
+
 class DiscoveredPlace(BaseModel):
     name: str
     tags: list[str]
@@ -164,19 +169,20 @@ class PlaceDiscovery:
                         if task.result().place is None and name in resolutions:
                             with candidate_scope(index):
                                 await locate(task.result(), resolutions[name], anchors)
-                    # An explicit name without usable web evidence may still be one exactly
-                    # named OSM object beside the route; OSM is then its recorded source.
-                    for index, task in enumerate(tasks.values()):
-                        finding = task.result()
-                        if finding.place is None and finding.outcome in ("no_sources", "insufficient_evidence"):
-                            with candidate_scope(index):
-                                await locate_nearby(finding, anchors)
                 if isinstance(self._resolver, CachedPlaceResolver):
                     with stage("resolution_cache_validation"):
                         for name, resolution in resolutions.items():
                             finding = tasks[name].result()
                             await self._resolver.record_selection(name, finding.sources, resolution,
                                                                   accepted=finding.place is not None)
+                # An explicit name that research could not identify may still be one exactly
+                # named OSM place beside the route; OSM is then its recorded source. This runs
+                # after cache feedback so a rejected model resolution is never promoted.
+                for index, task in enumerate(tasks.values()):
+                    finding = task.result()
+                    if anchors and finding.place is None and finding.reason in NEARBY_LOOKUP_REASONS:
+                        with candidate_scope(index):
+                            await locate_nearby(finding, anchors)
                 start = tasks[intent.start].result() if intent.start is not None else None
                 stops = [tasks[name].result() for name in intent.mustSee]
                 end = tasks[intent.end].result() if intent.end is not None else None

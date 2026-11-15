@@ -31,6 +31,8 @@ FEATURE_TYPES = {
 }
 GENERIC_WORDS = {"waterfall", "peak", "mount", "mountain", "lake", "castle"}
 CONTEXT_RADIUS_KM = 25
+SAME_PLACE_KM = 0.5
+REPRESENTATION_ORDER = ("place", "tourism", "historic", "leisure", "natural", "amenity", "building")
 
 # Exact OSM attributes can retain identity when Nominatim chooses another primary
 # category. A generic tourism=attraction is deliberately not a castle criterion.
@@ -90,6 +92,30 @@ def distance_km(left: GeocodedPlace, right: GeocodedPlace) -> float:
     dlat, dlon = lat2 - lat1, math.radians(right.lon - left.lon)
     a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     return 6371 * 2 * math.asin(min(1, math.sqrt(a)))
+
+
+def merge_colocated(candidates: list[GeocodingCandidate]) -> list[GeocodingCandidate]:
+    """Collapse OSM representations of one named place: a square, its roads, its car park."""
+    groups: list[list[GeocodingCandidate]] = []
+    for candidate in candidates:
+        group = next((group for group in groups if distance_km(candidate, group[0]) <= SAME_PLACE_KM), None)
+        if group is None:
+            groups.append([candidate])
+        else:
+            group.append(candidate)
+
+    def representation(candidate: GeocodingCandidate) -> tuple:
+        order = REPRESENTATION_ORDER.index(candidate.category) if candidate.category in REPRESENTATION_ORDER \
+            else len(REPRESENTATION_ORDER)
+        return order, candidate.osm_type, candidate.osm_id
+
+    return [min(group, key=representation) for group in groups]
+
+
+def addressed_in_anchor(candidate: GeocodingCandidate, anchors: list[GeocodedPlace]) -> bool:
+    """The candidate's own OSM address names a resolved route place, e.g. '..., Wien, Österreich'."""
+    parts = [words(part) for part in candidate.display_name.split(",")[1:]]
+    return any(name and name in parts for name in (words(anchor.display_name.split(",")[0]) for anchor in anchors))
 
 
 def matches_requested_name(candidate: GeocodingCandidate, name: str) -> bool:

@@ -15,7 +15,7 @@ from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.provider_errors import http_failure
 from gopstop_agent.geocoding_candidates import (
     CONTEXT_RADIUS_KM, CandidateMatch, CandidateSelection, FEATURE_ATTRIBUTES, FEATURE_TYPES, GeocodingCandidate,
-    distance_km, matches_feature, matches_requested_name, select_candidate_result, words,
+    addressed_in_anchor, distance_km, matches_feature, merge_colocated, matches_requested_name, select_candidate_result, words,
 )
 from gopstop_agent.geocoding_models import GeocodedPlace
 
@@ -99,7 +99,13 @@ class NominatimGeocoder:
         candidates = await self._search(name, viewbox=viewbox)
         nearby = [candidate for candidate in candidates if matches_requested_name(candidate, name)
                   and any(distance_km(candidate, anchor) <= CONTEXT_RADIUS_KM for anchor in anchors)]
-        return select_candidate_result(nearby, name, [], anchors)
+        places = merge_colocated(nearby)
+        # Address containment is evidence, not ranking: 'Heldenplatz' in Vienna rather
+        # than the same name in a neighbouring town. Otherwise ambiguity remains.
+        inside = [candidate for candidate in places if addressed_in_anchor(candidate, anchors)]
+        if len(places) > 1 and len(inside) == 1:
+            places = inside
+        return select_candidate_result(places, name, [], anchors)
 
     async def _guard_settlement_identity(self, selection: CandidateSelection, candidates: list[GeocodingCandidate],
                                          name: str, query_name: str, requested_name: str | None,

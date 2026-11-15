@@ -97,6 +97,31 @@ async def test_nearby_lookup_never_picks_between_several_local_matches(cache):
     assert result.reason == "ambiguous_candidates" and result.location is None
 
 
+def square(osm_type, osm_id, category, kind, lat, lon, address="Innere Stadt, Wien, Österreich"):
+    return {"osm_type": osm_type, "osm_id": osm_id, "category": category, "type": kind, "name": "Heldenplatz",
+            "display_name": f"Heldenplatz, {address}", "lat": lat, "lon": lon}
+
+
+VIENNA = GeocodedPlace(osm_type="relation", osm_id=109166, display_name="Wien, Österreich", lat=48.2084, lon=16.3725)
+HELDENPLATZ = [square("way", 264828970, "amenity", "parking", "48.2057", "16.3645"),
+               square("way", 29065206, "highway", "service", "48.2071", "16.3622"),
+               square("node", 276645373, "place", "square", "48.2060", "16.3640"),
+               square("way", 92840523, "place", "square", "48.1205", "16.2642", "Perchtoldsdorf, Niederösterreich, Österreich")]
+
+
+async def test_nearby_lookup_merges_representations_and_prefers_the_address_inside_a_route_place(cache):
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=HELDENPLATZ))) as client:
+        result = await NominatimGeocoder(client, cache, "Trails/1.0").geocode_nearby("Heldenplatz", [VIENNA])
+    assert result.reason == "resolved" and (result.location.osm_type, result.location.osm_id) == ("node", 276645373)
+
+
+async def test_nearby_lookup_stays_ambiguous_when_no_address_names_a_route_place(cache):
+    rows = [{**row, "display_name": "Heldenplatz, Somewhere"} for row in HELDENPLATZ]
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=rows))) as client:
+        result = await NominatimGeocoder(client, cache, "Trails/1.0").geocode_nearby("Heldenplatz", [VIENNA])
+    assert result.reason == "ambiguous_candidates" and result.identityCount == 2
+
+
 def providers(nearby_rows, calls):
     names = {"Štrbské Pleso": (1, 49.1191, 20.0627), "Popradské pleso": (3, 49.1533, 20.0797)}
 
@@ -143,3 +168,37 @@ async def test_discovery_still_clarifies_when_the_nearby_name_is_ambiguous(cache
         result = await create_discovery(client, cache, settings).discover("add stop at Turisticka ubytovna", FAILED[:2])
     assert not result.ready_for_handoff and result.unresolved == ["Turisticka ubytovna"]
     assert result.stops[0].reason == "insufficient_evidence"
+
+
+async def test_discovery_uses_the_nearby_lookup_after_a_type_mismatch_without_promoting_the_resolution(cache):
+    calls = []
+    names = {"Bratislava": (1702499, 48.1435, 17.1090, "Bratislava, Slovensko"), "Vienna": (109166, 48.2084, 16.3725, "Wien, Österreich")}
+
+    def tool(name, value):
+        return httpx.Response(200, json={"stop_reason": "tool_use", "content": [{"type": "tool_use", "name": name, "input": value}]})
+
+    def handle(request):
+        calls.append(request)
+        body = json.loads(request.content) if request.content else {}
+        if request.url.host == "api.anthropic.com":
+            if body["tool_choice"]["name"] == "extract_route_intent":
+                return tool("extract_route_intent", {"start": "Bratislava", "end": "Vienna", "mustSee": ["Heldenplatz"]})
+            description = json.loads(body["messages"][0]["content"])["description"]
+            return tool("resolve_place", {"place": {"name": description, "geocodeQuery": f"{description}, Europe", "sourceIndex": 0,
+                                                    "tags": [] if description in names else ["resort"]}})
+        if request.url.host == "api.exa.ai":
+            return httpx.Response(200, json={"results": [{"title": "Evidence", "url": "https://evidence.example/e", "text": "Text"}]})
+        name = request.url.params["q"].removesuffix(", Europe")
+        if name in names:
+            index, lat, lon, display = names[name]
+            return httpx.Response(200, json=[{"osm_type": "relation", "osm_id": index, "name": name, "display_name": display, "lat": lat, "lon": lon}])
+        return httpx.Response(200, json=HELDENPLATZ)
+
+    settings = Settings(_env_file=None, anthropic_api_key="fixture", exa_api_key="fixture", nominatim_user_agent="Trails/1.0")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        result = await create_discovery(client, cache, settings).discover("From Bratislava to Vienna via Heldenplatz", [])
+    place = result.stops[0].place
+    assert result.ready_for_handoff and (place.location.osm_type, place.location.osm_id) == ("node", 276645373)
+    assert str(place.source.sourceUrl) == "https://www.openstreetmap.org/node/276645373"
+    ttls = [await cache.ttl(key) for key in await cache.keys("gopstop:place-resolution:v3:*")]
+    assert sorted(ttl > 300 for ttl in ttls) == [False, True, True]

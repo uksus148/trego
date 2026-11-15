@@ -214,7 +214,8 @@ async def test_tatras_geocoding_reaches_handoff_without_losing_sources_or_faking
             response = client.post("/api/chat", json={"sessionId": "tatras-51", "message": "Tatras via Skok"})
             assert response.status_code == 200
             assert ("routeId" in response.json()) == (outcome == "ready")
-    assert len(searches) == 6 and model_calls.count("resolve_place") == 3
+    # An ambiguous stop also gets one bounded exact-name lookup near the resolved endpoints.
+    assert len(searches) == (7 if outcome == "ambiguous" else 6) and model_calls.count("resolve_place") == 3
     if outcome == "ambiguous":
         assert writes == [] and response.json()["places"] == []
     else:
