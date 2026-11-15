@@ -1,14 +1,30 @@
 # trego. Agent delivery and integration plan
 
 This plan follows [CLAUDE.md](../CLAUDE.md), the
-[contract review](CONTRACT_REVIEW.md), and the
+[deferred contract proposals](../CLAUDE.md#proposed-extension-personalization-and-day-plan--not-agreed-yet), and the
 [repository rules](REPOSITORY_RULES.md). It proposes remaining work; it does not
 approve new endpoints, fields, tables, or Kafka event schemas.
 
 Use the shared [integration runbook](INTEGRATION_RUNBOOK.md) for the cross-service delivery
 ledger, environment prerequisites, diagnostic sequence and actual end-to-end evidence.
 
-## Current baseline
+## Current status — November 15
+
+#78 merged requested-identity verification and session-turn protection. #85 supplies
+shared actual-service fixture acceptance; #80/#87 deliver the Java/frontend editor
+without a new agent feature. The public chat envelope remains unchanged. trego. is
+a travel navigator with current walking routing; embeddings, uploads, day planning
+and public availability research remain deferred. Same-revision live/model coverage
+and the still-open #76/#77/#84 issues must be assessed separately from merge.
+The [runbook](INTEGRATION_RUNBOOK.md) is the current delivery ledger. For agent PRs,
+Mukhamed requests both uksus148 and nnatthebest, including again after reviewable
+changes. This agreed request policy is retained; the repository still requires at
+least one independent approval, not two approvals.
+
+## Historical delivery baseline
+
+The entries below preserve evidence and gates at their original revisions; statements
+about pending implementation there are not the current ledger.
 
 - PR #20 is merged: FastAPI chat, Valkey sessions, CORS, and storage timeouts.
 - PR #26 is merged: Claude hiking intent, recent history, validation, and
@@ -19,7 +35,7 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
   with fixtures at its merge; HTTP discovery and live geographic accuracy remain unverified.
 - HTTP chat still uses `{sessionId, message}` -> `{reply, places, routeId?}`.
 - Spring Boot owns persisted places, routes, uploads, SQL, and Flyway migrations.
-- [PR #27](https://github.com/uksus148/trego/pull/27) is merged:
+- [PR #27](https://github.com/uksus148/trego./pull/27) is merged:
   GET /api/places, a Flyway places table, UUID IDs, and HTTP 400 Problem Details.
   API CORS and the client header fix (#29) are merged too. Place creation and
   route handoff remain separate.
@@ -47,21 +63,22 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
   Review/live rerun and Murat's separate ORS/Rysy investigation
   ([#49](https://github.com/uksus148/trego./issues/49)) still gate E3/E5.
 - Mukhamed implements the agent; Murat owns the API/storage boundary; Daniil owns
-  the frontend/chat boundary. Request both teammates for each agent PR.
+  the frontend/chat boundary. For agent PRs, request both uksus148 and nnatthebest, including again after reviewable changes, as agreed with Mukhamed; the approval minimum stays one.
 
 ## Sequential blocks
 
 Follow the approved [stabilization sequence S1-S5](AGENT_STABILIZATION_PLAN.md).
 #68 merged S4b at `cfc4c64`, with both reviews and one successful primary 20B
 cold landmark run; daily token quota then blocked remaining live acceptance.
-Issue #69 merged in #72; #78 prepares requested-identity protection with live acceptance pending.
+Issue #69 merged in #72; #78 merged requested-identity protection; live acceptance remains separate.
 S5 remains pending; safe quota-window diagnostics are a separate follow-up.
 See [OSM evidence and limits](../agent/OSM_IDENTITIES.md).
 
 
 #56 merged at `cc2112e` with 328 fixture tests; its research core remains internal.
 #59 merged the [#58](https://github.com/uksus148/trego./issues/58) idle Valkey fix
-at `e6b8145` (335 tests); the team's real Aiven idle rerun still gates closure.
+at `e6b8145` (335 tests); Daniil later closed #58 after a 28-minute-idle first-chat
+check on db9b0d3. The full three-chat idle matrix is still separate.
 The merged diagnostics address [#61](https://github.com/uksus148/trego./issues/61):
 safe provider status/code/schema diagnostics, cache/wait evidence and an explicit
 [read-only cold resolution probe](../agent/DIAGNOSTICS.md). The historical cause is

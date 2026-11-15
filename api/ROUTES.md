@@ -1,9 +1,9 @@
-# Hiking routes
+# Walking routes
 
 This increment implements the baseline `POST /api/routes` and `GET /api/routes/{id}`.
 Murat selected a provider interface plus an ORS adapter and accepted the route-side D3/D4
 semantics from PR #34, with Valkey caching staged in a separate focused PR.
-[Mukhamed confirmed the staged merge order](https://github.com/uksus148/trego/pull/39#pullrequestreview-5904312512).
+[Mukhamed confirmed the staged merge order](https://github.com/uksus148/trego./pull/39#pullrequestreview-5904312512).
 This follow-up implements that required cache using the decorator design selected by
 Murat. The researched-place write extension is a separate implementation.
 
@@ -125,7 +125,7 @@ Content-Type: application/json
 All four fields are required. Coordinates must be finite WGS84 values, and place IDs must
 be UUIDs. Up to five intermediate visits are supported by this increment, matching the
 current agent's intent limit; excessive requests are rejected before provider work. Empty
-`placeIds` means a direct hike. Empty `preferences` is valid; supplied entries must be
+`placeIds` means a direct route. Empty `preferences` is valid; supplied entries must be
 non-null strings. Preferences are stored verbatim as descriptive interests and do not
 change the ORS request or track in this increment.
 
@@ -209,7 +209,7 @@ corrupt entries, changed place coordinates, and place validation before cache ac
 An offline configuration test checks TLS peer verification and timeouts for an Aiven-style
 endpoint. The Compose database-extension and Valkey smoke checks also passed locally.
 
-The routing baseline merged in [PR #39](https://github.com/uksus148/trego/pull/39).
+The routing baseline merged in [PR #39](https://github.com/uksus148/trego./pull/39).
 The cache follow-up merged separately in #41. Check the current branch's
 GitHub Actions results and independent review before merging new changes. The staged agreement
 does not establish live Aiven/ORS or complete agent/frontend acceptance.

@@ -82,7 +82,7 @@ class ClaudeIntentExtractor:
                 "model": self._model,
                 "max_tokens": 1024,
                 "system": (
-                    "Return the structured hiking intent. Resolve follow-ups "
+                    "Return the structured travel intent for a walking route. Resolve follow-ups "
                     "against the conversation. Keep place names and geographic context, including "
                     "descriptions like 'the waterfall near Strbske Pleso'. Do not invent places, "
                     "coordinates, or endpoints. Missing start/end must be null. mustSee contains "
@@ -91,7 +91,7 @@ class ClaudeIntentExtractor:
                     "do not truncate lists to fit a limit. Use empty arrays when none are stated. "
                     "Accept any region and language. "
                     "Preserve explicitly named cities as endpoints, never replace them with "
-                    "a landmark or recommended hiking destination in that city. Stated interests "
+                    "a landmark or recommended attraction in that city. Stated interests "
                     "do not authorize adding or substituting places. Explicit endpoints and stop "
                     "order in the latest user message override earlier route suggestions in history. "
                     "descriptiveTargets contains only roles of actual targets phrased as descriptions: "
@@ -106,7 +106,7 @@ class ClaudeIntentExtractor:
                 "messages": [*history[-12:], {"role": "user", "content": message}],
                 "tools": [{
                     "name": "extract_route_intent",
-                    "description": "Return the user's hiking intent with named places only.",
+                    "description": "Return the user's travel intent with named places only.",
                     "input_schema": RouteIntent.model_json_schema(),
                 }],
                 "tool_choice": {"type": "tool", "name": "extract_route_intent"},
@@ -114,8 +114,8 @@ class ClaudeIntentExtractor:
             return RouteIntent.model_validate(result)
         except ValidationError as exc:
             questions = {
-                ("mustSee",): f"Please choose at most {MAX_STOPS} intermediate stops for this hike.",
-                ("preferences",): f"Please choose at most {MAX_PREFERENCES} preferences for this hike.",
+                ("mustSee",): f"Please choose at most {MAX_STOPS} intermediate stops for this route.",
+                ("preferences",): f"Please choose at most {MAX_PREFERENCES} preferences for this route.",
             }
             errors = exc.errors()
             if all(error["type"] == "too_long" and error["loc"] in questions for error in errors):

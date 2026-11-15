@@ -1,19 +1,39 @@
 # trego.
 
-Plan a hiking route through interesting places and see photos along the way, with authors and source links. Describe your preferences in chat or choose places on a map.
+trego. is a travel navigator. Describe the places you want to visit or plan on the map,
+build a route, and explore landmarks and photos with visible sources along the way.
 
-The required demo route runs through the High Tatras, from Štrbské Pleso to Rysy via the Skok waterfall. Support for other regions depends on the readiness of the integrations.
+Use it for city walks, sightseeing and outdoor trips. The current routing implementation
+builds **walking routes** with OpenRouteService `foot-hiking`; driving, cycling and
+public transport are not implemented. Interests are descriptive, not routing constraints.
+
+## Current capabilities
+
+- Research requested places through Exa and resolve their identities with Nominatim/OSM.
+- Create places on the map, build routes, and retrieve saved geometry and metrics.
+- Explore sourced place information and verified landmark photos when available.
+- Edit a saved route's endpoints and ordered stops, then explicitly rebuild it as a new
+  route. The original stays available. Successful manual editing starts a fresh chat session.
+- Keep the previous route visible when draft inputs change or rebuilding fails.
+
+Landmark media and the real-service editor are opt-in; follow their service guides
+before enabling them. Missing or ambiguous places require clarification, and missing
+photos remain an honest empty result. The app does not infer closures from routing failures.
 
 ## Team and repository layout
 
 | Directory | Purpose and stack | Owner |
 |---|---|---|
 | frontend/ | Map, chat, places, and photos · React, Vite, Tailwind, MapLibre | Daniil · nnatthebest |
-| api/ | Data, geospatial queries, routes, and uploads · Java, Spring Boot | Murat · uksus148 |
-| agent/ | Chat, Exa search, photo processing, and embeddings · Python, FastAPI | Mukhamed · dyksookelwe |
+| api/ | Places, geospatial queries, saved routes, editing context, landmark media · Java, Spring Boot | Murat · uksus148 |
+| agent/ | Chat, Exa research, place resolution, session handling · Python, FastAPI | Mukhamed · dyksookelwe |
 | infra/ | Local database and environment checks · Docker Compose | Murat |
 
-Planned shared services are Aiven PostgreSQL with PostGIS and pgvector, Valkey, and Kafka. The API uses OpenRouteService for hiking routes. The agent searches through Exa and retains source links.
+Aiven PostgreSQL stores places and routes; PostGIS supports spatial queries. Valkey
+caches research/routing results and stores chat sessions. pgvector is available, but
+embedding-based ranking is not active. The Java API owns routing and persistence;
+the FastAPI agent coordinates research and chat. Kafka events, uploads and photo
+embeddings remain deferred.
 
 ## Getting started
 
@@ -23,7 +43,7 @@ Planned shared services are Aiven PostgreSQL with PostGIS and pgvector, Valkey, 
 4. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [repository rules](docs/REPOSITORY_RULES.md) before opening a PR.
 
 ```sh
-git clone https://github.com/uksus148/trego.git
+git clone https://github.com/uksus148/trego. trego
 cd trego
 cp .env.example .env
 ```
@@ -38,18 +58,25 @@ Aiven Free has been verified with PostgreSQL 18.7, PostGIS 3.6.4, and pgvector 0
 
 For backend development, start with the [API code map, run commands, and review order](api/README.md).
 
-All three developers coordinate service boundaries, environment setup, and the first complete
-chat-to-route test through the [integration runbook](docs/INTEGRATION_RUNBOOK.md).
+Use the [integration runbook](docs/INTEGRATION_RUNBOOK.md) for service coordination
+and the [documentation index](docs/README.md) to find current contracts and guides.
+
+For a demo, try a city sightseeing walk or the July Tatras example in the app:
+Štrbské Pleso → Skok waterfall → Popradské pleso. Rysy remains a provider-matching
+regression, not a guaranteed successful demo. Coverage depends on verified place
+identity, provider data and quotas.
 
 ## Version and recovery
 
-The [MVP recovery baseline](docs/RELEASE_BASELINE.md) pins `v0.1.0-mvp-baseline`
-to commit `cfc4c64`, with release evidence, recovery commands, and database
-limitations. It is a pre-release checkpoint; final live acceptance is separate.
+The third source checkpoint is **v0.3.0**. See [release and recovery](docs/RELEASE_BASELINE.md)
+for its tag, earlier checkpoints, recovery commands and database boundaries.
+Automated fixture acceptance does not certify live provider coverage or a public deployment.
 
 ## Shared contract and project language
 
-The API contract section in [CLAUDE.md](CLAUDE.md) defines the baseline. Day-planning and personalization proposals are listed in the [contract review](docs/CONTRACT_REVIEW.md). Affected developers discuss changes and record the agreement in CLAUDE.md.
+The API contract in [CLAUDE.md](CLAUDE.md) and the linked feature contracts define
+the implementation. Day planning, personalization and additional transport modes
+require a separate agreed design. Affected developers record shared decisions in CLAUDE.md.
 
 English is the project language for repository files, code comments, documentation, commits, PRs, and reviews.
 

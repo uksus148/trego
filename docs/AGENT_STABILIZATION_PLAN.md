@@ -1,13 +1,18 @@
-# Agent stabilization: route MVP
+# Agent stabilization: delivery record and acceptance gates
 
 Mukhamed approved this sequence on November 15. Baseline: main `5020cd5`,
 merged #62 with both reviews. Evidence: [#60](https://github.com/uksus148/trego./issues/60),
 [#61](https://github.com/uksus148/trego./issues/61) and the separate 20B/120B runs in
 [#63](https://github.com/uksus148/trego./issues/63). This plan does not establish live acceptance.
 
+Current status, November 15: S1–S4 and requested-identity/session protection (#78)
+are merged. S5 live acceptance remains open. Historical block sequencing below is
+retained for diagnostic evidence; the runbook is the current implementation ledger.
+The product is now a travel navigator with walking routing.
+
 ## Target and boundaries
 
-Deliver reliable chat -> sourced places -> persisted hiking route -> factual reply.
+Deliver reliable chat -> sourced places -> persisted walking route -> factual reply.
 The primary model remains Groq `openai/gpt-oss-20b`; 120B is a separate comparison.
 Keep FastAPI, Exa, Nominatim, Valkey and Java ownership. Public chat JSON, Java APIs,
 database schema and Kafka stay on the accepted contract. Photos, embeddings, uploads,
@@ -22,8 +27,10 @@ review and a CLAUDE.md update in its implementation PR; this transport PR does n
 ## Sequential delivery
 
 Every block starts from current main after the preceding PR's review, fixes and merge.
-Keep each PR below 1000 changed lines and split it into logical commits. Request both
-uksus148 and nnatthebest, including again after reviewable changes.
+Keep each PR below 1000 changed lines and split it into logical commits. For this
+agent sequence, request both uksus148 and nnatthebest, including again after
+reviewable changes, as agreed with Mukhamed. This reviewer-request policy does
+not change the repository minimum of one independent approval.
 
 | Block | Implementation | Acceptance gate |
 |---|---|---|
@@ -39,7 +46,7 @@ clarification clearing. S3 merged in #66 at `f93204d`, including formatting and 
 Its live review found the shared resolution cache could pin a failed downstream
 selection for a day. S4a merged in #67 at `cf5fe23`, with both approvals and
 primary 20B TTL/reuse acceptance. S4b merged in #68 at `cfc4c64`; primary 20B had one successful cold landmark
-run, then quota blocked acceptance. #72 merged settlement matching; #78 prepares
+run, then quota blocked acceptance. #72 merged settlement matching; #78 merged
 requested-identity protection. Current evidence is documented in
 [OSM identities](../agent/OSM_IDENTITIES.md). S5 remains pending; true Štrbské
 Pleso ambiguity still requires evidence or clarification, not a forced lake preference.

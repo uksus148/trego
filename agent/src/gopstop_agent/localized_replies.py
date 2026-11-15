@@ -56,14 +56,14 @@ LANGUAGE_QUESTION = (
 # Templates contain only verified result categories. Place names are quoted data.
 CATALOG = {
     "en": {
-        "ready": "Your hike is ready: {visits}. Distance {distance} km; ascent {ascent} m; duration {duration}.",
+        "ready": "Your route is ready: {visits}. Distance {distance} km; ascent {ascent} m; duration {duration}.",
         "missing": "Please specify {endpoints}.", "start": "the start", "end": "the destination",
         "unspecified": "Please give the exact name and location of the unclear waypoint.",
         "roles": "Please clarify {roles}: give an exact name or location.", "stop": "intermediate stop {number}",
         "unresolved": "Please provide a more precise name or location for: {names}.",
         "limits": "Please choose at most 5 intermediate stops and 12 preferences.",
-        "no_route": "No hiking path was found between these points. Please choose different endpoints or stops.",
-        "waypoint_not_routable": "A waypoint could not be matched to the hiking network within the search radius. Please verify coordinates or choose another point.",
+        "no_route": "No walking path was found between these points. Please choose different endpoints or stops.",
+        "waypoint_not_routable": "A waypoint could not be matched to the walking network within the search radius. Please verify coordinates or choose another point.",
     },
     "ru": {
         "ready": "Маршрут готов: {visits}. Расстояние {distance} км; набор высоты {ascent} м; время {duration}.",
@@ -76,24 +76,24 @@ CATALOG = {
         "waypoint_not_routable": "Не удалось сопоставить одну из точек с пешеходной сетью в пределах радиуса поиска. Проверьте координаты или выберите другую точку.",
     },
     "sk": {
-        "ready": "Vaša túra je pripravená: {visits}. Vzdialenosť {distance} km; stúpanie {ascent} m; čas {duration}.",
+        "ready": "Vaša trasa je pripravená: {visits}. Vzdialenosť {distance} km; stúpanie {ascent} m; čas {duration}.",
         "missing": "Uveďte {endpoints}.", "start": "začiatočný bod", "end": "cieľový bod",
         "unspecified": "Uveďte presný názov a polohu nejasného bodu trasy.",
         "roles": "Spresnite {roles}: uveďte presný názov alebo polohu.", "stop": "zastávku č. {number}",
         "unresolved": "Spresnite názov alebo polohu: {names}.",
         "limits": "Vyberte najviac 5 zastávok a 12 preferencií.",
-        "no_route": "Medzi týmito bodmi sa nenašla turistická trasa. Vyberte iné koncové body alebo zastávky.",
-        "waypoint_not_routable": "Jeden z bodov sa nepodarilo priradiť k turistickej sieti v rámci vyhľadávacieho polomeru. Overte súradnice alebo vyberte iný bod.",
+        "no_route": "Medzi týmito bodmi sa nenašla pešia trasa. Vyberte iné koncové body alebo zastávky.",
+        "waypoint_not_routable": "Jeden z bodov sa nepodarilo priradiť k pešej sieti v rámci vyhľadávacieho polomeru. Overte súradnice alebo vyberte iný bod.",
     },
     "fi": {
-        "ready": "Vaellusreittisi on valmis: {visits}. Matka {distance} km; nousu {ascent} m; kesto {duration}.",
+        "ready": "Reittisi on valmis: {visits}. Matka {distance} km; nousu {ascent} m; kesto {duration}.",
         "missing": "Anna {endpoints}.", "start": "lähtöpiste", "end": "määränpää",
         "unspecified": "Anna epäselvän reittipisteen tarkka nimi ja sijainti.",
         "roles": "Tarkenna {roles}: anna tarkka nimi tai sijainti.", "stop": "välipysähdys {number}",
         "unresolved": "Tarkenna nimi tai sijainti: {names}.",
         "limits": "Valitse enintään 5 välipysähdystä ja 12 mieltymystä.",
-        "no_route": "Näiden pisteiden välille ei löytynyt vaellusreittiä. Valitse toiset päätepisteet tai pysähdykset.",
-        "waypoint_not_routable": "Yhtä pistettä ei voitu yhdistää vaellusverkostoon hakusäteen sisällä. Tarkista koordinaatit tai valitse toinen piste.",
+        "no_route": "Näiden pisteiden välille ei löytynyt kävelyreittiä. Valitse toiset päätepisteet tai pysähdykset.",
+        "waypoint_not_routable": "Yhtä pistettä ei voitu yhdistää kävelyverkostoon hakusäteen sisällä. Tarkista koordinaatit tai valitse toinen piste.",
     },
 }
 

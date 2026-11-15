@@ -1,8 +1,10 @@
 # trego. Sourced place ingestion and chat-to-route handoff
 
-**Status: accepted design in merged PR #34; runtime implementation incomplete.** This is
-block 3 of [the agent plan](AGENT_PLAN.md), following merged PR #31. It does not
-enable HTTP discovery, implement API writes, or change the published contract.
+**Status: accepted in #34 and implemented by merged #39/#40/#41/#43/#45.**
+This document preserves the shared ingestion/handoff agreement. Route editing adds
+optional endpoint bindings in #80 without changing these baseline calls. See
+[the delivery history](AGENT_PLAN.md) for earlier implementation stages; activation
+and live acceptance remain separate from merged code.
 The accepted decisions are published in [CLAUDE.md](../CLAUDE.md#accepted-sourced-place-and-route-handoff).
 Track current implementation gates and live evidence in the [integration runbook](INTEGRATION_RUNBOOK.md).
 
@@ -26,8 +28,8 @@ Keep manual creation exactly as the frontend sends it today:
 {"name":"My viewpoint","lat":49.15,"lon":20.07,"tags":["viewpoint"]}
 ```
 
-The API's merged [manual-creation PR #33](https://github.com/uksus148/trego/pull/33)
-builds on merged #32. The researched extension still needs API implementation;
+The API's merged [manual-creation PR #33](https://github.com/uksus148/trego./pull/33)
+builds on merged #32. Researched ingestion merged in #45;
 manual creation alone is not provenance support. Keep the published normalization: all four baseline fields required, empty tags allowed,
 names/tags trimmed, and duplicate tags removed in first-occurrence order with
 case preserved.
@@ -115,7 +117,7 @@ the returned start/end coordinates and only intermediate UUIDs to the existing
 - API waypoints are start, each referenced place in array order, then end.
   Never sort UUIDs or treat the list as a set. Preserve explicitly requested
   repeated visits. Endpoints are not automatically inserted into `placeIds`.
-- An empty `placeIds` is a direct hike. Agent intent currently allows at most
+- An empty `placeIds` is a direct route. Agent intent currently allows at most
   five intermediate stops; the API must explicitly reject requests beyond its
   supported provider limit rather than drop stops.
 - Resolve all referenced UUIDs before spending ORS credits. A well-formed but
@@ -132,7 +134,7 @@ the returned start/end coordinates and only intermediate UUIDs to the existing
   or ranking come in a separately agreed implementation.
 - Return an actual LineString from the provider, distance in km, ascent in m,
   and duration in minutes. Empty `segments` and empty photo lists are permitted
-  before photos. No synthetic straight-line fallback is a hiking route.
+  before photos. No synthetic straight-line fallback is a walking route.
 - `GET /api/routes/{id}` returns HTTP **200** with the saved `Route`, or **404**
   for an unknown UUID. The same persisted route must be fetchable before chat
   returns its ID. Storage failure must not return a successful transient route.
@@ -155,7 +157,7 @@ to choose chat behavior. Existing GET /api/places errors are unaffected.
 | 400 | `invalid_request` | Invalid fields, coordinates, UUID syntax, or unsupported waypoint count |
 | 422 | `unknown_place` | A referenced place UUID does not exist |
 | 422 | `no_hiking_route` | Provider returned a valid no-route result for these waypoints |
-| 422 | `waypoint_not_routable` | Issue #49 extension under review: a waypoint could not be matched to the hiking network within the provider radius |
+| 422 | `waypoint_not_routable` | Accepted in #54: a waypoint could not be matched to the hiking network within the provider radius |
 | 502 | `routing_provider_error` | Provider failed or returned malformed data |
 | 503 | `storage_unavailable` | Required persistence is unavailable |
 | 503 | `cache_unavailable` | Required routing cache is unavailable; no blind uncached retry |
@@ -172,7 +174,7 @@ to choose chat behavior. Existing GET /api/places errors are unaffected.
 }
 ```
 
-The issue #49 extension, pending affected-owner review, distinguishes verified
+The issue #49 extension, accepted and merged in #54, distinguishes verified
 `no_hiking_route` (ORS 2009) from `waypoint_not_routable` (ORS 2010). The former asks
 for different endpoints/stops; the latter asks to verify coordinates or choose another
 point. Neither establishes a closure or difficulty/seasonal cause. No radius increase,
@@ -199,7 +201,7 @@ request and `Route.places` still preserve repeated intermediate visits.
 
 ```json
 {
-  "reply": "Your hiking route via Skok waterfall is ready.",
+  "reply": "Your route via Skok waterfall is ready.",
   "places": [
     {"id":"00000000-0000-4000-8000-000000000001","name":"Štrbské Pleso","lat":49.119,"lon":20.063,"tags":[],"photos":[],"source":"https://example.org/hikes/start"},
     {"id":"00000000-0000-4000-8000-000000000002","name":"Skok waterfall","lat":49.1605,"lon":20.0458,"tags":["waterfall"],"photos":[],"source":"https://example.org/hikes/skok"},
@@ -227,7 +229,7 @@ implement the follow-ups below. Verify them with live routes before acceptance.
   ORS snaps the track endpoints away from the stored place coordinates.
 - Deduplicate displayed place markers by UUID while retaining repeated visits
   in the route request, `Route.places`, and segment order. Endpoint source
-  records must remain accessible for a direct hike with no intermediate stops.
+  records must remain accessible for a direct route with no intermediate stops.
 - Add source links to place popups or equivalent place details, so attribution
   is accessible without photos. Hide the along-the-way strip when `segments`
   is empty; it can appear once segments exist.
@@ -249,13 +251,13 @@ display should be inferred from a model-generated statement.
 ## Recorded review decisions
 
 - Mukhamed owns the agent-side implementation of accepted D1–D5.
-- [Daniil's owner response](https://github.com/uksus148/trego/pull/34#pullrequestreview-5901154716)
+- [Daniil's owner response](https://github.com/uksus148/trego./pull/34#pullrequestreview-5901154716)
   explicitly accepts D1, D3, D4, and D5 and takes the frontend follow-ups; his
-  [final re-review](https://github.com/uksus148/trego/pull/34#pullrequestreview-5903913530)
+  [final re-review](https://github.com/uksus148/trego./pull/34#pullrequestreview-5903913530)
   confirms that agreement and the clarified tasks. This
   agreement does not mean those frontend changes are implemented. D2 remains an
   API/agent decision; do not infer Daniil's acceptance of it from that response.
-- [Murat's final owner response](https://github.com/uksus148/trego/pull/34#pullrequestreview-5904059886)
+- [Murat's final owner response](https://github.com/uksus148/trego./pull/34#pullrequestreview-5904059886)
   explicitly accepts D1–D4 as his personal API/storage decision and approves the
   clarified D5 ownership and scenarios. This supersedes the earlier technical
   COMMENT and pending-decision wording; it is not inferred from that COMMENT.

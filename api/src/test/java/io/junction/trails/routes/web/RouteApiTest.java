@@ -322,7 +322,7 @@ class RouteApiTest {
         ORS.respond(404, "{\"error\":{\"code\":2010,\"message\":\"private upstream closure speculation\"}}", 0);
         var response = create(List.of(FIRST));
         assertProblem(response.getStatusCode(), response.getBody(), 422, "waypoint_not_routable");
-        assertThat(response.getBody().get("detail").asText()).contains("hiking network", "search radius")
+        assertThat(response.getBody().get("detail").asText()).contains("walking network", "search radius")
                 .doesNotContain("closure", "private", "difficulty");
         assertThat(ORS.getRequests()).hasSize(1);
         var sent = ORS.getRequests().getFirst();

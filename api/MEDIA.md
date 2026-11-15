@@ -1,10 +1,10 @@
-# Landmark media — draft backend implementation
+# Landmark media — backend implementation
 
-This branch implements Murat's Java slice of the proposed
-[shared contract](../docs/LANDMARK_PHOTOS_CONTRACT.md). It is a separate optional
-feature, not part of the current route-MVP release. No agent/frontend code, migration,
-upload endpoint or routing semantics are changed. Independent owner review and final
-same-revision browser/photo acceptance remain required before rollout.
+The optional Java media feature merged in #73; frontend cards/gallery and strict
+timestamps merged in #71/#74. See the [shared contract](../docs/LANDMARK_PHOTOS_CONTRACT.md).
+It requires no agent feature, schema migration, upload endpoint or routing change.
+Default activation remains false; final live photo/demo acceptance and deployment
+must be verified on the selected target.
 
 ## Enable locally
 
@@ -126,9 +126,13 @@ Nominatim gate bounds rate but does not provide distributed single-flight.
 
 ## Compatibility notes for reviewers
 
-No public request/response fields differ from the current proposed media contract.
-See [backend handoff notes](../docs/LANDMARK_MEDIA_BACKEND_HANDOFF.md) for selected
-limits, opt-in behavior and the observed thumb.wikimedia.org host clarification.
+Public fields follow the merged media contract. Ready returns exactly one photo;
+empty returns none. Nullable description/geotag keys remain present. Query parameters,
+including cache-busters, return 400. Commons thumbnails may use exact hosts
+thumb.wikimedia.org and upload.wikimedia.org; originals use upload.wikimedia.org.
+Only observed utm_source/utm_campaign/utm_content parameters are removed; other
+image query tokens are rejected. Preserve file/license identity and never infer a
+newer license version. These consumer notes replace the completed draft handoff.
 The baseline Place, Route, chat and legacy Photo shapes are unchanged. New errors
 are scoped to this endpoint and use safe Problem Details. API_CORS_ALLOWED_ORIGINS
 continues to control exact frontend origins, including this GET.
@@ -155,7 +159,7 @@ downloads were not required for this check. Bratislava Castle's full image is ab
 9.9 MB, so frontend should load it only when the full viewer opens. Source metadata
 and connectivity artifacts live under ignored api/target/media-research/.
 
-This does not claim a finished frontend, all-region photo coverage, joint catalog
-approval, a complete photo E2E or public deployment. Missing photos remain a valid
-outcome. Frontend hover/focus/tap cards and same-revision UI acceptance are Daniil's
-work, and cross-owner identity/source review still applies before this draft PR merges.
+The frontend is merged, but these original metadata checks do not certify all-region
+coverage or final live catalog/demo acceptance. Missing photos remain valid. Use the
+actual-service fixture suite for cards/gallery/error isolation and record separate
+real-provider photo/viewer evidence on the selected release before claiming it.

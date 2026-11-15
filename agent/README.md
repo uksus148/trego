@@ -29,7 +29,7 @@ uvicorn gopstop_agent.main:app --reload --log-config logging.json
 
 Browser calls are allowed from `http://localhost:5173` by default. Set
 `AGENT_CORS_ORIGINS` to a JSON list of frontend origins for deployment, for example
-`["https://trails.example.org"]`. Only POST and the Content-Type request header are
+`["https://trego.example.org"]`. Only POST and the Content-Type request header are
 allowed. Valkey connection and read/write timeouts default to two seconds each;
 configure `AGENT_VALKEY_CONNECT_TIMEOUT_SECONDS` and
 `AGENT_VALKEY_SOCKET_TIMEOUT_SECONDS` to change them. Timeouts return the same 503
@@ -62,7 +62,7 @@ Restart the agent after changing this setting so the browser preflight succeeds.
 POST /api/chat
 Content-Type: application/json
 
-{"sessionId":"demo-session","message":"I want to hike from Štrbské Pleso to Rysy via Skok waterfall."}
+{"sessionId":"demo-session","message":"Plan a walk from Bratislava Castle to St. Martin's Cathedral in Bratislava."}
 ```
 
 The response follows `{reply, places:[Place], routeId?}`. Only a validated,
@@ -90,7 +90,7 @@ Chat loads the latest six exchanges and selects a supported reply language befor
 discovery. It clarifies incomplete/excessive intent or calls the route handoff,
 renders the known result locally, then stores the exchange before 200. See S2 below.
 Verified no-path and unmatched-waypoint results produce distinct normal clarifications
-under issue #49's extension, pending affected-owner review. Neither identifies a closure,
+under issue #49's accepted extension, merged in #54. Neither identifies a closure,
 season or difficulty as its cause. Provider/invalid-response failures return 502, storage/cache failures 503, and deadlines 504, with safe detail.
 Failed requests do not record success; already committed API data may survive
 reply/storage failure or cancellation. Never automatically retry uncertain POSTs.
