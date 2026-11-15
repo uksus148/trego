@@ -17,7 +17,7 @@ from test_resolver import tool
 PLACE = {"name": "Skok", "geocodeQuery": "Skok, High Tatras, Slovakia",
          "sourceIndex": 0, "tags": ["waterfall"]}
 SOURCES = [ResearchSource(title="Skok", sourceUrl="https://evidence.example/skok", text="A Tatras waterfall.")]
-PREFIX = "gopstop:place-resolution:v2:"
+PREFIX = "gopstop:place-resolution:v3:"
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ async def test_results_and_ambiguity_survive_new_resolver_without_refreshing_ttl
         key, = await cache.keys(PREFIX + "*")
         assert len(key.removeprefix(PREFIX)) == 64
         assert "Skok" not in key and "evidence" not in key and "private" not in key
-        assert 0 < await cache.ttl(key) <= 86400
+        assert 0 < await cache.ttl(key) <= 300
         await cache.expire(key, 100)
         if first is not None:
             first.name = "Caller mutation"
@@ -64,7 +64,7 @@ async def test_results_and_ambiguity_survive_new_resolver_without_refreshing_ttl
     assert len(calls) == 1
     assert (second.model_dump() if resolved else second) == (PLACE if resolved else None)
     assert 0 < await cache.ttl(key) <= 100  # A hit must not reset the 24-hour lifetime.
-    assert json.loads(await cache.get(key)) == (PLACE if resolved else None)
+    assert json.loads(await cache.get(key))["place"] == (PLACE if resolved else None)
 
 
 @pytest.mark.parametrize("change", ["description", "model", "title", "url", "text", "order", "prompt", "schema"])
@@ -111,6 +111,7 @@ async def test_only_the_three_sources_actually_sent_to_claude_affect_cache(cache
 
 @pytest.mark.parametrize("corrupt", [
     "invalid JSON", "{}", '"null"', "[]",
+    '{"place":null,"accepted":true}',
     json.dumps({**PLACE, "sourceIndex": 1}),
     json.dumps({**PLACE, "sourceIndex": True}),
     json.dumps({**PLACE, "name": " "}),
@@ -123,8 +124,8 @@ async def test_corrupt_or_out_of_range_cached_results_refresh_once(cache, provid
     key, = await cache.keys(PREFIX + "*")
     await cache.set(key, corrupt)
     assert (await resolver.resolve("Skok", SOURCES)).model_dump() == PLACE
-    assert len(calls) == 2 and json.loads(await cache.get(key)) == PLACE
-    assert 0 < await cache.ttl(key) <= 86400
+    assert len(calls) == 2 and json.loads(await cache.get(key))["place"] == PLACE
+    assert 0 < await cache.ttl(key) <= 300
 
 
 async def test_expired_resolution_requires_new_provider_work(cache, provider):
