@@ -31,6 +31,9 @@ def provider_fixture(intent, places, calls, region="High Tatras, Slovakia"):
         calls.append(request)
         body = json.loads(request.content) if request.content else {}
         if request.url.host == "api.anthropic.com":
+            if body["tool_choice"]["name"] == "select_reply_language":
+                message = json.loads(body["messages"][0]["content"])["message"]
+                return tool("select_reply_language", {"language": "ru" if any(c in message for c in "ХО") else "en"})
             if body["tool_choice"]["name"] == "extract_route_intent":
                 return tool("extract_route_intent", intent)
             evidence = json.loads(body["messages"][0]["content"])

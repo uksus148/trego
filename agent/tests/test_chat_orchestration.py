@@ -81,12 +81,12 @@ async def test_http_factories_preserve_sources_history_and_saved_route_with_safe
             assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
             body = response.json()
             assert set(body) == {"reply", "places", "routeId"}
-            assert body["reply"] == "Маршрут через водопад готов."
+            assert body["reply"].startswith("Маршрут сохранён:")
             assert [p["source"] for p in body["places"]] == [f"https://evidence.example/{i}" for i in range(3)]
             assert body["routeId"] == api.saved_route["id"]
     assert not http.is_closed  # The caller owns injected clients.
     stored = [json.loads(item) for item in await cache.lrange("gopstop:chat-session:private-session", 0, -1)]
-    assert len(stored) == 4 and reply_calls[1]["history"] == stored[:2]
+    assert len(stored) == 4 and reply_calls == []
     extraction = [json.loads(r.content) for r in provider_calls if r.content
                   and json.loads(r.content).get("tool_choice", {}).get("name") == "extract_route_intent"]
     assert extraction[1]["messages"][:-1] == stored[:2]
@@ -122,6 +122,8 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
             return providers(request)
         body = json.loads(request.content)
         name = body["response_format"]["json_schema"]["name"]
+        if name == "select_reply_language":
+            return httpx.Response(200, json=completion(value={"language": "en"}))
         if name == "resolve_place":
             resolution_calls.append(request)
             if bad == "tool_use_failed":
@@ -166,6 +168,8 @@ async def test_tatras_geocoding_reaches_handoff_without_losing_sources_or_faking
         body = json.loads(request.content) if request.content else {}
         if request.url.host == "api.groq.com":
             name = body["response_format"]["json_schema"]["name"]
+            if name == "select_reply_language":
+                return httpx.Response(200, json=completion(value={"language": "en"}))
             model_calls.append(name)
             if name == "extract_route_intent":
                 value = intent
@@ -287,7 +291,8 @@ async def test_real_http_handoff_preserves_the_unmatched_waypoint_outcome(build_
         response = client.post("/api/chat", json={"sessionId": "unmatched", "message": "Plan a hike"})
     assert response.status_code == 200 and response.json()["places"] == []
     assert "routeId" not in response.json() and "remote detail" not in response.text
-    assert len(replies) == 1 and await cache.llen("gopstop:chat-session:unmatched") == 2
+    assert len(replies) == 0 and "search radius" in response.json()["reply"]
+    assert await cache.llen("gopstop:chat-session:unmatched") == 2
     assert len(api.rows) == 2  # Earlier ingestion survives a later routing failure.
     assert api.saved_route is None
     assert len([r for r in api.calls if r.url.path == "/api/routes"]) == 1

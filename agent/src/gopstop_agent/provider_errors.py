@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 
 PROVIDERS = {"anthropic", "groq", "exa", "nominatim"}
-OPERATIONS = {"extract_route_intent", "resolve_place", "write_chat_reply", "assess_availability", "search", "geocode"}
+OPERATIONS = {"select_reply_language", "extract_route_intent", "resolve_place", "write_chat_reply", "assess_availability", "search", "geocode"}
 REASONS = {"http_status", "transport", "timeout", "request_schema", "response_json",
            "incomplete_generation", "unexpected_tool", "tool_arguments", "schema_validation",
            "invalid_source_index", "no_usable_sources", "discovery_deadline", "model_refusal", "structured_content"}
