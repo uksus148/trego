@@ -91,7 +91,7 @@ class PlaceDiscovery:
                         selection = await self._geocoder.geocode_result(
                             resolution.geocodeQuery, name=resolution.name,
                             tags=resolution.tags, anchors=anchors,
-                            requested_name=None if finding.description in intent.descriptiveTargets else finding.description,
+                            requested_name=None if finding.description in intent.descriptive_names else finding.description,
                         )
                     finding.outcome, finding.selection = "geocoding", selection
                     finding_event(finding.reason, len(finding.sources), selection)

@@ -67,7 +67,7 @@ async def cache():
 async def test_tatras_discovery_preserves_sources_coordinates_waypoint_order_and_history(cache):
     description = "the waterfall from TikTok near Štrbské Pleso"
     intent = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": [description],
-              "preferences": ["wild scenery"], "descriptiveTargets": [description]}
+              "preferences": ["wild scenery"], "descriptiveTargets": ["stop:1"]}
     places = {
         "Štrbské Pleso": ("Štrbské Pleso", [row(1, "Štrbské Pleso", 49.1191, 20.0627)]),
         description: ("Skok waterfall", [row(2, "Skok waterfall", 49.1425, 20.0506)]),

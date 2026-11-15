@@ -3,20 +3,21 @@ import json
 import httpx
 import pytest
 
-from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError
+from pydantic import ValidationError
+
+from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError, RouteIntent
 
 
-@pytest.mark.parametrize("description,valid", [("the waterfall near Štrbské Pleso", True), ("unrequested target", False)])
-async def test_descriptive_metadata_is_bound_to_requested_targets_before_research(description, valid):
+@pytest.mark.parametrize("role", ["stop:1", "stop:2", "historical sights", "start"])
+def test_descriptive_metadata_references_existing_roles_without_copying_place_names(role):
     value = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": ["the waterfall near Štrbské Pleso"],
-             "preferences": [], "descriptiveTargets": [description]}
-    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=tool_response(value)))) as client:
-        extractor = ClaudeIntentExtractor(client, "fixture", "model")
-        if valid:
-            assert (await extractor.extract("fixture request", [])).descriptiveTargets == [description]
-        else:
-            with pytest.raises(ProviderError):
-                await extractor.extract("fixture request", [])
+             "preferences": [], "descriptiveTargets": [role]}
+    if role in {"stop:1", "start"}:
+        intent = RouteIntent.model_validate(value)
+        assert intent.descriptive_names == {intent.targets_by_role[role]}
+    else:
+        with pytest.raises(ValidationError):
+            RouteIntent.model_validate(value)
 
 
 def tool_response(intent):
