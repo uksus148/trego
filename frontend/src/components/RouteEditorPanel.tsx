@@ -60,12 +60,12 @@ export function RouteEditorPanel({ trip }: RouteEditorPanelProps) {
             <button type="button" aria-label={`Remove ${row.place.name}`} onClick={() => trip.removeEditorVisit(row.key)} disabled={trip.busy} className="rounded px-2 py-1 text-lg leading-none text-stone hover:text-trail disabled:opacity-35">×</button>
           </li>
         ))}
-        {draft.rows.length === 0 && <li className="rounded-xl border border-dashed border-line p-3 text-sm text-stone">No intermediate visits. Rebuild to create a direct hike.</li>}
+        {draft.rows.length === 0 && <li className="rounded-xl border border-dashed border-line p-3 text-sm text-stone">No intermediate visits. Rebuild to create a direct route.</li>}
       </ol>
       <EndpointEditor side="end" endpoint={draft.end} places={trip.availablePlaces} trip={trip} />
 
       <button type="button" onClick={trip.swapEditorEndpoints} disabled={trip.busy} className="w-full rounded-lg px-3 py-2 text-sm font-medium ring-1 ring-line disabled:opacity-50">Swap start and finish</button>
-      <p className="text-xs text-stone">Interests are kept as descriptions and do not change the hiking route: {draft.preferences.length ? draft.preferences.join(', ') : 'none'}</p>
+      <p className="text-xs text-stone">Interests are kept as descriptions and do not change the route: {draft.preferences.length ? draft.preferences.join(', ') : 'none'}</p>
       {!valid && <p role="alert" className="text-sm text-trail">Check the endpoint coordinates and place selections before rebuilding.</p>}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={trip.cancelEditor} disabled={trip.busy} className="rounded-xl px-3 py-3 text-sm font-medium ring-1 ring-line disabled:opacity-50">Cancel</button>

@@ -57,7 +57,7 @@ class ChatService:
                     outcome, facts = "no_route", {"question": "Please choose different endpoints or stops."}
                 except WaypointNotRoutable:
                     outcome, facts = "waypoint_not_routable", {
-                        "reason": "A waypoint could not be matched to the available hiking network within the search radius.",
+                        "reason": "A waypoint could not be matched to the available walking network within the search radius.",
                         "question": "Please verify the coordinates or choose a different endpoint or stop.",
                     }
                 else:

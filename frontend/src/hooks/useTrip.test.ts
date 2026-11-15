@@ -170,7 +170,7 @@ describe('useTrip route editing lifecycle', () => {
     expect(trip.editor.status).toBe('ready')
     if (trip.editor.status === 'ready') {
       expect(trip.editor.draft.rows.map((row) => row.place.id)).toEqual([ids.stop])
-      expect(trip.editor.error).toContain('No verified hiking path')
+      expect(trip.editor.error).toContain('No verified walking path')
     }
   })
 

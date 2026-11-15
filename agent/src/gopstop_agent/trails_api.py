@@ -43,9 +43,9 @@ class TrailsApi:
                 follow_redirects=False,
             )
         except httpx.TimeoutException as exc:
-            raise HandoffError("Trail API timed out.", 504) from exc
+            raise HandoffError("trego. API timed out.", 504) from exc
         except httpx.HTTPError as exc:
-            raise HandoffError("Trail API is temporarily unavailable.") from exc
+            raise HandoffError("trego. API is temporarily unavailable.") from exc
         if response.status_code in success:
             return response
         if allow_route_problem and response.status_code == 422:
@@ -57,9 +57,9 @@ class TrailsApi:
                 if problem.code == "no_hiking_route":
                     raise NoHikingRoute("No walking route connects the requested waypoints.")
                 if problem.code == "waypoint_not_routable":
-                    raise WaypointNotRoutable("A waypoint could not be matched to the available hiking network.")
+                    raise WaypointNotRoutable("A waypoint could not be matched to the available walking network.")
         status = response.status_code if response.status_code in (503, 504) else 502
-        raise HandoffError("Trail API could not complete the operation.", status)
+        raise HandoffError("trego. API could not complete the operation.", status)
 
     async def ingest(self, candidate: DiscoveredPlace) -> ApiPlace:
         source = str(candidate.source.sourceUrl)
@@ -72,13 +72,13 @@ class TrailsApi:
         try:
             place = ApiPlace.model_validate_json(response.content)
             persisted_source = url_adapter.validate_python(place.source)
-            # The current manual-only handler ignores provenance; fail closed if it is used.
+            # Reject an incompatible legacy handler that discards research provenance.
             # A 200 replay may retain an earlier research URL under first-write-wins.
             if response.status_code == 201 and persisted_source != candidate.source.sourceUrl:
                 raise ValueError("New researched place lost its source.")
             return place
         except (ValidationError, ValueError) as exc:
-            raise HandoffError("Trail API returned an invalid researched place.") from exc
+            raise HandoffError("trego. API returned an invalid researched place.") from exc
 
     async def create_route(self, start: ApiPlace, end: ApiPlace, stops: list[ApiPlace],
                            preferences: list[str]) -> ApiRoute:
@@ -95,7 +95,7 @@ class TrailsApi:
         response = await self._request("GET", f"/api/routes/{quote(route_id, safe='')}", (200,))
         route = self._parse_route(response)
         if route.id != route_id:
-            raise HandoffError("Trail API returned a different route.")
+            raise HandoffError("trego. API returned a different route.")
         return route
 
     @staticmethod
@@ -103,13 +103,13 @@ class TrailsApi:
         try:
             return ApiRoute.model_validate_json(response.content)
         except ValidationError as exc:
-            raise HandoffError("Trail API returned an invalid route.") from exc
+            raise HandoffError("trego. API returned an invalid route.") from exc
 
     @staticmethod
     def check_stops(route: ApiRoute, stops: list[ApiPlace]) -> None:
         if [place.id for place in route.places] != [place.id for place in stops]:
-            raise HandoffError("Trail API returned different route stops.")
+            raise HandoffError("trego. API returned different route stops.")
         for actual, expected in zip(route.places, stops):
             # Photo indexing can progress independently; canonical place/source data cannot change on replay.
             if actual.model_dump(exclude={"photos"}) != expected.model_dump(exclude={"photos"}):
-                raise HandoffError("Trail API returned inconsistent place records.")
+                raise HandoffError("trego. API returned inconsistent place records.")

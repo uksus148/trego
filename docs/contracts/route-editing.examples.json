@@ -580,7 +580,7 @@
         "type": "about:blank",
         "title": "Unprocessable Entity",
         "status": 422,
-        "detail": "No hiking route connects the requested waypoints.",
+        "detail": "No walking route connects the requested waypoints.",
         "code": "no_hiking_route"
       }
     },
@@ -590,7 +590,7 @@
         "type": "about:blank",
         "title": "Unprocessable Entity",
         "status": 422,
-        "detail": "A waypoint cannot be matched to the available hiking network.",
+        "detail": "A waypoint cannot be matched to the available walking network.",
         "code": "waypoint_not_routable"
       }
     },

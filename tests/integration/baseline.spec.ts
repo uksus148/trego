@@ -73,7 +73,7 @@ test('readback 404 does not associate a new ready answer with an old route (#82)
   await page.goto(services.frontend)
   await send(page)
   await loaded(page)
-  const replies = await page.getByText(/Your hike is ready/).count()
+  const replies = await page.getByText(/Your route is ready/).count()
   let getCount = 0, postCount = 0
   page.on('request', req => { if (req.method() === 'POST') postCount++ })
   await page.route(`${services.api}/api/routes/*`, route => {
@@ -85,7 +85,7 @@ test('readback 404 does not associate a new ready answer with an old route (#82)
   expect(getCount).toBe(1)
   expect(postCount).toBe(1)
   const retained = await page.getByText('7.5 km', { exact: true }).isVisible()
-  expect(await page.getByText(/Your hike is ready/).count()).toBe(replies)
+  expect(await page.getByText(/Your route is ready/).count()).toBe(replies)
   if (retained) {
     await expect(page.getByRole('status').filter({ hasText: /previous route/i })).toBeVisible()
   }

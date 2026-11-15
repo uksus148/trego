@@ -120,7 +120,7 @@ public class OrsRoutingGateway implements RoutingGateway {
                 case 2009 -> new RouteException(RouteException.Reason.NO_HIKING_ROUTE,
                         "No walking route connects the requested waypoints.");
                 case 2010 -> new RouteException(RouteException.Reason.WAYPOINT_NOT_ROUTABLE,
-                        "One or more waypoints could not be matched to the available hiking network "
+                        "One or more waypoints could not be matched to the available walking network "
                                 + "within the provider's search radius.");
                 default -> providerError();
             };
