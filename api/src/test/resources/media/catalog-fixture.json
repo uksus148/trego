@@ -1,0 +1,20 @@
+{
+  "entries": [{
+    "identity": {"type": "way", "id": 84},
+    "metadata": {
+      "fetchedAt": "2026-11-15T00:00:00Z",
+      "placeDescription": null,
+      "photos": [{
+        "id": "commons:456", "provider": "wikimedia_commons",
+        "url": "https://upload.wikimedia.org/fixture-catalog-full.jpg",
+        "thumbUrl": "https://upload.wikimedia.org/fixture-catalog-thumb.jpg",
+        "title": "Synthetic catalog image", "description": null,
+        "author": "Fixture creator", "license": "CC BY 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+        "associationSourceUrl": "https://www.wikidata.org/wiki/Q84", "photoLocation": null
+      }]
+    },
+    "reviewEvidence": "Synthetic test-only metadata; not a live reviewed Commons file."
+  }]
+}

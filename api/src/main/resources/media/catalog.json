@@ -1,0 +1,170 @@
+{
+  "version": "commons-reviewed-v1",
+  "entries": [
+    {
+      "identity": {
+        "type": "way",
+        "id": 4816134
+      },
+      "metadata": {
+        "fetchedAt": "2026-11-15T01:43:35.110579+00:00",
+        "placeDescription": {
+          "text": "lake in the High Tatra Mountains",
+          "sourceUrl": "https://www.wikidata.org/wiki/Q392489"
+        },
+        "photos": [
+          {
+            "id": "commons:4214887",
+            "provider": "wikimedia_commons",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/STRBSKE_PLESO.jpg",
+            "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/STRBSKE_PLESO.jpg/960px-STRBSKE_PLESO.jpg",
+            "title": "File:STRBSKE PLESO.jpg",
+            "description": {
+              "text": "Štrba Lake, High Tatras, Slovakia",
+              "sourceUrl": "https://commons.wikimedia.org/wiki/File:STRBSKE_PLESO.jpg"
+            },
+            "author": "Ján Ťažký",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+            "sourceUrl": "https://commons.wikimedia.org/wiki/File:STRBSKE_PLESO.jpg",
+            "associationSourceUrl": "https://www.wikidata.org/wiki/Q392489",
+            "photoLocation": null
+          }
+        ]
+      },
+      "reviewEvidence": "OSM way/4816134 extratags.wikidata=Q392489; exact Wikidata P18=File:STRBSKE PLESO.jpg; Commons ID/creator/license metadata inspected on 2026-11-15T01:47:17.725805+00:00. Teammate review and final live demo acceptance pending."
+    },
+    {
+      "identity": {
+        "type": "node",
+        "id": 383862401
+      },
+      "metadata": {
+        "fetchedAt": "2026-11-15T01:43:35.110579+00:00",
+        "placeDescription": {
+          "text": "waterfall in Slovakia",
+          "sourceUrl": "https://www.wikidata.org/wiki/Q928348"
+        },
+        "photos": [
+          {
+            "id": "commons:1121599",
+            "provider": "wikimedia_commons",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Vodopad_Skok.jpg",
+            "thumbUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Vodopad_Skok.jpg",
+            "title": "File:Vodopad Skok.jpg",
+            "description": {
+              "text": "Vodopad Skok",
+              "sourceUrl": "https://commons.wikimedia.org/wiki/File:Vodopad_Skok.jpg"
+            },
+            "author": "Kristo",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+            "sourceUrl": "https://commons.wikimedia.org/wiki/File:Vodopad_Skok.jpg",
+            "associationSourceUrl": "https://www.wikidata.org/wiki/Q928348",
+            "photoLocation": null
+          }
+        ]
+      },
+      "reviewEvidence": "OSM node/383862401 extratags.wikidata=Q928348; exact Wikidata P18=File:Vodopad Skok.jpg; Commons ID/creator/license metadata inspected on 2026-11-15T01:47:17.725805+00:00. Teammate review and final live demo acceptance pending."
+    },
+    {
+      "identity": {
+        "type": "way",
+        "id": 33458143
+      },
+      "metadata": {
+        "fetchedAt": "2026-11-15T01:43:35.110579+00:00",
+        "placeDescription": {
+          "text": "lake in Poprad District, Prešov Region, Slovakia",
+          "sourceUrl": "https://www.wikidata.org/wiki/Q265976"
+        },
+        "photos": [
+          {
+            "id": "commons:4829640",
+            "provider": "wikimedia_commons",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Popradzki_Staw_a5.jpg",
+            "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Popradzki_Staw_a5.jpg/960px-Popradzki_Staw_a5.jpg",
+            "title": "File:Popradzki Staw a5.jpg",
+            "description": {
+              "text": "Popradzki Staw, Dolina Mięguszowiecka i grań Baszt. Widok z Osterwy",
+              "sourceUrl": "https://commons.wikimedia.org/wiki/File:Popradzki_Staw_a5.jpg"
+            },
+            "author": "Jerzy Opioła",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "sourceUrl": "https://commons.wikimedia.org/wiki/File:Popradzki_Staw_a5.jpg",
+            "associationSourceUrl": "https://www.wikidata.org/wiki/Q265976",
+            "photoLocation": null
+          }
+        ]
+      },
+      "reviewEvidence": "OSM way/33458143 extratags.wikidata=Q265976; exact Wikidata P18=File:Popradzki Staw a5.jpg; Commons ID/creator/license metadata inspected on 2026-11-15T01:47:17.725805+00:00. Teammate review and final live demo acceptance pending."
+    },
+    {
+      "identity": {
+        "type": "way",
+        "id": 1128350263
+      },
+      "metadata": {
+        "fetchedAt": "2026-11-15T01:43:35.110579+00:00",
+        "placeDescription": {
+          "text": "castle in Europe",
+          "sourceUrl": "https://www.wikidata.org/wiki/Q593311"
+        },
+        "photos": [
+          {
+            "id": "commons:147497353",
+            "provider": "wikimedia_commons",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Bratislava_-_Burg_%28a%29.JPG",
+            "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Bratislava_-_Burg_%28a%29.JPG/960px-Bratislava_-_Burg_%28a%29.JPG",
+            "title": "File:Bratislava - Burg (a).JPG",
+            "description": {
+              "text": "South view of Bratislava Castle.",
+              "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bratislava_-_Burg_(a).JPG"
+            },
+            "author": "C.Stadler/Bwag",
+            "license": "CC BY-SA 4.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+            "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bratislava_-_Burg_(a).JPG",
+            "associationSourceUrl": "https://www.wikidata.org/wiki/Q593311",
+            "photoLocation": null
+          }
+        ]
+      },
+      "reviewEvidence": "OSM way/1128350263 extratags.wikidata=Q593311; exact Wikidata P18=File:Bratislava - Burg (a).JPG; Commons ID/creator/license metadata inspected on 2026-11-15T01:47:17.725805+00:00. Teammate review and final live demo acceptance pending."
+    },
+    {
+      "identity": {
+        "type": "relation",
+        "id": 16609274
+      },
+      "metadata": {
+        "fetchedAt": "2026-11-15T01:43:35.110579+00:00",
+        "placeDescription": {
+          "text": "cathedral",
+          "sourceUrl": "https://www.wikidata.org/wiki/Q239560"
+        },
+        "photos": [
+          {
+            "id": "commons:24845",
+            "provider": "wikimedia_commons",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Bratislava-Dom-sv-Martina.jpg",
+            "thumbUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Bratislava-Dom-sv-Martina.jpg/960px-Bratislava-Dom-sv-Martina.jpg",
+            "title": "File:Bratislava-Dom-sv-Martina.jpg",
+            "description": {
+              "text": "The St. Martin's cathedral in Bratislava, Slovakia",
+              "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bratislava-Dom-sv-Martina.jpg"
+            },
+            "author": "Helix84",
+            "license": "CC BY-SA 3.0",
+            "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+            "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bratislava-Dom-sv-Martina.jpg",
+            "associationSourceUrl": "https://www.wikidata.org/wiki/Q239560",
+            "photoLocation": null
+          }
+        ]
+      },
+      "reviewEvidence": "OSM relation/16609274 extratags.wikidata=Q239560; exact Wikidata P18=File:Bratislava-Dom-sv-Martina.jpg; Commons ID/creator/license metadata inspected on 2026-11-15T01:47:17.725805+00:00. Teammate review and final live demo acceptance pending."
+    }
+  ]
+}
