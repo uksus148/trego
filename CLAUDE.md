@@ -10,6 +10,14 @@ Use the shared [integration runbook](docs/INTEGRATION_RUNBOOK.md) for the delive
 owner coordination, environment setup, and end-to-end evidence. Keep it current in integration
 PRs; its operational proposals do not override this file's accepted contract.
 
+The [baseline fixture acceptance](tests/integration/README.md) provides disposable
+actual-service integration tests without live keys. Its small shared corpus contains
+accepted baseline HTTP examples, not new fields. External providers/maps/images are
+explicit fixtures; two known browser defects remain expected failures tracked in #82.
+Fixture success does not establish live-provider or editor acceptance. Frontend and
+fixture CI are conditional and do not add required ruleset checks. Consumer review
+of this test policy is requested from Daniil and Mukhamed under #83.
+
 The [MVP recovery baseline](docs/RELEASE_BASELINE.md) records the published
 `v0.1.0-mvp-baseline` tag at `cfc4c648495511e6b8d21464f835028965cda388`,
 recovery boundaries, and the process for subsequent versions. It is a source
