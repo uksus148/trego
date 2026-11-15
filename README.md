@@ -41,6 +41,12 @@ For backend development, start with the [API code map, run commands, and review 
 All three developers coordinate service boundaries, environment setup, and the first complete
 chat-to-route test through the [integration runbook](docs/INTEGRATION_RUNBOOK.md).
 
+## Version and recovery
+
+The [MVP recovery baseline](docs/RELEASE_BASELINE.md) pins `v0.1.0-mvp-baseline`
+to commit `cfc4c64`, with release evidence, recovery commands, and database
+limitations. It is a pre-release checkpoint; final live acceptance is separate.
+
 ## Shared contract and project language
 
 The API contract section in [CLAUDE.md](CLAUDE.md) defines the baseline. Day-planning and personalization proposals are listed in the [contract review](docs/CONTRACT_REVIEW.md). Affected developers discuss changes and record the agreement in CLAUDE.md.

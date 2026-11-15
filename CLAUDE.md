@@ -10,6 +10,11 @@ Use the shared [integration runbook](docs/INTEGRATION_RUNBOOK.md) for the delive
 owner coordination, environment setup, and end-to-end evidence. Keep it current in integration
 PRs; its operational proposals do not override this file's accepted contract.
 
+The [MVP recovery baseline](docs/RELEASE_BASELINE.md) records the published
+`v0.1.0-mvp-baseline` tag at `cfc4c648495511e6b8d21464f835028965cda388`,
+recovery boundaries, and the process for subsequent versions. It is a source
+checkpoint before local landmark-media work, not final live MVP acceptance.
+
 ## Project language and branches
 
 - The product name is **trego.**, lowercase with the trailing period. The GitHub repository slug is `trego`.
