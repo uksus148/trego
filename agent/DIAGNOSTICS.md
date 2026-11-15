@@ -87,3 +87,5 @@ schema/generation change and owner review. Do not claim #61's original cause is 
 from fixtures or close it before a team live rerun identifies/verifies that cause.
 
 For the 120B intent failure in #63, use the [S1 intent-only probe](LIVE_TEST.md#verify-strict-extraction-s1); the historical 20B resolution cause remains unconfirmed.
+
+[Full discovery diagnostics](DISCOVERY_DIAGNOSTICS.md) adds intent-to-geocoding outcomes and safe counts, with no Java or chat-session capability.

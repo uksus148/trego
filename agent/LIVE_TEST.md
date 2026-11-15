@@ -195,3 +195,12 @@ keep #60 open if any mismatch occurs. Attribute 120B results separately.
 Track the #64 cold observation (19.5 s generation plus another candidate's 19.5 s
 queue wait). Warm/cold latency and model profiles are separate measurements; warming
 one demo query is not acceptance of the general flow.
+
+## Diagnose S3 before correcting S4
+
+Follow [full discovery diagnostics](DISCOVERY_DIAGNOSTICS.md) for Castle -> Cathedral
+and the original Rysy request, using separate 20B/120B and cold/shared-cache reports.
+No Java/route/session writes are made. Capture the exact failing reason before
+selecting an identity correction. Check #65 wording in the browser: 15.2 km and
+5 h 02 min for the July route, natural endpoint joining, no JSON quotes, and no
+repeated or translated intent strings in clarification. Round-trip visits still repeat.

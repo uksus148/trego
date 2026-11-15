@@ -81,7 +81,7 @@ async def test_http_factories_preserve_sources_history_and_saved_route_with_safe
             assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
             body = response.json()
             assert set(body) == {"reply", "places", "routeId"}
-            assert body["reply"].startswith("Маршрут сохранён:")
+            assert body["reply"].startswith("Маршрут готов:")
             assert [p["source"] for p in body["places"]] == [f"https://evidence.example/{i}" for i in range(3)]
             assert body["routeId"] == api.saved_route["id"]
     assert not http.is_closed  # The caller owns injected clients.

@@ -108,8 +108,8 @@ async def test_other_regions_ambiguity_and_missing_endpoints_keep_evidence_for_c
     async with httpx.AsyncClient(transport=httpx.MockTransport(provider_fixture(intent, places, [], "Norway"))) as client:
         result = await create_discovery(client, cache, settings()).discover("Hike near Tromsø", [])
     assert not result.ready_for_handoff
-    assert result.unresolved == ["a nearby castle"] and result.missing_endpoints == ["end"]
-    assert result.stops[0].place is None and result.stops[0].sources
+    assert result.unresolved == [] and result.missing_endpoints == ["end"]
+    assert result.stops == []  # No research before endpoint clarification.
 
 
 async def test_duplicate_targets_reuse_research_without_losing_requested_visit_order(cache):

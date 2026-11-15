@@ -1,14 +1,16 @@
 """Discover sourced route candidates; API persistence is a separate boundary."""
 
 import asyncio
+from typing import Literal
 
 import httpx
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import candidate_scope, stage
+from gopstop_agent.diagnostics import candidate_scope, stage, finding_event
 from gopstop_agent.exa import ExaSearch, ResearchSource
+from gopstop_agent.geocoding_candidates import CandidateSelection
 from gopstop_agent.geocoding import GeocodedPlace, NominatimGeocoder, OSM_ATTRIBUTION
 from gopstop_agent.intent import ClaudeIntentExtractor, Message, ProviderTimeout, RouteIntent
 from gopstop_agent.llm import ToolModel, create_tool_model
@@ -27,6 +29,12 @@ class PlaceFinding(BaseModel):
     description: str
     sources: list[ResearchSource]
     place: DiscoveredPlace | None = None
+    outcome: Literal["not_attempted", "no_sources", "insufficient_evidence", "geocoding"] = "not_attempted"
+    selection: CandidateSelection | None = None
+
+    @property
+    def reason(self) -> str:
+        return "resolved" if self.place is not None else self.selection.reason if self.selection else self.outcome
 
 
 class DiscoveryResult(BaseModel):
@@ -38,8 +46,8 @@ class DiscoveryResult(BaseModel):
 
     @property
     def unresolved(self) -> list[str]:
-        return [finding.description for finding in [self.start, *self.stops, self.end]
-                if finding is not None and finding.place is None]
+        return list(dict.fromkeys(finding.description for finding in [self.start, *self.stops, self.end]
+                                  if finding is not None and finding.place is None))
 
     @property
     def missing_endpoints(self) -> list[str]:
@@ -64,15 +72,20 @@ class PlaceDiscovery:
                 with stage("intent"):
                     intent = await self._intent.extract(message, history)
 
+                if intent.start is None or intent.end is None:
+                    return DiscoveryResult(intent=intent)
                 resolutions: dict[str, SourceResolution] = {}
 
                 async def locate(finding: PlaceFinding, resolution: SourceResolution,
                                  anchors: list[GeocodedPlace]) -> None:
                     with stage("geocoding"):
-                        location = await self._geocoder.geocode(
+                        selection = await self._geocoder.geocode_result(
                             resolution.geocodeQuery, name=resolution.name,
                             tags=resolution.tags, anchors=anchors,
                         )
+                    finding.outcome, finding.selection = "geocoding", selection
+                    finding_event(finding.reason, len(finding.sources), selection)
+                    location = selection.location
                     if location is not None:
                         finding.place = DiscoveredPlace(
                             name=resolution.name, tags=resolution.tags,
@@ -85,11 +98,18 @@ class PlaceDiscovery:
                     with stage("research"):
                         sources = await self._search.search(query)
                     finding = PlaceFinding(description=description, sources=sources)
+                    if not sources:
+                        finding.outcome = "no_sources"
+                        finding_event(finding.reason, 0)
+                        return finding
                     with stage("resolution"):
                         resolution = await self._resolver.resolve(query, sources)
                     if resolution is not None:
                         resolutions[description] = resolution
                         await locate(finding, resolution, [])
+                    else:
+                        finding.outcome = "insufficient_evidence"
+                        finding_event(finding.reason, len(sources))
                     return finding
 
                 limit = asyncio.Semaphore(3)
@@ -114,9 +134,10 @@ class PlaceDiscovery:
                 # call; do not cascade a contextual choice into new anchors.
                 anchors = [task.result().place.location for task in tasks.values() if task.result().place]
                 if anchors:
-                    for name, task in tasks.items():
+                    for index, (name, task) in enumerate(tasks.items()):
                         if task.result().place is None and name in resolutions:
-                            await locate(task.result(), resolutions[name], anchors)
+                            with candidate_scope(index):
+                                await locate(task.result(), resolutions[name], anchors)
                 start = tasks[intent.start].result() if intent.start is not None else None
                 stops = [tasks[name].result() for name in intent.mustSee]
                 end = tasks[intent.end].result() if intent.end is not None else None
@@ -126,7 +147,8 @@ class PlaceDiscovery:
 
 
 def create_discovery(client: httpx.AsyncClient, cache: Redis, settings: Settings,
-                     tool_model: ToolModel | None = None) -> PlaceDiscovery:
+                     tool_model: ToolModel | None = None, *, diagnostic_namespace: str | None = None,
+                     cold_geocoding: bool = False) -> PlaceDiscovery:
     """Compose discovery during opt-in chat startup or explicit fixture use."""
     settings.require_chat_configuration()
     key = settings.llm_key.get_secret_value()
@@ -135,9 +157,11 @@ def create_discovery(client: httpx.AsyncClient, cache: Redis, settings: Settings
     timeout = settings.provider_timeout_seconds
     return PlaceDiscovery(
         ClaudeIntentExtractor(client, key, settings.llm_model, timeout, tool_model=model),
-        ExaSearch(client, cache, exa_key, timeout),
-        CachedPlaceResolver(ClaudePlaceResolver(client, key, settings.llm_model, timeout, tool_model=model), cache),
+        ExaSearch(client, cache, exa_key, timeout, cache_namespace=f"{diagnostic_namespace}:exa" if diagnostic_namespace else "gopstop:exa-text:v1"),
+        CachedPlaceResolver(ClaudePlaceResolver(client, key, settings.llm_model, timeout, tool_model=model), cache,
+                            cache_namespace=f"{diagnostic_namespace}:resolution" if diagnostic_namespace else "gopstop:place-resolution:v2"),
         NominatimGeocoder(client, cache, settings.nominatim_user_agent,
-                          str(settings.nominatim_base_url), timeout),
+                          str(settings.nominatim_base_url), timeout,
+                          cache_namespace=f"{diagnostic_namespace}:nominatim" if diagnostic_namespace and cold_geocoding else "gopstop:nominatim:search:v2"),
         settings.discovery_timeout_seconds,
     )

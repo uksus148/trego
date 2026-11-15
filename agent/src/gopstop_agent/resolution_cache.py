@@ -16,8 +16,9 @@ resolution_adapter = TypeAdapter(SourceResolution | None)
 
 
 class CachedPlaceResolver:
-    def __init__(self, resolver: ClaudePlaceResolver, cache: Redis) -> None:
+    def __init__(self, resolver: ClaudePlaceResolver, cache: Redis, *, cache_namespace: str = "gopstop:place-resolution:v2") -> None:
         self._resolver, self._cache = resolver, cache
+        self._cache_namespace = cache_namespace
 
     async def resolve(self, description: str, sources: list[ResearchSource]) -> SourceResolution | None:
         if not sources:
@@ -25,7 +26,7 @@ class CachedPlaceResolver:
         # Covers model, prompt/schema and ordered evidence, without credentials or session IDs.
         identity = self._resolver.cache_identity(description, sources)
         digest = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-        key = f"gopstop:place-resolution:v2:{digest}"
+        key = f"{self._cache_namespace}:{digest}"
         cached = await self._cache.get(key)
         if cached is not None:
             try:
