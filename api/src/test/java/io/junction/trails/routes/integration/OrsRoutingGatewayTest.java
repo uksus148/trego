@@ -83,7 +83,7 @@ class OrsRoutingGatewayTest {
                         """));
         assertThatThrownBy(() -> gateway.route(QUERY)).isInstanceOfSatisfying(RouteException.class, error -> {
             assertThat(error.getReason()).isEqualTo(RouteException.Reason.WAYPOINT_NOT_ROUTABLE);
-            assertThat(error.getMessage()).contains("hiking network", "search radius")
+            assertThat(error.getMessage()).contains("walking network", "search radius")
                     .doesNotContain("closed", "season", "difficulty", "secret", "-1");
         });
         server.verify();
