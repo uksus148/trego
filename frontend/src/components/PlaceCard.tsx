@@ -1,20 +1,36 @@
+import type { MediaState } from '../lib/media'
 import { sourceKind, sourceLink } from '../lib/places'
-import type { Place } from '../types'
+import type { LandmarkPhoto, Place } from '../types'
+import { PlaceMediaSection } from './PlaceMediaSection'
 
 interface PlaceCardProps {
   place: Place
+  media: MediaState | undefined
+  isPinned: boolean
   onClose: () => void
+  onOpenPhoto: (photo: LandmarkPhoto) => void
+  onRetryMedia: () => void
+  /** Hover on the card keeps a marker preview open while the pointer travels from marker to card. */
+  onPointerEnter: () => void
+  onPointerLeave: () => void
 }
 
-export function PlaceCard({ place, onClose }: PlaceCardProps) {
+export function PlaceCard({ place, media, isPinned, onClose, onOpenPhoto, onRetryMedia, onPointerEnter, onPointerLeave }: PlaceCardProps) {
   const link = sourceLink(place)
   return (
-    <section className="absolute top-3 left-3 z-10 w-72 rounded-2xl bg-paper/95 p-4 shadow-xl ring-1 ring-line backdrop-blur" aria-label={`About ${place.name}`}>
+    <section
+      className="absolute top-3 left-3 z-10 w-76 rounded-2xl bg-paper/95 p-4 shadow-xl ring-1 ring-line backdrop-blur"
+      aria-label={`About ${place.name}`}
+      onMouseEnter={onPointerEnter}
+      onMouseLeave={onPointerLeave}
+    >
       <div className="flex items-start justify-between gap-3">
         <h2 className="font-display text-lg leading-tight font-semibold">{place.name}</h2>
-        <button onClick={onClose} className="text-stone hover:text-ink" aria-label="Close place details">
-          ×
-        </button>
+        {isPinned && (
+          <button type="button" onClick={onClose} className="text-stone hover:text-ink" aria-label="Close place details">
+            ×
+          </button>
+        )}
       </div>
       {place.tags.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1">
@@ -25,10 +41,11 @@ export function PlaceCard({ place, onClose }: PlaceCardProps) {
           ))}
         </ul>
       )}
+      <PlaceMediaSection state={media} onOpenPhoto={onOpenPhoto} onRetry={onRetryMedia} />
       <p className="mt-3 text-sm">
         {link ? (
           <a href={link} target="_blank" rel="noopener noreferrer" className="font-medium text-moss hover:underline">
-            Source: {new URL(link).hostname} ↗
+            Place source: {new URL(link).hostname} ↗
           </a>
         ) : (
           // Only "manual" means hand-added; other non-link values (e.g. "fixture") must not claim a provenance.

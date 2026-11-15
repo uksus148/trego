@@ -2,7 +2,7 @@ import * as maplibregl from 'maplibre-gl'
 import type { GeoJSONSource, MapMouseEvent } from 'maplibre-gl'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
-import { boundsOf, sliceLineByFraction } from '../lib/geo'
+import { boundsOf } from '../lib/geo'
 import { routeEndpoints, uniqueById } from '../lib/places'
 import type { LatLon, Place, Route } from '../types'
 import type { PickMode } from '../hooks/useTrip'
@@ -18,7 +18,6 @@ const EMPTY_LINE = { type: 'Feature' as const, properties: {}, geometry: { type:
 
 interface MapViewProps {
   route: Route | null
-  selectedSegment: number | null
   start: LatLon | null
   end: LatLon | null
   places: Place[]
@@ -26,10 +25,24 @@ interface MapViewProps {
   pendingPoint: LatLon | null
   pickMode: PickMode
   onMapClick: (point: LatLon) => void
+  /** Pin a place's card (click, tap, Enter). */
   onSelectPlace: (placeId: string) => void
+  /** Preview a place's card while hovered or focused; null when the pointer or focus leaves. */
+  onPreviewPlace: (placeId: string | null) => void
+  /** First verified photo thumbnail per place UUID, shown on the marker. */
+  thumbnails: ReadonlyMap<string, string>
 }
 
-type MarkerSpec = { point: LatLon; label: string; title: string; variant: 'start' | 'end' | 'place' | 'pending'; placeId?: string }
+type MarkerSpec = {
+  point: LatLon
+  label: string
+  title: string
+  variant: 'start' | 'end' | 'place' | 'pending'
+  placeId?: string
+  thumbUrl?: string
+}
+
+type MarkerHandlers = { select: (placeId: string) => void; preview: (placeId: string | null) => void }
 
 const MARKER_CLASSES: Record<MarkerSpec['variant'], string> = {
   start: 'bg-moss text-white',
@@ -38,22 +51,58 @@ const MARKER_CLASSES: Record<MarkerSpec['variant'], string> = {
   pending: 'bg-white text-trail border-2 border-dashed border-trail',
 }
 
-function markerElement(spec: MarkerSpec, onSelect: (placeId: string) => void): HTMLElement {
+const RING_CLASSES: Record<MarkerSpec['variant'], string> = {
+  start: 'ring-moss',
+  end: 'ring-ink',
+  place: 'ring-trail',
+  pending: 'ring-trail',
+}
+
+function markerBody(spec: MarkerSpec): HTMLElement {
   const el = document.createElement('div')
   // No transition/transform utilities here: MapLibre positions markers with `transform`, and animating it
   // makes the marker slide away between mousedown and mouseup, so the click never lands.
-  const clickable = spec.placeId ? 'cursor-pointer hover:brightness-110' : ''
-  el.className = `grid size-8 place-items-center rounded-full text-sm font-semibold shadow-lg ring-2 ring-white ${MARKER_CLASSES[spec.variant]} ${clickable}`
-  el.textContent = spec.label
+  if (!spec.thumbUrl) {
+    el.className = `grid size-8 place-items-center rounded-full text-sm font-semibold shadow-lg ring-2 ring-white ${MARKER_CLASSES[spec.variant]}`
+    el.textContent = spec.label
+    return el
+  }
+  // A verified photo replaces the dot; the visit label stays as a badge so order is still readable.
+  el.className = `size-12 rounded-full bg-white p-0.5 shadow-lg ring-3 ${RING_CLASSES[spec.variant]}`
+  const img = document.createElement('img')
+  img.src = spec.thumbUrl
+  img.alt = ''
+  img.className = 'size-full rounded-full object-cover'
+  img.addEventListener('error', () => img.remove()) // a broken image affects this marker only
+  const badge = document.createElement('span')
+  badge.className = `absolute -top-1 -right-1 grid size-5 place-items-center rounded-full text-[11px] font-semibold ring-2 ring-white ${MARKER_CLASSES[spec.variant]}`
+  badge.textContent = spec.label
+  el.append(img, badge)
+  return el
+}
+
+function markerElement(spec: MarkerSpec, handlers: MarkerHandlers): HTMLElement {
+  const el = markerBody(spec)
   el.title = spec.title
   const { placeId } = spec
-  if (placeId) {
-    el.setAttribute('role', 'button')
-    el.addEventListener('click', (event) => {
-      event.stopPropagation() // don't also count as a map click while picking points
-      onSelect(placeId)
-    })
-  }
+  if (!placeId) return el
+  el.classList.add('cursor-pointer', 'hover:brightness-110')
+  el.setAttribute('role', 'button')
+  el.setAttribute('aria-label', `${spec.title}: show details`)
+  el.tabIndex = 0
+  el.addEventListener('click', (event) => {
+    event.stopPropagation() // don't also count as a map click while picking points
+    handlers.select(placeId)
+  })
+  el.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    handlers.select(placeId)
+  })
+  el.addEventListener('mouseenter', () => handlers.preview(placeId))
+  el.addEventListener('focus', () => handlers.preview(placeId))
+  el.addEventListener('mouseleave', () => handlers.preview(null))
+  el.addEventListener('blur', () => handlers.preview(null))
   return el
 }
 
@@ -73,36 +122,41 @@ function endpointSpecs(props: MapViewProps): MarkerSpec[] {
 function markerSpecs(props: MapViewProps): MarkerSpec[] {
   // Repeated visits keep their order in the route but get one marker per place.
   const routePlaces = uniqueById(props.route?.places ?? props.places)
-  return [
+  const specs: MarkerSpec[] = [
     ...endpointSpecs(props),
     ...routePlaces.map((p, i) => ({ point: p, label: String(i + 1), title: p.name, variant: 'place' as const, placeId: p.id })),
     ...(props.pendingPoint ? [{ point: props.pendingPoint, label: '+', title: 'New place', variant: 'pending' as const }] : []),
   ]
+  // The marker stays at the Place position even when the photo's own location differs or is unknown.
+  return specs.map((spec) => {
+    const thumbUrl = spec.placeId ? props.thumbnails.get(spec.placeId) : undefined
+    return thumbUrl ? { ...spec, thumbUrl } : spec
+  })
 }
 
 const LINE_LAYOUT = { 'line-join': 'round', 'line-cap': 'round' } as const
 
 function addRouteLayers(map: maplibregl.Map) {
   map.addSource('route', { type: 'geojson', data: EMPTY_LINE })
-  map.addSource('segment', { type: 'geojson', data: EMPTY_LINE })
   map.addLayer({ id: 'route-casing', type: 'line', source: 'route', paint: { 'line-color': '#ffffff', 'line-width': 9 }, layout: LINE_LAYOUT })
   map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#e4572e', 'line-width': 5 }, layout: LINE_LAYOUT })
-  map.addLayer({ id: 'segment-line', type: 'line', source: 'segment', paint: { 'line-color': '#2f5d46', 'line-width': 7 }, layout: LINE_LAYOUT })
 }
 
 const lineFeature = (coordinates: [number, number][]) => ({ ...EMPTY_LINE, geometry: { type: 'LineString' as const, coordinates } })
 
 export function MapView(props: MapViewProps) {
-  const { route, selectedSegment, places, pickMode, onMapClick } = props
+  const { route, places, pickMode, onMapClick } = props
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const clickRef = useRef(onMapClick)
   const selectRef = useRef(props.onSelectPlace)
+  const previewRef = useRef(props.onPreviewPlace)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     selectRef.current = props.onSelectPlace
-  }, [props.onSelectPlace])
+    previewRef.current = props.onPreviewPlace
+  }, [props.onSelectPlace, props.onPreviewPlace])
 
   useEffect(() => {
     clickRef.current = onMapClick
@@ -143,25 +197,15 @@ export function MapView(props: MapViewProps) {
     map.fitBounds(boundsOf(coords), { padding: FIT_PADDING, duration: 700, maxZoom: 13 })
   }, [places, route, loaded])
 
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !loaded) return
-    const segment = route && selectedSegment !== null ? route.segments[selectedSegment] : null
-    const coords =
-      segment && route
-        ? sliceLineByFraction(route.geojson.coordinates, segment.fromKm / route.distanceKm, segment.toKm / route.distanceKm)
-        : []
-    ;(map.getSource('segment') as GeoJSONSource).setData(lineFeature(coords))
-    if (coords.length > 1) map.fitBounds(boundsOf(coords), { padding: FIT_PADDING, duration: 700, maxZoom: 14 })
-  }, [route, selectedSegment, loaded])
-
   // Markers carry only plain data, so a JSON key is a cheap way to re-create them only when they change.
   const specsKey = JSON.stringify(markerSpecs(props).map(({ point, ...rest }) => ({ ...rest, point: { lat: point.lat, lon: point.lon } })))
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
     const markers = (JSON.parse(specsKey) as MarkerSpec[]).map((spec) =>
-      new maplibregl.Marker({ element: markerElement(spec, (id) => selectRef.current(id)) })
+      new maplibregl.Marker({
+        element: markerElement(spec, { select: (id) => selectRef.current(id), preview: (id) => previewRef.current(id) }),
+      })
         .setLngLat([spec.point.lon, spec.point.lat])
         .addTo(map),
     )

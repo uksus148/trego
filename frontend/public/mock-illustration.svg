@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640">
+  <title>Mock illustration, not a real photo</title>
+  <rect width="960" height="640" fill="#e2ddd0"/>
+  <path d="M0 470 L230 230 L360 360 L520 160 L760 420 L960 300 V640 H0 Z" fill="#2f5d46"/>
+  <path d="M520 160 L575 222 L540 214 L505 238 L470 214 Z" fill="#f5f2ea"/>
+  <rect x="300" y="540" width="360" height="56" rx="28" fill="#1d211c" opacity="0.85"/>
+  <text x="480" y="577" font-family="system-ui, sans-serif" font-size="24" fill="#f5f2ea" text-anchor="middle">Mock illustration · not a real photo</text>
+</svg>

@@ -76,4 +76,20 @@ describe('realApi errors', () => {
 
     await expect(realApi.getRoute('r1')).rejects.toThrow('Request failed (502). Please try again.')
   })
+
+  it('fetches place media without query parameters and validates the response', async () => {
+    const placeId = '00000000-0000-4000-8000-000000000002'
+    const fetchMock = stubFetch({ placeId, status: 'empty', fetchedAt: null, placeDescription: null, photos: [] })
+
+    const media = await realApi.getPlaceMedia(placeId)
+
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(new RegExp(`/api/places/${placeId}/media$`))
+    expect(media.status).toBe('empty')
+  })
+
+  it('rejects place media for a different place', async () => {
+    stubFetch({ placeId: 'other', status: 'empty', fetchedAt: null, placeDescription: null, photos: [] })
+
+    await expect(realApi.getPlaceMedia('requested')).rejects.toThrow('placeId does not match')
+  })
 })

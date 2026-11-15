@@ -12,7 +12,6 @@ export function useTrip() {
   const [sessionId] = useState(() => crypto.randomUUID())
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [route, setRoute] = useState<Route | null>(null)
-  const [selectedSegment, setSelectedSegment] = useState<number | null>(null)
   const [start, setStart] = useState<LatLon | null>(null)
   const [end, setEnd] = useState<LatLon | null>(null)
   const [places, setPlaces] = useState<Place[]>([])
@@ -22,10 +21,6 @@ export function useTrip() {
   const [pendingPoint, setPendingPoint] = useState<LatLon | null>(null)
   const task = useAsyncTask()
 
-  const showRoute = (next: Route) => {
-    setRoute(next)
-    setSelectedSegment(null)
-  }
 
   const sendMessage = (text: string) => {
     setMessages((prev) => [...prev, message('user', text)])
@@ -33,7 +28,7 @@ export function useTrip() {
       const res = await api.chat({ sessionId, message: text })
       setMessages((prev) => [...prev, message('assistant', res.reply)])
       if (res.routeId) {
-        showRoute(await api.getRoute(res.routeId))
+        setRoute(await api.getRoute(res.routeId))
         setChatPlaces(res.places)
         // The chat route replaces any start/finish picked on the map earlier, so stale points can't win.
         setStart(null)
@@ -43,7 +38,6 @@ export function useTrip() {
       setChatPlaces([])
       // Places without a route (allowed by the contract): show them and drop the route that answered an earlier question.
       setRoute(null)
-      setSelectedSegment(null)
       setPlaces((prev) => mergePlaces(prev, res.places))
     })
   }
@@ -69,16 +63,16 @@ export function useTrip() {
   const buildRoute = () => {
     if (!start || !end) return Promise.resolve()
     return task.run(async () => {
-      showRoute(await api.createRoute({ start, end, placeIds: places.map((p) => p.id), preferences: [] }))
+      setRoute(await api.createRoute({ start, end, placeIds: places.map((p) => p.id), preferences: [] }))
       setChatPlaces([])
     })
   }
 
   return {
-    messages, route, selectedSegment, start, end, places, chatPlaces, pickMode, pendingPoint,
+    messages, route, start, end, places, chatPlaces, pickMode, pendingPoint,
     busy: task.busy, error: task.error, clearError: task.clearError,
     sendMessage, handleMapClick, savePlace, removePlace, buildRoute,
-    setPickMode, setSelectedSegment, cancelPendingPlace: () => setPendingPoint(null),
+    setPickMode, cancelPendingPlace: () => setPendingPoint(null),
   }
 }
 

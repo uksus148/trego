@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Place } from '../types'
 import type { Route } from '../types'
-import { contextPlaces, mergePlaces, routeEndpoints, sourceKind, sourceLink, uniqueById } from './places'
+import { contextPlaces, mergePlaces, routeEndpoints, routeVisits, sourceKind, sourceLink, uniqueById } from './places'
 
 const place = (id: string, source = 'test'): Place => ({ id, name: id, lat: 49.14, lon: 20.05, tags: ['waterfall'], photos: [], source })
 
@@ -74,6 +74,18 @@ describe('routeEndpoints', () => {
 
     expect([start?.place, end?.place]).toEqual([undefined, undefined])
     expect(end?.point).toEqual({ lat: 49.18, lon: 20.09 })
+  })
+})
+
+describe('routeVisits', () => {
+  it('lists the chat start, the stops with repeats, then the chat finish', () => {
+    const visits = routeVisits(routeThrough([place('skok'), place('lake'), place('skok')]), [place('start'), place('skok'), place('lake'), place('end')])
+
+    expect(visits.map((v) => `${v.label}:${v.place.id}`)).toEqual(['A:start', '1:skok', '2:lake', '1:skok', 'B:end'])
+  })
+
+  it('lists only the stops without chat context', () => {
+    expect(routeVisits(routeThrough([place('skok')]), []).map((v) => v.place.id)).toEqual(['skok'])
   })
 })
 

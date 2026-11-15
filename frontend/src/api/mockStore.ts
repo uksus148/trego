@@ -1,6 +1,5 @@
 import { haversineKm, round1, TRAIL_WINDING_FACTOR } from '../lib/geo'
-import type { LatLon, Photo, Place, Route, RouteSegment } from '../types'
-import { findPhotosNear } from './wikimedia'
+import type { LatLon, Place, Route, RouteSegment } from '../types'
 
 // Shared in-memory state for the mock backend.
 
@@ -11,27 +10,8 @@ const SAME_POINT_KM = 0.05
 
 let placeRegistry: ReadonlyMap<string, Place> = new Map()
 let routeRegistry: ReadonlyMap<string, Route> = new Map()
-let photoCache: ReadonlyMap<string, Photo[]> = new Map()
 
 export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-const pointKey = (p: LatLon) => `${p.lat.toFixed(4)},${p.lon.toFixed(4)}`
-
-export async function photosNearSafe(point: LatLon): Promise<Photo[]> {
-  const cached = photoCache.get(pointKey(point))
-  if (cached) return cached
-  try {
-    const photos = await findPhotosNear(point.lat, point.lon)
-    photoCache = new Map([...photoCache, [pointKey(point), photos]])
-    return photos
-  } catch (error) {
-    console.warn('Photo lookup failed, continuing without photos', error)
-    return []
-  }
-}
-
-export async function withPhotos(place: Omit<Place, 'photos'>): Promise<Place> {
-  return { ...place, photos: await photosNearSafe(place) }
-}
 
 export function registerPlace(place: Place): Place {
   placeRegistry = new Map([...placeRegistry, [place.id, place]])
@@ -53,10 +33,9 @@ export async function buildRoute(start: LatLon, end: LatLon, places: Place[], as
   const waypoints: LatLon[] = [start, ...places, ...(endIsLastPlace ? [] : [end])]
 
   const legKm = waypoints.slice(1).map((point, i) => haversineKm(waypoints[i], point) * TRAIL_WINDING_FACTOR)
-  const segmentPhotos = await Promise.all(waypoints.slice(1).map((point, i) => places[i]?.photos ?? photosNearSafe(point)))
   const segments: RouteSegment[] = legKm.map((km, i) => {
     const fromKm = legKm.slice(0, i).reduce((sum, d) => sum + d, 0)
-    return { fromKm: round1(fromKm), toKm: round1(fromKm + km), photos: segmentPhotos[i] }
+    return { fromKm: round1(fromKm), toKm: round1(fromKm + km), photos: [] }
   })
 
   const distanceKm = round1(legKm.reduce((sum, d) => sum + d, 0))

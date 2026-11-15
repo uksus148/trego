@@ -58,9 +58,37 @@ export type RouteRequest = {
 
 export type ChatMessage = { id: string; role: 'user' | 'assistant'; text: string }
 
+// Landmark media — proposed read API from docs/LANDMARK_PHOTOS_CONTRACT.md (section 5), separate from legacy Photo.
+
+export type SourcedText = { text: string; sourceUrl: string }
+
+export type LandmarkPhoto = {
+  id: string
+  provider: 'wikimedia_commons'
+  url: string
+  thumbUrl: string
+  title: string
+  description: SourcedText | null
+  author: string
+  license: string
+  licenseUrl: string
+  sourceUrl: string
+  associationSourceUrl: string
+  photoLocation: LatLon | null
+}
+
+export type PlaceMedia = {
+  placeId: string
+  status: 'ready' | 'empty'
+  fetchedAt: string | null
+  placeDescription: SourcedText | null
+  photos: LandmarkPhoto[]
+}
+
 export interface ApiClient {
   chat(request: ChatRequest): Promise<ChatResponse>
   addPlace(place: NewPlace): Promise<Place>
   createRoute(request: RouteRequest): Promise<Route>
   getRoute(id: string): Promise<Route>
+  getPlaceMedia(placeId: string): Promise<PlaceMedia>
 }
