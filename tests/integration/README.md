@@ -53,6 +53,9 @@ saved ID without a second ORS request, incomplete-intent zero writes, persisted 
 history, both database extensions, and catalog/empty media results. Browser checks
 use the real chat/API, inject a media-only503, and require exactly one GET on Retry
 without another POST or lost route.
+The browser readback is matched to the routeId returned by that browser's chat
+response, not a setup route. A failed readback must not append a new ready reply;
+any retained route must separately show a visible previous-route status label.
 
 Two desired browser assertions are deliberately marked `test.fail` for Daniil's #82:
 new ready reply plus retained previous route after readback404, and a blank React

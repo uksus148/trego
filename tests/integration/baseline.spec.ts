@@ -43,7 +43,18 @@ test('actual chat → Java readback → React; media failure retries only one GE
     return route.continue()
   })
   await page.goto(services.frontend)
+  const chatResponsePromise = page.waitForResponse(response =>
+    response.url() === `${services.agent}/api/chat` && response.request().method() === 'POST')
+  const routeResponsePromise = page.waitForResponse(response =>
+    response.url().startsWith(`${services.api}/api/routes/`) && response.request().method() === 'GET')
   await send(page)
+  const chatResponse = await chatResponsePromise
+  expect(chatResponse.status()).toBe(200)
+  const browserChat = await chatResponse.json()
+  const routeResponse = await routeResponsePromise
+  expect(routeResponse.url()).toBe(`${services.api}/api/routes/${browserChat.routeId}`)
+  expect(routeResponse.status()).toBe(200)
+  expect(await routeResponse.json()).toEqual({ ...services.route, id: browserChat.routeId })
   await loaded(page)
   await page.getByRole('button', { name: 'Fixture Falls: show details', exact: true }).click()
   await expect(page.getByText('Photo unavailable right now.')).toBeVisible()
@@ -56,8 +67,6 @@ test('actual chat → Java readback → React; media failure retries only one GE
   expect(media).toEqual(['GET', 'GET'])
   expect(posts).toHaveLength(1)
   expect(errors).toEqual([])
-  const response = await page.request.get(`${services.api}/api/routes/${services.route.id}`)
-  expect(await response.json()).toEqual(services.route)
 })
 
 test('readback 404 does not associate a new ready answer with an old route (#82)', async ({ page }) => {
@@ -76,10 +85,11 @@ test('readback 404 does not associate a new ready answer with an old route (#82)
   expect(getCount).toBe(1)
   expect(postCount).toBe(1)
   const retained = await page.getByText('7.5 km', { exact: true }).isVisible()
-  const newReady = await page.getByText(/Your hike is ready/).count() > replies
-  const explicitlyPrevious = /previous|earlier|old route/i.test(await page.getByRole('alert').innerText())
   test.fail(true, 'Known main defect, owned by #82: ready answer precedes readback; remove annotation when fixed.')
-  expect(retained && newReady && !explicitlyPrevious).toBe(false)
+  expect(await page.getByText(/Your hike is ready/).count()).toBe(replies)
+  if (retained) {
+    await expect(page.getByRole('status').filter({ hasText: /previous route/i })).toBeVisible()
+  }
 })
 
 test('invalid route 200 remains recoverable without blanking React (#82)', async ({ page }) => {
