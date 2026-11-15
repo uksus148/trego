@@ -1,4 +1,5 @@
 import json
+import asyncio
 from unittest.mock import AsyncMock
 
 import httpx
@@ -83,5 +84,24 @@ async def test_language_provider_failure_cannot_trigger_discovery():
     selector.select.side_effect = ProviderError("Safe failure")
     with pytest.raises(ProviderError):
         await ChatService(search, handoff, FactualReplyWriter(), selector).respond("Hello", [])
+    search.discover.assert_not_awaited()
+    handoff.persist.assert_not_awaited()
+
+
+async def test_language_deadline_cancels_before_discovery_or_write():
+    stopped = asyncio.Event()
+
+    async def stall(*args):
+        try:
+            await asyncio.sleep(10)
+        finally:
+            stopped.set()
+
+    selector, search, handoff = AsyncMock(), AsyncMock(), AsyncMock()
+    selector.select.side_effect = stall
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(.01):
+            await ChatService(search, handoff, FactualReplyWriter(), selector).respond("Plan a hike", [])
+    assert stopped.is_set()
     search.discover.assert_not_awaited()
     handoff.persist.assert_not_awaited()

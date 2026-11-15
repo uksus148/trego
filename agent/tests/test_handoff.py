@@ -96,6 +96,7 @@ async def test_direct_hike_and_repeated_endpoints_preserve_visits_without_repeat
     async with httpx.AsyncClient(transport=httpx.MockTransport(fixture)) as client:
         saved = await RouteHandoff(TrailsApi(client, "https://api.example")).persist(discovery(stops, start, end))
     assert [str(p.id) for p in saved.route.places] == [identifier(i) for i in stops]
+    assert saved.visits == [f"Place {i}" for i in (start, *stops, end)]
     assert len([r for r in fixture.calls if r.url.path == "/api/places"]) == len({start, *stops, end})
     assert len(saved.places) == len({start, *stops, end})
 
