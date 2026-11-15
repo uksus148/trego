@@ -5,7 +5,11 @@ from dataclasses import dataclass
 from jsonschema import Draft202012Validator
 
 
-GROQ_STRUCTURED_MODELS = frozenset({"openai/gpt-oss-20b", "openai/gpt-oss-120b"})
+# Each ID was checked against Groq with the exact strict json_schema payload below.
+GROQ_STRUCTURED_MODELS = frozenset({"openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"})
+# Qwen spends ~950 reasoning tokens per call at "low", exhausting a 1000 output-tokens-per-minute
+# tier after one request; it extracts the same fields without reasoning.
+GROQ_REASONING_EFFORT = {"qwen/qwen3.8-27b": "none"}
 # These constraints stay in the application's Pydantic validators. In particular,
 # constraining intent list length during generation could silently drop user stops.
 LOCAL_CONSTRAINTS = {"minLength", "maxLength", "minItems", "maxItems", "minimum", "maximum",
@@ -72,5 +76,5 @@ class StructuredRequest:
             "response_format": {"type": "json_schema", "json_schema": {
                 "name": self.operation, "strict": True, "schema": strict_schema(self.schema),
             }},
-            "reasoning_effort": "low",
+            "reasoning_effort": GROQ_REASONING_EFFORT.get(self.model, "low"),
         }

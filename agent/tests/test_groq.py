@@ -26,7 +26,7 @@ def request_body():
     return ClaudePlaceResolver(None, "unused", "openai/gpt-oss-20b").request_body("Skok", SOURCES)
 
 
-@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b"])
+@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"])
 async def test_groq_sends_strict_schema_and_normalizes_validated_json(model_id):
     original = request_body()
     original["model"] = model_id
@@ -38,7 +38,7 @@ async def test_groq_sends_strict_schema_and_normalizes_validated_json(model_id):
         assert "x-api-key" not in request.headers
         assert request.extensions["timeout"]["read"] == .5
         body = json.loads(request.content)
-        assert body["model"] == model_id and body["reasoning_effort"] == "low"
+        assert body["model"] == model_id and body["reasoning_effort"] == ("none" if model_id.startswith("qwen/") else "low")
         assert body["max_completion_tokens"] == 2048
         assert not {"tools", "tool_choice", "parallel_tool_calls"} & body.keys()
         assert body["messages"][0]["role"] == "system"
@@ -188,3 +188,33 @@ def test_groq_environment_selects_only_its_key_and_masks_secrets(monkeypatch):
     settings.require_chat_configuration()
     assert settings.llm_model == "openai/gpt-oss-20b"
     assert "private-groq-secret" not in repr(settings) and "private-exa-secret" not in repr(settings)
+
+
+@pytest.mark.parametrize("headers, attempts", [({"retry-after": "0"}, 3), ({}, 1), ({"retry-after": "600"}, 1),
+                                                 ({"retry-after": "soon"}, 1)])
+async def test_rate_limit_is_replayed_only_with_a_short_retry_after(headers, attempts):
+    from gopstop_agent.intent import ClaudeIntentExtractor, ProviderError
+    from gopstop_agent.llm import ToolModel
+    calls = []
+
+    def handle(request):
+        calls.append(request)
+        return httpx.Response(429, headers=headers, json={"error": {"code": "rate_limit_exceeded"}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        extractor = ClaudeIntentExtractor(client, "fixture", "openai/gpt-oss-20b", tool_model=ToolModel(client, "fixture", "groq"))
+        with pytest.raises(ProviderError):
+            await extractor.extract("From A to B", [])
+    assert len(calls) == attempts
+
+
+async def test_rate_limited_request_succeeds_after_the_stated_wait():
+    from gopstop_agent.intent import ClaudeIntentExtractor
+    from gopstop_agent.llm import ToolModel
+    intent = {"start": "A", "end": "B", "mustSee": [], "preferences": [], "descriptiveTargets": []}
+    replies = [httpx.Response(429, headers={"retry-after": "0"}, json={"error": {"code": "rate_limit_exceeded"}}),
+               httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(intent)}}]})]
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: replies.pop(0))) as client:
+        extractor = ClaudeIntentExtractor(client, "fixture", "openai/gpt-oss-20b", tool_model=ToolModel(client, "fixture", "groq"))
+        result = await extractor.extract("From A to B", [])
+    assert (result.start, result.end) == ("A", "B") and not replies
