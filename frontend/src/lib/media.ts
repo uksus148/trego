@@ -81,6 +81,21 @@ function photo(value: unknown): LandmarkPhoto {
   }
 }
 
+// RFC 3339 date-time with a required offset, e.g. 2026-11-15T00:00:00Z or 2026-11-15T01:30:00.123+01:00.
+const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/i
+
+/** Date.parse also accepts "1" or date-only strings; check the exact shape and that the calendar date exists. */
+function isRfc3339(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const match = RFC3339.exec(value)
+  if (!match) return false
+  const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number)
+  const [offsetHour, offsetMinute] = [match[9], match[10]].map((part) => (part === undefined ? 0 : Number(part)))
+  const date = new Date(Date.UTC(year, month - 1, day))
+  const realDate = date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  return realDate && hour < 24 && minute < 60 && second < 60 && offsetHour < 24 && offsetMinute < 60
+}
+
 /** Validate a media response for the requested place; throws MediaContractError on any violation. */
 export function parsePlaceMedia(placeId: string, body: unknown): PlaceMedia {
   if (!isObject(body)) fail('response must be an object')
@@ -88,9 +103,9 @@ export function parsePlaceMedia(placeId: string, body: unknown): PlaceMedia {
   if (!Array.isArray(body.photos)) fail('photos must be a list')
   const expectedCount = body.status === 'ready' ? 1 : body.status === 'empty' ? 0 : fail('status must be ready or empty')
   if (body.photos.length !== expectedCount) fail(`status ${String(body.status)} contradicts ${body.photos.length} photos`)
-  if (body.fetchedAt !== null && (typeof body.fetchedAt !== 'string' || Number.isNaN(Date.parse(body.fetchedAt)))) {
-    fail('fetchedAt must be null or an RFC3339 time')
-  }
+  if (body.fetchedAt !== null && !isRfc3339(body.fetchedAt)) fail('fetchedAt must be null or an offset-aware RFC3339 time')
+  // Ready media keeps the original retrieval time (contract section 5); only an empty result may omit it.
+  if (body.status === 'ready' && body.fetchedAt === null) fail('ready media must include fetchedAt')
   if (!('placeDescription' in body)) fail('placeDescription key is required')
   return {
     placeId,
