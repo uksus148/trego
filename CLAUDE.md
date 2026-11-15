@@ -406,6 +406,22 @@ URL vectors and an actual Java/Python peer test run against disposable Valkey in
 see [media coordination and supported URL spellings](api/MEDIA.md#deadline-cache-and-coordination).
 Agent behavior and public DTOs are unchanged; cross-owner review remains required.
 
+### Route editing — Murat's decisions selected, shared contract review pending
+
+Murat selected independent new route IDs, a separate editing-context GET, original
+endpoint coordinates with optional Place UUID bindings, a local draft plus explicit
+Rebuild route, and a fresh chat session after successful manual editing. The local
+[route-editing proposal](docs/ROUTE_EDITING_CONTRACT.md) and
+[synthetic fixtures](docs/contracts/route-editing.examples.json) define the proposed
+GET /api/routes/{id}/editing-context and optional startPlaceId/endPlaceId POST fields.
+The draft backend implements this proposal while preserving existing Route/chat shapes
+and four-field writes. See the [implementation and review guide](api/ROUTE_EDITING.md).
+Murat and Daniil own this slice; agent code is not required. Legacy/unbound endpoints
+remain coordinate-only, and the fresh agent session receives no edited-route context.
+V4 adds nullable endpoint bindings without backfill; its upgrade is tested on disposable
+data. Shared review, applying the migration, frontend integration and same-revision E2E
+remain pending; the backend draft does not establish full editor acceptance.
+
 ### Proposed extension: personalization and day plan — not agreed yet
 
 Discussed in [docs/CONTRACT_REVIEW.md](docs/CONTRACT_REVIEW.md). Move items into the contract above only after the owners agree.

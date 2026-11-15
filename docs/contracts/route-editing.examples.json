@@ -1,0 +1,670 @@
+{
+  "contractVersion": "route-editing-v1-proposal",
+  "synthetic": true,
+  "note": "UUIDs, places, sources, geometry and metrics are synthetic fixtures; do not fetch the example URLs or present these as real hikes.",
+  "legacyRead": {
+    "method": "GET",
+    "path": "/api/routes/10000000-0000-4000-8000-000000000000/editing-context",
+    "httpStatus": 200,
+    "response": {
+      "routeId": "10000000-0000-4000-8000-000000000000",
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1,
+        "place": null
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13,
+        "place": null
+      },
+      "stops": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "Fixture Viewpoint",
+          "lat": 49.12,
+          "lon": 20.12,
+          "tags": [
+            "viewpoint"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-3"
+        }
+      ],
+      "preferences": [
+        "quiet scenery"
+      ]
+    }
+  },
+  "boundRead": {
+    "method": "GET",
+    "path": "/api/routes/10000000-0000-4000-8000-000000000001/editing-context",
+    "httpStatus": 200,
+    "response": {
+      "routeId": "10000000-0000-4000-8000-000000000001",
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Fixture Station",
+          "lat": 49.1,
+          "lon": 20.1,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-1"
+        }
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "name": "Fixture Finish",
+          "lat": 49.13,
+          "lon": 20.13,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-4"
+        }
+      },
+      "stops": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "Fixture Viewpoint",
+          "lat": 49.12,
+          "lon": 20.12,
+          "tags": [
+            "viewpoint"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-3"
+        }
+      ],
+      "preferences": [
+        "quiet scenery"
+      ]
+    }
+  },
+  "rebuildReordered": {
+    "method": "POST",
+    "path": "/api/routes",
+    "request": {
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "preferences": [
+        "quiet scenery"
+      ],
+      "startPlaceId": "00000000-0000-4000-8000-000000000001",
+      "endPlaceId": "00000000-0000-4000-8000-000000000004"
+    },
+    "httpStatus": 201,
+    "response": {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "geojson": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            20.10005,
+            49.10005
+          ],
+          [
+            20.12,
+            49.12
+          ],
+          [
+            20.11,
+            49.11
+          ],
+          [
+            20.13005,
+            49.13005
+          ]
+        ]
+      },
+      "distanceKm": 8.4,
+      "ascentM": 120.0,
+      "durationMin": 150.0,
+      "places": [
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "Fixture Viewpoint",
+          "lat": 49.12,
+          "lon": 20.12,
+          "tags": [
+            "viewpoint"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        }
+      ],
+      "segments": []
+    },
+    "subsequentEditingContext": {
+      "routeId": "10000000-0000-4000-8000-000000000002",
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Fixture Station",
+          "lat": 49.1,
+          "lon": 20.1,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-1"
+        }
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "name": "Fixture Finish",
+          "lat": 49.13,
+          "lon": 20.13,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-4"
+        }
+      },
+      "stops": [
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "Fixture Viewpoint",
+          "lat": 49.12,
+          "lon": 20.12,
+          "tags": [
+            "viewpoint"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        }
+      ],
+      "preferences": [
+        "quiet scenery"
+      ]
+    }
+  },
+  "legacyWrite": {
+    "method": "POST",
+    "path": "/api/routes",
+    "request": {
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "preferences": [
+        "quiet scenery"
+      ]
+    },
+    "expectedEndpointBindings": {
+      "startPlaceId": null,
+      "endPlaceId": null
+    }
+  },
+  "rawEndpointWrite": {
+    "method": "POST",
+    "path": "/api/routes",
+    "request": {
+      "start": {
+        "lat": 49.101,
+        "lon": 20.102
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "preferences": [
+        "quiet scenery"
+      ],
+      "startPlaceId": null,
+      "endPlaceId": "00000000-0000-4000-8000-000000000004"
+    },
+    "expectedStartBinding": null
+  },
+  "repeatedVisits": {
+    "context": {
+      "routeId": "10000000-0000-4000-8000-000000000003",
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Fixture Station",
+          "lat": 49.1,
+          "lon": 20.1,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-1"
+        }
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000004",
+          "name": "Fixture Finish",
+          "lat": 49.13,
+          "lon": 20.13,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-4"
+        }
+      },
+      "stops": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "Fixture Viewpoint",
+          "lat": 49.12,
+          "lon": 20.12,
+          "tags": [
+            "viewpoint"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        }
+      ],
+      "preferences": [
+        "quiet scenery"
+      ]
+    },
+    "removeOccurrenceIndex": 2,
+    "requestAfterRemoval": {
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "preferences": [
+        "quiet scenery"
+      ],
+      "startPlaceId": "00000000-0000-4000-8000-000000000001",
+      "endPlaceId": "00000000-0000-4000-8000-000000000004"
+    },
+    "expectedStopIds": [
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003"
+    ],
+    "indexBase": 0
+  },
+  "roundTrip": {
+    "context": {
+      "routeId": "10000000-0000-4000-8000-000000000004",
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Fixture Station",
+          "lat": 49.1,
+          "lon": 20.1,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-1"
+        }
+      },
+      "end": {
+        "lat": 49.1,
+        "lon": 20.1,
+        "place": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "Fixture Station",
+          "lat": 49.1,
+          "lon": 20.1,
+          "tags": [
+            "other"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-1"
+        }
+      },
+      "stops": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Fixture Waterfall",
+          "lat": 49.11,
+          "lon": 20.11,
+          "tags": [
+            "waterfall"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "Fixture Viewpoint",
+          "lat": 49.12,
+          "lon": 20.12,
+          "tags": [
+            "viewpoint"
+          ],
+          "photos": [],
+          "source": "https://example.org/fixtures/place-3"
+        }
+      ],
+      "preferences": [
+        "quiet scenery"
+      ]
+    },
+    "expectedVisitIds": [
+      "00000000-0000-4000-8000-000000000001",
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003",
+      "00000000-0000-4000-8000-000000000001"
+    ],
+    "expectedMediaRequestIds": [
+      "00000000-0000-4000-8000-000000000001",
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003"
+    ]
+  },
+  "directRoute": {
+    "method": "POST",
+    "path": "/api/routes",
+    "request": {
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [],
+      "preferences": [
+        "quiet scenery"
+      ],
+      "startPlaceId": "00000000-0000-4000-8000-000000000001",
+      "endPlaceId": "00000000-0000-4000-8000-000000000004"
+    },
+    "expectedIntermediateCount": 0
+  },
+  "coordinateMismatch": {
+    "method": "POST",
+    "path": "/api/routes",
+    "request": {
+      "start": {
+        "lat": 49.2,
+        "lon": 20.1
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "preferences": [
+        "quiet scenery"
+      ],
+      "startPlaceId": "00000000-0000-4000-8000-000000000001",
+      "endPlaceId": "00000000-0000-4000-8000-000000000004"
+    },
+    "httpStatus": 400,
+    "code": "invalid_request",
+    "newRoutes": 0,
+    "routingProviderCalls": 0
+  },
+  "unknownEndpoint": {
+    "method": "POST",
+    "path": "/api/routes",
+    "request": {
+      "start": {
+        "lat": 49.1,
+        "lon": 20.1
+      },
+      "end": {
+        "lat": 49.13,
+        "lon": 20.13
+      },
+      "placeIds": [
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "preferences": [
+        "quiet scenery"
+      ],
+      "startPlaceId": "00000000-0000-4000-8000-000000000001",
+      "endPlaceId": "00000000-0000-4000-8000-000000000099"
+    },
+    "httpStatus": 422,
+    "code": "unknown_place",
+    "newRoutes": 0,
+    "routingProviderCalls": 0
+  },
+  "problems": [
+    {
+      "httpStatus": 400,
+      "response": {
+        "type": "about:blank",
+        "title": "Bad Request",
+        "status": 400,
+        "detail": "Endpoint coordinates must match the referenced place.",
+        "code": "invalid_request"
+      }
+    },
+    {
+      "httpStatus": 404,
+      "response": {
+        "type": "about:blank",
+        "title": "Not Found",
+        "status": 404,
+        "detail": "The saved route does not exist.",
+        "code": "route_not_found"
+      }
+    },
+    {
+      "httpStatus": 422,
+      "response": {
+        "type": "about:blank",
+        "title": "Unprocessable Entity",
+        "status": 422,
+        "detail": "A referenced place does not exist.",
+        "code": "unknown_place"
+      }
+    },
+    {
+      "httpStatus": 422,
+      "response": {
+        "type": "about:blank",
+        "title": "Unprocessable Entity",
+        "status": 422,
+        "detail": "No hiking route connects the requested waypoints.",
+        "code": "no_hiking_route"
+      }
+    },
+    {
+      "httpStatus": 422,
+      "response": {
+        "type": "about:blank",
+        "title": "Unprocessable Entity",
+        "status": 422,
+        "detail": "A waypoint cannot be matched to the available hiking network.",
+        "code": "waypoint_not_routable"
+      }
+    },
+    {
+      "httpStatus": 502,
+      "response": {
+        "type": "about:blank",
+        "title": "Bad Gateway",
+        "status": 502,
+        "detail": "The routing provider could not complete the request.",
+        "code": "routing_provider_error"
+      }
+    },
+    {
+      "httpStatus": 503,
+      "response": {
+        "type": "about:blank",
+        "title": "Service Unavailable",
+        "status": 503,
+        "detail": "Route storage is unavailable.",
+        "code": "storage_unavailable"
+      }
+    },
+    {
+      "httpStatus": 503,
+      "response": {
+        "type": "about:blank",
+        "title": "Service Unavailable",
+        "status": 503,
+        "detail": "Route cache is unavailable.",
+        "code": "cache_unavailable"
+      }
+    },
+    {
+      "httpStatus": 504,
+      "response": {
+        "type": "about:blank",
+        "title": "Gateway Timeout",
+        "status": 504,
+        "detail": "The routing provider timed out.",
+        "code": "routing_timeout"
+      }
+    }
+  ],
+  "frontendTransitions": [
+    {
+      "event": "edit_started",
+      "activeRouteId": "10000000-0000-4000-8000-000000000001",
+      "chatSessionAction": "keep",
+      "routingProviderCalls": 0
+    },
+    {
+      "event": "rebuild_rejected",
+      "activeRouteId": "10000000-0000-4000-8000-000000000001",
+      "draftRetained": true,
+      "chatSessionAction": "keep"
+    },
+    {
+      "event": "rebuild_201",
+      "activeRouteId": "10000000-0000-4000-8000-000000000002",
+      "sourceRouteStillExists": true,
+      "chatSessionAction": "create_fresh_session"
+    },
+    {
+      "event": "context_refresh_failed_after_201",
+      "activeRouteId": "10000000-0000-4000-8000-000000000002",
+      "routePostRetries": 0,
+      "chatSessionAction": "keep_fresh_session"
+    },
+    {
+      "event": "cancel_before_submit",
+      "activeRouteId": "10000000-0000-4000-8000-000000000001",
+      "chatSessionAction": "keep",
+      "routingProviderCalls": 0
+    }
+  ]
+}

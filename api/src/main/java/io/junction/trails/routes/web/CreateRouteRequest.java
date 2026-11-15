@@ -4,15 +4,18 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.junction.trails.routes.model.GeoPoint;
 import io.junction.trails.routes.model.NewRoute;
+import io.junction.trails.routes.model.RouteCreation;
 import java.util.List;
 import java.util.UUID;
 
-record CreateRouteRequest(Point start, Point end, List<UUID> placeIds, List<String> preferences) {
-    NewRoute toCommand() {
+record CreateRouteRequest(Point start, Point end, List<UUID> placeIds, List<String> preferences,
+                          JsonNode startPlaceId, JsonNode endPlaceId) {
+    RouteCreation toCommand() {
         if (start == null || end == null) {
             throw NewRoute.invalid("start and end are required");
         }
-        return new NewRoute(start.toPoint(), end.toPoint(), placeIds, preferences);
+        return new RouteCreation(new NewRoute(start.toPoint(), end.toPoint(), placeIds, preferences),
+                RouteRequestIds.optional(startPlaceId), RouteRequestIds.optional(endPlaceId));
     }
 
     @JsonAnySetter
