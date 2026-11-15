@@ -4,7 +4,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { useEffect, useRef, useState } from 'react'
 import { boundsOf } from '../lib/geo'
 import { routeEndpoints, uniqueById } from '../lib/places'
-import type { LatLon, Place, Route } from '../types'
+import type { EditingEndpoint, LatLon, Place, Route, RouteEditingContext } from '../types'
 import type { PickMode } from '../hooks/useTrip'
 
 // Bundlers move MapLibre's module, so its self-relative worker lookup fails — point it at the worker explicitly.
@@ -22,6 +22,8 @@ interface MapViewProps {
   end: LatLon | null
   places: Place[]
   chatPlaces: Place[]
+  committedContext: RouteEditingContext | null
+  draftEndpoints: { start: EditingEndpoint; end: EditingEndpoint } | null
   pendingPoint: LatLon | null
   pickMode: PickMode
   onMapClick: (point: LatLon) => void
@@ -37,7 +39,7 @@ type MarkerSpec = {
   point: LatLon
   label: string
   title: string
-  variant: 'start' | 'end' | 'place' | 'pending'
+  variant: 'start' | 'end' | 'place' | 'pending' | 'draft-start' | 'draft-end'
   placeId?: string
   thumbUrl?: string
 }
@@ -49,6 +51,8 @@ const MARKER_CLASSES: Record<MarkerSpec['variant'], string> = {
   end: 'bg-ink text-white',
   place: 'bg-trail text-white',
   pending: 'bg-white text-trail border-2 border-dashed border-trail',
+  'draft-start': 'bg-white text-moss border-2 border-dashed border-moss',
+  'draft-end': 'bg-white text-ink border-2 border-dashed border-ink',
 }
 
 const RING_CLASSES: Record<MarkerSpec['variant'], string> = {
@@ -56,6 +60,8 @@ const RING_CLASSES: Record<MarkerSpec['variant'], string> = {
   end: 'ring-ink',
   place: 'ring-trail',
   pending: 'ring-trail',
+  'draft-start': 'ring-moss',
+  'draft-end': 'ring-ink',
 }
 
 function markerBody(spec: MarkerSpec): HTMLElement {
@@ -109,9 +115,15 @@ function markerElement(spec: MarkerSpec, handlers: MarkerHandlers): HTMLElement 
 /** Start and finish come from the chat's places when it returned them, otherwise from the track's ends. */
 /** With a route, A and B sit on the track ends; before one exists, they show the points picked on the map. */
 function endpointSpecs(props: MapViewProps): MarkerSpec[] {
-  const endpoints = props.route
-    ? routeEndpoints(props.route, props.chatPlaces)
-    : { start: props.start && { point: props.start }, end: props.end && { point: props.end } }
+  const saved = props.route && props.committedContext?.routeId === props.route.id ? props.committedContext : null
+  const endpoints = saved
+    ? {
+        start: { point: { lat: saved.start.lat, lon: saved.start.lon }, place: saved.start.place ?? undefined },
+        end: { point: { lat: saved.end.lat, lon: saved.end.lon }, place: saved.end.place ?? undefined },
+      }
+    : props.route
+      ? routeEndpoints(props.route, props.chatPlaces)
+      : { start: props.start && { point: props.start }, end: props.end && { point: props.end } }
   const { start, end } = endpoints
   return [
     ...(start ? [{ point: start.point, label: 'A', title: start.place?.name ?? 'Start', variant: 'start' as const, placeId: start.place?.id }] : []),
@@ -120,14 +132,27 @@ function endpointSpecs(props: MapViewProps): MarkerSpec[] {
 }
 
 function markerSpecs(props: MapViewProps): MarkerSpec[] {
-  // Repeated visits keep their order in the route but get one marker per place.
   const routePlaces = uniqueById(props.route?.places ?? props.places)
+  const committed = props.route && props.committedContext?.routeId === props.route.id ? props.committedContext : null
+  const changed = (side: 'start' | 'end') => {
+    const draft = props.draftEndpoints?.[side], saved = committed?.[side]
+    return draft && saved && (draft.lat !== saved.lat || draft.lon !== saved.lon || draft.place?.id !== saved.place?.id)
+  }
+  const previews: MarkerSpec[] = []
+  if (props.draftEndpoints && changed('start')) {
+    const p = props.draftEndpoints.start
+    previews.push({ point: p, label: 'A′', title: `Unbuilt start · ${p.place?.name ?? p.lat.toFixed(5) + ', ' + p.lon.toFixed(5)}`, variant: 'draft-start' })
+  }
+  if (props.draftEndpoints && changed('end')) {
+    const p = props.draftEndpoints.end
+    previews.push({ point: p, label: 'B′', title: `Unbuilt finish · ${p.place?.name ?? p.lat.toFixed(5) + ', ' + p.lon.toFixed(5)}`, variant: 'draft-end' })
+  }
   const specs: MarkerSpec[] = [
     ...endpointSpecs(props),
     ...routePlaces.map((p, i) => ({ point: p, label: String(i + 1), title: p.name, variant: 'place' as const, placeId: p.id })),
+    ...previews,
     ...(props.pendingPoint ? [{ point: props.pendingPoint, label: '+', title: 'New place', variant: 'pending' as const }] : []),
   ]
-  // The marker stays at the Place position even when the photo's own location differs or is unknown.
   return specs.map((spec) => {
     const thumbUrl = spec.placeId ? props.thumbnails.get(spec.placeId) : undefined
     return thumbUrl ? { ...spec, thumbUrl } : spec
