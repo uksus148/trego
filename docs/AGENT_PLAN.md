@@ -52,8 +52,9 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
 ## Sequential blocks
 
 Follow the approved [stabilization sequence S1-S5](AGENT_STABILIZATION_PLAN.md).
-#65 merged S2 at `4edccf3`; S3 discovery outcomes/probe and #65 review follow-ups
-are prepared for review. S4 identity corrections wait for captured diagnostic evidence. The earlier
+#66 merged S3 at `f93204d`. S4a addresses the reviewed sticky resolution-cache
+defect before castle/cathedral identity corrections. Selection-aware TTLs and a
+shared-research probe are prepared for review; exact alias/type evidence is still needed. The earlier
 language/reliability findings are tracked against both separately attributed #63 runs.
 
 

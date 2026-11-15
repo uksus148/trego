@@ -76,3 +76,37 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
     assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 1
     assert sum(r.url.host == "api.exa.ai" for r in requests) == 2
     assert sum(r.url.host == "api.anthropic.com" for r in requests) == 4
+
+
+async def test_shared_research_probe_reproduces_chat_cache_while_isolated_probe_can_differ():
+    from gopstop_agent.discovery import create_discovery
+    from gopstop_agent.resolution_cache import ResolutionEntry
+    generations = []
+
+    def handle(request):
+        if request.url.host == "api.anthropic.com":
+            name = json.loads(request.content)["tool_choice"]["name"]
+            if name == "extract_route_intent":
+                return tool(name, {"start": "Skok", "end": "Skok"})
+            generations.append(request)
+            return tool(name, {"place": {"name": "Wrong" if len(generations) == 1 else "Skok",
+                "geocodeQuery": "Skok, Slovakia", "sourceIndex": 0, "tags": []}})
+        if request.url.host == "api.exa.ai":
+            return httpx.Response(200, json={"results": [{"title": "Skok", "url": "https://evidence.example/"}]})
+        assert request.url.host == "nominatim.openstreetmap.org"
+        return httpx.Response(200, json=[SKOK])
+
+    settings = Settings(_env_file=None, anthropic_api_key="fixture", exa_api_key="fixture")
+    async with fakeredis.aioredis.FakeRedis(decode_responses=True) as cache, httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        assert not (await create_discovery(client, cache, settings).discover("Skok", [])).ready_for_handoff
+        key, = await cache.keys("gopstop:place-resolution:v3:*")
+        await cache.expire(key, 50)
+        shared = await run_probe(settings, client, cache, "Skok", shared_research=True)
+        assert shared["researchCache"] == "shared" and shared["findings"][0]["reason"] == "name_mismatch"
+        assert len(generations) == 1 and await cache.ttl(key) <= 50
+        isolated = await run_probe(settings, client, cache, "Skok")
+        assert isolated["status"] == "ready" and len(generations) == 2
+        assert not ResolutionEntry.model_validate_json(await cache.get(key)).accepted
+        assert not await cache.keys("gopstop:probe-discovery:*")
+        with pytest.raises(ValueError):
+            await run_probe(settings, client, cache, "Skok", cold=True, shared_research=True)

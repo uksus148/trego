@@ -116,7 +116,7 @@ async def test_old_resolution_entries_cannot_mask_new_transport_and_remain_untou
         await cache.set(key, "null")
         assert await CachedPlaceResolver(resolver, cache).resolve("Skok", SOURCES) is not None
         assert await cache.get(key) == b"null"
-        assert len(await cache.keys("gopstop:place-resolution:v2:*")) == 1
+        assert len(await cache.keys("gopstop:place-resolution:v3:*")) == 1
 
 
 async def test_unknown_groq_model_fails_before_network():

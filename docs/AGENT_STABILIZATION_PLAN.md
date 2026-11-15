@@ -35,9 +35,12 @@ uksus148 and nnatthebest, including again after reviewable changes.
 
 S1 merged in #64 at `204058c`. S2 merged in #65 at `4edccf3` with both approvals:
 Daniil recorded 15/15 correct 20B language selections in his sample and browser
-clarification clearing. S3 is prepared for review, including his formatting nits
-and deduplication observation. S4-S5 are not started. His cold Rysy request left
-Štrbské Pleso unresolved; S3 must capture that gate before S4 changes selection.
+clarification clearing. S3 merged in #66 at `f93204d`, including formatting and deduplication follow-ups.
+Its live review found the shared resolution cache could pin a failed downstream
+selection for a day. S4a now prepares selection-aware TTLs and a shared-research
+probe for review. Castle/cathedral alias/type corrections and S5 remain pending.
+The Rysy shared/isolated discrepancy motivates cache policy correction; precise
+castle/cathedral candidate evidence still gates changes to identity selection.
 No paid retries or provider fallback are introduced. Strict JSON controls structure,
 not geographic truth, language or availability. Dependency failures remain errors.
 
