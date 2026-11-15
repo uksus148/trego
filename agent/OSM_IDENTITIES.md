@@ -144,9 +144,9 @@ invent a supporting research source. Attested multilingual city aliases need no
 extra request. Empty/nonmatching/nonsettlement verification also rejects a changed
 named identity; absence is never permission to persist a source-led substitute.
 
-The internal intent schema adds `descriptiveTargets`, at most seven exact target
-strings, validated as members of start/end/mustSee. Classification happens before
-web research. Only those explicitly descriptive phrases may be interpreted as a
+The internal intent schema adds `descriptiveTargets`, at most seven enum roles
+(`start`, `end`, `stop:1` through `stop:5`), validated as existing route targets. Classification happens before
+web research. Only targets in explicitly descriptive roles may be interpreted as a
 different evidenced name (for example the TikTok-waterfall description); named
 targets default to strict binding. No extra model/classifier call or word-count
 heuristic is added. City/country and landmark names must not be marked descriptive.

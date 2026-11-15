@@ -54,7 +54,7 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
 | B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
 | B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Merged in #72; #76 reports a separate resolution-substitution defect | main `4271e60`; [evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures; candidate v3 preserves addresstype |
-| B21 | Preserve requested settlements against attraction substitution (#76/#77) | Mukhamed | PR #78 under both-owner review; latest-head acceptance pending | [Evidence and limits](../agent/OSM_IDENTITIES.md#issue-76-requested-settlements); 529 agent fixtures passed; named targets fail closed; internal descriptiveTargets precedes Exa; private opt-in identity capture; no live Groq/Exa/ORS calls here |
+| B21 | Preserve requested settlements against attraction substitution (#76/#77) | Mukhamed | PR #78 under both-owner review; latest-head acceptance pending | [Evidence and limits](../agent/OSM_IDENTITIES.md#issue-76-requested-settlements); 549 tests passed; [review corrections and real Nominatim/Valkey evidence](../agent/IDENTITY_REVIEW.md); target-role intent and linked-boundary selection need both reviews; exact Groq/Exa/ORS acceptance pending |
 | B22 | Shared Nominatim URL identity (#75) | Murat | Merged in #79; issue closed | main `9f65a86`; Mukhamed independently passed 28 URL cases and six real Java/Python Valkey peer cases; full API/container CI passed; gate namespace/token/cooldown unchanged |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
@@ -72,7 +72,8 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
   cross-runtime review. No duplicate API patch is included in #78.
 - #76/#77 remain open pending reviewed code and exact live prompts, named-stop order,
   saved readback and media-error isolation. A safe clarification is not a route pass.
-  #77's failing stage must be captured rather than inferred. The agent solution is
+  #77's original wrong-destination stage is unknown; the new 120B intent-validation
+  failure and two named-stop blockers are recorded in [review evidence](../agent/IDENTITY_REVIEW.md). The solution is
   proposed in the existing #78; deferred draft PRs #17–#19 remain unchanged.
 
 Daniil's [20B review on ab35920](https://github.com/uksus148/trego./pull/78#pullrequestreview-5908843733)

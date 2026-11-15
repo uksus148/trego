@@ -128,7 +128,7 @@ deadline and shared quota gate. It is outside discovery's shorter timeout.
 
 `ClaudeIntentExtractor` validates tool use through shared `ToolModel` and the internal
 `{start, end, mustSee[], preferences[], descriptiveTargets[]}` result. The last
-field binds exact descriptive target strings before research; it defaults to []
+field references existing target roles (`start`, `end`, `stop:1` through `stop:5`) before research; it defaults to []
 so omitted metadata cannot waive named-target checks. It accepts recent session history,
 keeps unknown endpoints null, and never asks the model for coordinates. The
 adapter is connected through opt-in chat. Tests use HTTP fixtures, never live providers.
@@ -241,7 +241,7 @@ establish an exact settlement identity. An incompatible result reports internal
 coordinates or broadens the radius. This verification shares the provider deadline
 and distributed gate, may add one public lookup, and adds no model retry. See
 [evidence and limits](OSM_IDENTITIES.md#issue-76-requested-settlements).
-Internal intent's `descriptiveTargets` lists exact phrases classified as descriptions
+Internal intent's `descriptiveTargets` lists existing target roles classified as descriptions
 before Exa; its default empty list keeps named targets strict. Changed named targets
 with empty/unusable verification clarify before handoff, while an explicit description
 can resolve to a different evidenced name. Public chat fields remain unchanged.

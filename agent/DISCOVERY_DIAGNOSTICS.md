@@ -73,7 +73,7 @@ uv run --frozen python -m gopstop_agent.probe_discovery --shared-research --incl
 If intent itself ends at Stephansdom, inspect intent/history handling; if intent
 retains Vienna but resolution selects Stephansdom, inspect source-led resolution
 and the settlement guard. Compare `selectedOsm` against both candidate arrays.
-`intentTargets.descriptiveTargets` records which phrases the intent stage classified
+`intentTargets.descriptiveTargets` records which target roles the intent stage classified
 as descriptions before research. Named targets default to strict binding; empty
 verification must clarify. The guard constrains extracted intent, not the raw user sentence; its fixture pass
 cannot establish that an upstream rewrite is fixed. The #77 original payloads

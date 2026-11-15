@@ -277,12 +277,18 @@ submitted `source`, return 400 rather than being silently ignored. See the
   clarifies before writes. This is an identity verification, not an expanded-radius
   fallback or an automatic model retry. Both owners review this policy. Public
   chat/Java wire shapes, ingestion, routing and the 25 km ambiguity filter stay unchanged.
-  Internal intent adds `descriptiveTargets`: only exact requested target strings
-  explicitly classified as descriptions before Exa may be interpreted as another
-  evidenced name. The default empty list treats targets as named. Changed named
+  Internal intent adds `descriptiveTargets`: enum roles `start`, `end`, and
+  `stop:1` through `stop:5` classify existing targets as descriptions before Exa.
+  Only those targets may be interpreted as another evidenced name. The default
+  empty list treats targets as named. Changed named
   identities with empty/unusable verification must clarify, never fall through to
   the substitute. Translated city aliases and explicit requested feature identity
-  remain supported by OSM evidence. Both owners review this internal schema/policy.
+  remain supported by OSM evidence. A target repeated in a named role retains
+  strict binding. Both owners review this
+  internal schema/policy. The review follow-up also preserves a sourced full name
+  when a search hint truncates it, and proposes selecting a linked settlement
+  boundary only with matching Q ID, coordinates, type and linked_place evidence;
+  see [review evidence and open gates](agent/IDENTITY_REVIEW.md).
 
   Issue #77 adds an explicit intent rule preserving named city endpoints and the
   latest requested stop order. The private read-only discovery probe can opt into
