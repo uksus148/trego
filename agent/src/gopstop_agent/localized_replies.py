@@ -59,6 +59,7 @@ CATALOG = {
         "ready": "Your hike is ready: {visits}. Distance {distance} km; ascent {ascent} m; duration {duration}.",
         "missing": "Please specify {endpoints}.", "start": "the start", "end": "the destination",
         "unspecified": "Please give the exact name and location of the unclear waypoint.",
+        "roles": "Please clarify {roles}: give an exact name or location.", "stop": "intermediate stop {number}",
         "unresolved": "Please provide a more precise name or location for: {names}.",
         "limits": "Please choose at most 5 intermediate stops and 12 preferences.",
         "no_route": "No hiking path was found between these points. Please choose different endpoints or stops.",
@@ -68,6 +69,7 @@ CATALOG = {
         "ready": "Маршрут готов: {visits}. Расстояние {distance} км; набор высоты {ascent} м; время {duration}.",
         "missing": "Укажите {endpoints}.", "start": "начальную точку", "end": "конечную точку",
         "unspecified": "Укажите точное название и расположение неясной точки маршрута.",
+        "roles": "Уточните {roles}: укажите точное название или расположение.", "stop": "промежуточную остановку №{number}",
         "unresolved": "Уточните название или расположение: {names}.",
         "limits": "Выберите не более 5 промежуточных остановок и 12 предпочтений.",
         "no_route": "Пешеходный путь между этими точками не найден. Выберите другие конечные точки или остановки.",
@@ -77,6 +79,7 @@ CATALOG = {
         "ready": "Vaša túra je pripravená: {visits}. Vzdialenosť {distance} km; stúpanie {ascent} m; čas {duration}.",
         "missing": "Uveďte {endpoints}.", "start": "začiatočný bod", "end": "cieľový bod",
         "unspecified": "Uveďte presný názov a polohu nejasného bodu trasy.",
+        "roles": "Spresnite {roles}: uveďte presný názov alebo polohu.", "stop": "zastávku č. {number}",
         "unresolved": "Spresnite názov alebo polohu: {names}.",
         "limits": "Vyberte najviac 5 zastávok a 12 preferencií.",
         "no_route": "Medzi týmito bodmi sa nenašla turistická trasa. Vyberte iné koncové body alebo zastávky.",
@@ -86,6 +89,7 @@ CATALOG = {
         "ready": "Vaellusreittisi on valmis: {visits}. Matka {distance} km; nousu {ascent} m; kesto {duration}.",
         "missing": "Anna {endpoints}.", "start": "lähtöpiste", "end": "määränpää",
         "unspecified": "Anna epäselvän reittipisteen tarkka nimi ja sijainti.",
+        "roles": "Tarkenna {roles}: anna tarkka nimi tai sijainti.", "stop": "välipysähdys {number}",
         "unresolved": "Tarkenna nimi tai sijainti: {names}.",
         "limits": "Valitse enintään 5 välipysähdystä ja 12 mieltymystä.",
         "no_route": "Näiden pisteiden välille ei löytynyt vaellusreittiä. Valitse toiset päätepisteet tai pysähdykset.",
@@ -117,14 +121,26 @@ class FactualReplyWriter:
             parts.append(catalog["missing"].format(endpoints={"en": " and ", "ru": " и ", "sk": " a ", "fi": " ja "}[language].join(catalog[key] for key in facts["missingEndpoints"])))
         if facts.get("unresolvedPlaces"):
             users = [message, *(item["content"] for item in history if item["role"] == "user")]
-            names = []
+            names, unmatched = [], set()
             for name in dict.fromkeys(facts["unresolvedPlaces"]):
                 pattern = re.compile(r"(?<!\w)" + re.escape(name) + r"(?!\w)", re.IGNORECASE)
                 match = next((m for text in users if (m := pattern.search(text))), None)
-                if match and match.group() not in names:
-                    names.append(match.group())
+                if match:
+                    if match.group() not in names:
+                        names.append(match.group())
+                else:
+                    unmatched.add(name)
             if names:
                 parts.append(catalog["unresolved"].format(names=display_names(names)))
-            if len(names) < len(set(facts["unresolvedPlaces"])):
+            roles, identified = [], set()
+            for target in facts.get("unresolvedTargets", []):
+                if target["description"] in unmatched:
+                    role = target["role"]
+                    roles.append(catalog["stop"].format(number=target["number"]) if role == "stop" else catalog[role])
+                    identified.add(target["description"])
+            if roles:
+                conjunction = {"en": " and ", "ru": " и ", "sk": " a ", "fi": " ja "}[language]
+                parts.append(catalog["roles"].format(roles=conjunction.join(dict.fromkeys(roles))))
+            if unmatched - identified:
                 parts.append(catalog["unspecified"])
         return " ".join(parts)
