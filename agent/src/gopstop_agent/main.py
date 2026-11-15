@@ -17,7 +17,7 @@ from gopstop_agent.chat import ChatResponse, ChatService, create_chat
 from gopstop_agent.config import Settings
 from gopstop_agent.diagnostics import stage, trace
 from gopstop_agent.intent import ProviderError, ProviderTimeout
-from gopstop_agent.sessions import SessionStore, ValkeySessionStore
+from gopstop_agent.sessions import SessionBusy, SessionStore, ValkeySessionStore
 from gopstop_agent.trails_api import HandoffError
 from gopstop_agent.valkey import from_url
 
@@ -99,7 +99,9 @@ def create_app(
     ) -> ChatResponse:
         try:
             with trace(payload.sessionId), stage("chat"):
-                async with asyncio.timeout(configured.chat_timeout_seconds):
+                async with asyncio.timeout(configured.chat_timeout_seconds), \
+                        session_store.turn(payload.sessionId, configured.chat_timeout_seconds
+                                           + configured.valkey_socket_timeout_seconds + 3):
                     service = request.app.state.chat_service
                     if service is None:
                         result = ChatResponse(
@@ -114,6 +116,8 @@ def create_app(
                     with stage("session_save"):
                         await session_store.record_exchange(payload.sessionId, payload.message, result.reply)
                     return result
+        except SessionBusy as exc:
+            raise HTTPException(409, "Another request is processing this chat session. Wait for its result.") from exc
         except (ProviderTimeout, TimeoutError) as exc:
             raise HTTPException(504, "Chat exceeded its time limit.") from exc
         except HandoffError as exc:

@@ -20,7 +20,7 @@ async def test_research_is_bounded_ordered_and_joined_before_return_or_failure(f
 
     async def research(query):
         nonlocal active, maximum, arrivals, cancelled
-        name = query.removeprefix("Find hiking place: ").split(". Route context:")[0]
+        name = query.removeprefix("Find information about this exact place: ").split(". Route context:")[0]
         active += 1
         arrivals += 1
         maximum = max(maximum, active)

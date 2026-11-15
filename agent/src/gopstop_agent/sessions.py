@@ -1,7 +1,13 @@
 """Valkey-backed chat history storage."""
 
 import json
+import asyncio
+import math
+import hashlib
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextvars import ContextVar
 from typing import Protocol
+from uuid import uuid4
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -9,7 +15,20 @@ from redis.exceptions import RedisError
 from gopstop_agent.intent import Message
 
 
+class SessionBusy(Exception):
+    """Another request owns this session; no provider work has started."""
+
+
+RELEASE = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) end return 0"
+
+
+def valid_content(value) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and len(value) <= 4000
+
+
 class SessionStore(Protocol):
+    def turn(self, session_id: str, lease_seconds: float) -> AbstractAsyncContextManager: ...
+
     async def history(self, session_id: str) -> list[Message]: ...
 
     async def record_exchange(self, session_id: str, user_message: str, reply: str) -> None: ...
@@ -20,10 +39,35 @@ class ValkeySessionStore:
         self._client = client
         self._ttl_seconds = ttl_seconds
         self._max_messages = max_messages
+        self._owner = ContextVar("session_owner", default=None)
+
+    @asynccontextmanager
+    async def turn(self, session_id: str, lease_seconds: float):
+        key, owner = self._lease_key(session_id), uuid4().hex
+        if not await self._client.set(key, owner, nx=True, px=math.ceil(lease_seconds * 1000)):
+            raise SessionBusy()
+        token, failed = self._owner.set((session_id, key, owner)), False
+        try:
+            yield
+        except BaseException:
+            failed = True
+            raise
+        finally:
+            self._owner.reset(token)
+            try:
+                async with asyncio.timeout(2):
+                    await self._client.eval(RELEASE, 1, key, owner)
+            except (RedisError, TimeoutError) as exc:
+                if not failed:
+                    raise RedisError("Session lease release failed.") from exc
 
     @staticmethod
     def _key(session_id: str) -> str:
         return f"gopstop:chat-session:{session_id}"
+
+    @staticmethod
+    def _lease_key(session_id: str) -> str:
+        return "gopstop:chat-turn:" + hashlib.sha256(session_id.encode()).hexdigest()
 
     async def history(self, session_id: str) -> list[Message]:
         # Six complete exchanges keep token use bounded, independently of retention.
@@ -33,12 +77,13 @@ class ValkeySessionStore:
         except (ValueError, TypeError) as exc:
             raise RedisError("Chat history is invalid.") from exc
         if any(not isinstance(item, dict) or item.get("role") not in ("user", "assistant")
-               or not isinstance(item.get("content"), str) or not item["content"].strip()
-               or len(item["content"]) > 4000 for item in messages):
+               or not valid_content(item.get("content")) for item in messages):
             raise RedisError("Chat history is invalid.")
         return [{"role": item["role"], "content": item["content"]} for item in messages]
 
     async def record_exchange(self, session_id: str, user_message: str, reply: str) -> None:
+        if not all(valid_content(value) for value in (user_message, reply)):
+            raise RedisError("Chat exchange is invalid.")
         key = self._key(session_id)
         messages = [
             json.dumps({"role": "user", "content": user_message}, ensure_ascii=False),
@@ -46,6 +91,13 @@ class ValkeySessionStore:
         ]
         # A transaction keeps each exchange together and refreshes its session TTL.
         async with self._client.pipeline(transaction=True) as pipeline:
+            if lease := self._owner.get():
+                if lease[0] != session_id:
+                    raise RedisError("Session lease does not match.")
+                await pipeline.watch(lease[1])
+                if await pipeline.get(lease[1]) not in (lease[2], lease[2].encode()):
+                    raise RedisError("Session lease expired.")
+                pipeline.multi()
             pipeline.rpush(key, *messages)
             pipeline.ltrim(key, -self._max_messages, -1)
             pipeline.expire(key, self._ttl_seconds)
