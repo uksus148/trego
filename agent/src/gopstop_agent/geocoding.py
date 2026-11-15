@@ -27,7 +27,7 @@ return 0
 
 
 locations_adapter = TypeAdapter(list[GeocodingCandidate])
-SEARCH_OPTIONS = {"format": "jsonv2", "limit": 8, "namedetails": 1}
+SEARCH_OPTIONS = {"format": "jsonv2", "limit": 8, "namedetails": 1, "extratags": 1}
 
 
 class NominatimGeocoder:

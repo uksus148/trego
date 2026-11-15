@@ -5,7 +5,7 @@ import re
 import unicodedata
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from gopstop_agent.geocoding_models import GeocodedPlace
 
@@ -15,6 +15,12 @@ class GeocodingCandidate(GeocodedPlace):
     namedetails: dict[str, str] = Field(default_factory=dict)
     category: str = ""
     type: str = ""
+    extratags: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("extratags", mode="before")
+    @classmethod
+    def empty_extra_tags(cls, value):
+        return {} if value is None else value
 
 
 FEATURE_TYPES = {
@@ -24,6 +30,15 @@ FEATURE_TYPES = {
 }
 GENERIC_WORDS = {"waterfall", "peak", "mount", "mountain", "lake", "castle"}
 CONTEXT_RADIUS_KM = 25
+
+# Exact OSM attributes can retain identity when Nominatim chooses another primary
+# category. A generic tourism=attraction is deliberately not a castle criterion.
+FEATURE_ATTRIBUTES = {
+    "castle": {("historic", "castle")},
+    "cathedral": {("building", "cathedral")},
+    "church": {("building", "church"), ("building", "cathedral"), ("historic", "church")},
+    "lake": {("water", "lake")},
+}
 
 SelectionReason = Literal["resolved", "no_geocoding_candidates", "name_mismatch", "type_mismatch",
                           "ambiguous_candidates", "conflicting_identity", "outside_context"]
@@ -40,7 +55,19 @@ class CandidateSelection(BaseModel):
 def words(value: str) -> set[str]:
     plain = "".join(c for c in unicodedata.normalize("NFKD", value.casefold())
                     if not unicodedata.combining(c))
-    return set(re.findall(r"[^\W_]+", plain))
+    tokens = re.findall(r"[^\W_]+", plain)
+    # Only expand the leading saint abbreviation for religious building names;
+    # do not globally equate street suffix "St" with "Saint".
+    if tokens and tokens[0] == "st" and {"cathedral", "church"} & set(tokens):
+        tokens[0] = "saint"
+    return set(tokens)
+
+
+def matches_feature(candidate: GeocodingCandidate, feature: str) -> bool:
+    if candidate.type in FEATURE_TYPES.get(feature, set()):
+        return True
+    return any((candidate.category, candidate.type) == (key, value) or candidate.extratags.get(key) == value
+               for key, value in FEATURE_ATTRIBUTES.get(feature, set()))
 
 
 def distance_km(left: GeocodedPlace, right: GeocodedPlace) -> float:
@@ -64,7 +91,7 @@ def select_candidate_result(candidates: list[GeocodingCandidate], name: str,
     expected = expected - GENERIC_WORDS or expected
     if not expected:
         return CandidateSelection(reason="name_mismatch", **counts)
-    types = set().union(*(FEATURE_TYPES.get(tag.casefold(), set()) for tag in tags))
+    features = {tag.casefold() for tag in tags if tag.casefold() in FEATURE_TYPES or tag.casefold() in FEATURE_ATTRIBUTES}
     matched = {}
     for candidate in candidates:
         aliases = [candidate.name, candidate.display_name.split(",")[0]]
@@ -73,7 +100,7 @@ def select_candidate_result(candidates: list[GeocodingCandidate], name: str,
         if expected and not any(expected <= words(alias) for item in aliases for alias in item.split(";")):
             continue
         counts["nameMatchCount"] += 1
-        if types and candidate.type not in types:
+        if features and not all(matches_feature(candidate, feature) for feature in features):
             continue
         identity = candidate.osm_type, candidate.osm_id
         previous = matched.get(identity)
