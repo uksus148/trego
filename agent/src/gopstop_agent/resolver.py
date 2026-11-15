@@ -64,8 +64,9 @@ class ClaudePlaceResolver:
                 "Use a local-language name only when the evidence supplies it. "
                 "sourceIndex selects that supporting source (zero-based). "
                 "Never invent coordinates, URLs, or geographic context. tags identify "
-                "the evidenced object type, such as waterfall, lake, castle, peak, "
-                "village or resort; do not tag a village as a lake merely because "
+                "one primary evidenced object type: waterfall, lake, castle, cathedral, church, "
+                "peak, village, town, city or resort. Include one primary type, not multiple "
+                "alternative identities. Do not tag a village as a lake merely because "
                 "they share a name. Return place:null if its geographic context is unsupported."
             ),
             "messages": [{"role": "user", "content": json.dumps({
