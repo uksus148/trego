@@ -38,9 +38,10 @@ Daniil recorded 15/15 correct 20B language selections in his sample and browser
 clarification clearing. S3 merged in #66 at `f93204d`, including formatting and deduplication follow-ups.
 Its live review found the shared resolution cache could pin a failed downstream
 selection for a day. S4a merged in #67 at `cf5fe23`, with both approvals and
-primary 20B TTL/reuse acceptance. S4b now prepares exact feature-attribute and
-religious-alias corrections using fresh public Nominatim observations, documented
-in [OSM identities](../agent/OSM_IDENTITIES.md). S5 remains pending; true Štrbské
+primary 20B TTL/reuse acceptance. S4b merged in #68 at `cfc4c64`; primary 20B had one successful cold landmark
+run, then daily Groq quota blocked further acceptance. Issue #69 now prepares
+settlement-boundary matching and role-specific clarification, documented in
+[OSM identities](../agent/OSM_IDENTITIES.md). S5 remains pending; true Štrbské
 Pleso ambiguity still requires evidence or clarification, not a forced lake preference.
 No paid retries or provider fallback are introduced. Strict JSON controls structure,
 not geographic truth, language or availability. Dependency failures remain errors.

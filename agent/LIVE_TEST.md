@@ -223,3 +223,21 @@ Follow [the observed OSM evidence and acceptance](OSM_IDENTITIES.md). Use fresh
 cold probes for Castle/Cathedral and Tatras on the reviewed revision before
 claiming live model success; extra attributes are requested automatically without
 a cache flush. Then check saved browser routes and original Rysy rejection.
+
+## Verify issue #69 after quota is available
+
+Use the [settlement fixtures and evidence](OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles)
+first, without live credentials. A reviewed read-only discovery probe for a hiking
+request from Bratislava to Vienna must no longer reject administrative city
+boundaries merely because their primary type is administrative. If a point remains
+unresolved, the reply must identify start/end/stop role when a normalized intent
+name is absent literally from the user's wording. Do not promise a successful
+long-distance route, cycling, corridor POIs or photos from this discovery check.
+
+The #68 review confirmed a separate Groq 20B **daily token** limit (TPD), even
+while the per-minute bucket had room. Spacing calls by a minute does not establish
+that daily capacity is available. Avoid repeated cold runs until the account has
+capacity, preserve warm Exa/resolution caches, and record 20B/120B separately.
+Automatic model fallback is not enabled. Adding safe quota-window/error-type/
+retry-after diagnostics is a separate follow-up, not delivered by the city fix.
+The historical #61 cause remains unconfirmed; do not retroactively label it TPD.

@@ -230,10 +230,10 @@ first/nearest/most important hit. Contextual choices do not become new anchors.
 This is a conservative ambiguity filter, not a route-distance limit; several local
 matches or insufficient context remain unresolved without partial ingestion.
 
-`gopstop:nominatim:search:v2` caches validated candidate arrays for 24 hours, or an
+`gopstop:nominatim:search:v3` caches validated candidate arrays for 24 hours, or an
 empty array for five minutes. Selection is recomputed from name/tags/context, so an
 ambiguous decision is not frozen as null. Cache identity includes host, exact query
-and search options; hits do not refresh TTL. Old v1 place/null entries are ignored
+and search options; hits do not refresh TTL. Old v1/v2 entries are ignored
 without clearing shared data. A shared Valkey token gate holds through each request and for one second after it
 finishes, including errors. Waiting has a deadline; ownership checks prevent an
 expired worker from changing another's gate. Set `AGENT_NOMINATIM_USER_AGENT` to
@@ -309,3 +309,9 @@ this diagnostic block does not loosen identity matching or claim that case fixed
 S4b adds exact OSM feature-attribute checks and narrow St./Saint normalization for
 religious building aliases. [Observed records, limits and live acceptance](OSM_IDENTITIES.md)
 explain the Castle/Cathedral correction and retained Štrbské Pleso ambiguity.
+
+Issue #69 adds city/town/village/hamlet evidence from settlement labels on
+administrative boundaries, with the same name/identity checks. Candidate v3 keeps
+`addresstype`; older serialized candidates cannot mask this field. When a normalized
+unresolved name cannot be echoed literally, chat identifies its start/end/stop role
+instead. See [settlement evidence and limits](OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles).

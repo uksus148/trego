@@ -3,7 +3,7 @@
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
 or reporting an end-to-end result. Last checked: November 15, 2026, against
-`main` at `cf5fe23` (through merged #67), plus S4b OSM identity matching under review.
+`main` at `416843b` (through merged #70), plus issue #69 settlement matching under review.
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -52,7 +52,8 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B16 | Factual localized replies (S2) | Mukhamed | Merged in #65; both approvals; primary 20B live language/browser sample passed | main `4edccf3`; 416 fixtures, 15/15 language selections in Daniil's sample; wording follow-up and cold Rysy discovery observation tracked in S3 |
 | B17 | Discovery outcomes and read-only probe (S3) | Mukhamed | Merged in #66; both approvals; 20B cold gates captured | main `f93204d`; 446 fixtures; castle type mismatch, variable cathedral name mismatch; shared-cache Rysy failure differs from isolated research |
 | B18 | Selection-aware resolution caching (S4a) | Mukhamed | Merged in #67; both reviews and primary 20B TTL/reuse evidence | main `cf5fe23`; 454 fixtures; shared Rysy ready, unconfirmed isolated candidate not promoted; browser route/rejection verified |
-| B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Prepared for both-owner review; live model/browser acceptance pending | [Observed records and limits](../agent/OSM_IDENTITIES.md); 467 fixture tests; three public Nominatim observations, no Groq/Exa/ORS calls; true identity ambiguity remains clarification |
+| B19 | Exact OSM feature and religious-name evidence (S4b) | Mukhamed | Merged in #68; both reviews; one primary 20B cold landmark success, remaining live work blocked by TPD | main `cfc4c64`; 467 fixtures; no automatic model fallback; separate #69 settlement defect remains |
+| B20 | Settlement boundaries and unresolved roles (#69) | Mukhamed | Prepared for both-owner review; live acceptance pending quota | [Evidence](../agent/OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles); 493 fixtures, candidate v3 preserves addresstype; two public Nominatim reads; no Groq/Exa/ORS calls |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |

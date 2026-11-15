@@ -118,3 +118,9 @@ these filters or claiming a Java/ORS outage. The reviewed counts identify the ga
 but a precise alias/category correction still needs the actual candidate evidence.
 
 The next [S4b landmark correction](OSM_IDENTITIES.md) uses fresh public OSM attribute/alias evidence for the castle and cathedral. Remaining multi-identity cases still require type evidence or clarification.
+
+For [issue #69](OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles),
+candidate cache v3 preserves settlement addresstype evidence. A city boundary may
+resolve without a primary city type. Rejected endpoints now have role-specific
+clarifications even when intent translates or normalizes their names. Remaining
+routing failure is separate; do not infer cycling support from a resolved city.

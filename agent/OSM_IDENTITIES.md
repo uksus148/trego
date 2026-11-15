@@ -66,3 +66,42 @@ browser route test with saved GET/source/metric/session verification. A source-
 supported lake/resort must select the corresponding OSM identity; untyped or truly
 ambiguous input must clarify. Rysy should retain the distinct no-match routing
 outcome after successful discovery. Do not replace waypoints to force a track.
+
+## Issue #69: settlement boundaries and unresolved roles
+
+The issue's 120B run on `cfc4c64` found Bratislava/Vienna by name but rejected
+both as city endpoints. Two public Nominatim searches on November 15 confirmed:
+
+| Search | OSM identity | Primary category/type | Settlement evidence |
+|---|---|---|---|
+| Bratislava, Slovakia | [relation 1702499](https://www.openstreetmap.org/relation/1702499) | boundary/administrative | addresstype=city, extra place=city |
+| Vienna, Austria | [relation 109166](https://www.openstreetmap.org/relation/109166) | boundary/administrative | addresstype=city; no extra place attribute |
+
+Reduced records with attribution live in `tests/test_settlement_boundaries.py`.
+For city/town/village/hamlet constraints, administrative boundaries can use exact
+settlement labels from addresstype or extratags.place. Multiple recognized labels
+must agree with the requested type. A generic boundary, admin_level, county/state
+classification, unrelated attraction or conflicting city/village labels cannot
+establish a city. Name/alias, joint feature, identity conflict and ambiguity checks
+still apply. Representative coordinates remain the validated Nominatim result;
+no production city IDs or coordinate overrides are introduced.
+
+Candidate caching now uses `gopstop:nominatim:search:v3`: earlier serializers
+discarded addresstype, so merely extending the model would leave Vienna broken
+behind an old 24-hour candidate entry. Old namespaces remain untouched; rate
+gating and positive/empty TTLs are unchanged. Resolution v3 is a separate cache
+whose selection-aware policy remains unchanged. No resolver prompt change is
+needed for this fix, preserving reusable model results during the quota shortage.
+
+When normalized names cannot be found literally in user text (e.g. Russian
+"братиславы"/"вены" vs intent Bratislava/Vienna), clarification identifies the start,
+destination or intermediate-stop number in EN/RU/SK/FI. It does not guess an
+inflected/transliterated spelling or echo fabricated intent text. Literal user
+names may still be echoed; repeated visits retain their own stop numbers.
+
+The fixtures exercise both Groq profiles and Anthropic through actual discovery,
+including final cache acceptance. Team live/model/browser acceptance remains:
+first run geocoding/discovery fixtures, then a deliberately bounded read-only
+city probe after quota is available; verify exact identities and use a hiking
+request for route acceptance. Cycling, corridor POI search and photos from the
+original #69 prompt remain outside this bug and are not enabled by it.

@@ -293,6 +293,15 @@ never prefer the lake solely from the name Štrbské Pleso. Shared rate gating,
 source binding, cache lifecycle, route inputs and public shapes remain unchanged.
 Both owners review these identity-selection semantics; live model acceptance is separate.
 
+Issue #69 extends settlement matching: city/town/village/hamlet may be evidenced
+by exact addresstype or extra place labels on boundary/administrative candidates.
+Recognized labels must agree with the requested kind; generic boundaries or
+admin_level alone are insufficient. Retain name/alias, joint constraints and
+single-identity checks. Candidate cache v3 preserves addresstype; old keys are
+ignored without flushing. Unresolved normalized names use start/end/stop role
+clarification when literal user wording is unavailable. No fuzzy name guesses,
+travel modes, corridor POIs or photo capabilities are added. Both owners review.
+
 ### API container packaging
 
 PR #46 prepares the existing Spring Boot API for container execution; public
