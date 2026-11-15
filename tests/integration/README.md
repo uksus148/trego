@@ -112,12 +112,17 @@ with both PostGIS and pgvector was used. This is fixture evidence, not live E5.
 ## Saved-route editor profile
 
 With the matching API and frontend editor, run `bash tests/integration/check.sh --editor`.
-This enables the real editor for the local frontend and adds a fifth browser case.
-The case starts from a manual API save, removes one repeated visit, reorders the
+This enables the real editor for the local frontend and adds two browser cases.
+The manual case starts from an API save, removes one repeated visit, reorders the
 remaining visits, swaps endpoints and explicitly binds an endpoint to a saved Place.
 It verifies the new route/context, unchanged source route, preserved preferences,
 reload restoration and zero agent requests during editing. Baseline provider calls
 remain explicit fixtures; this is not live geographic acceptance. CI runs this profile.
+
+The chat-origin case keeps both legacy endpoints unbound. It injects an HTML gateway
+timeout on the first rebuild, then checks that declining confirmation sends no second
+POST. An explicitly confirmed rebuild saves a new route. Only the next explicit chat
+prompt starts a fresh agent session, with the original plan kept in read-only history.
 
 Combined #80/#87 verification after current-main integration: four Chromium cases
 passed in 12.8 seconds with no failures/skips; actual V4, API/storage/cache assertions

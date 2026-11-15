@@ -112,18 +112,11 @@ function markerElement(spec: MarkerSpec, handlers: MarkerHandlers): HTMLElement 
   return el
 }
 
-/** Start and finish come from the chat's places when it returned them, otherwise from the track's ends. */
 /** With a route, A and B sit on the track ends; before one exists, they show the points picked on the map. */
 function endpointSpecs(props: MapViewProps): MarkerSpec[] {
-  const saved = props.route && props.committedContext?.routeId === props.route.id ? props.committedContext : null
-  const endpoints = saved
-    ? {
-        start: { point: { lat: saved.start.lat, lon: saved.start.lon }, place: saved.start.place ?? undefined },
-        end: { point: { lat: saved.end.lat, lon: saved.end.lon }, place: saved.end.place ?? undefined },
-      }
-    : props.route
-      ? routeEndpoints(props.route, props.chatPlaces)
-      : { start: props.start && { point: props.start }, end: props.end && { point: props.end } }
+  const endpoints = props.route
+    ? routeEndpoints(props.route, props.chatPlaces, props.committedContext)
+    : { start: props.start && { point: props.start }, end: props.end && { point: props.end } }
   const { start, end } = endpoints
   return [
     ...(start ? [{ point: start.point, label: 'A', title: start.place?.name ?? 'Start', variant: 'start' as const, placeId: start.place?.id }] : []),

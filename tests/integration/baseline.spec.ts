@@ -180,6 +180,91 @@ test('manual stop changes label the saved route as previous until the next build
 })
 
 if (process.env.E2E_EDITOR === '1') {
+  test('chat-origin editor confirms a retry after an ambiguous save and starts a fresh session on success', async ({ page }) => {
+    const chatUrl = `${services.agent}/api/chat`
+    const routeUrl = `${services.api}/api/routes`
+    const chatPosts: Array<{ sessionId: string; message: string }> = []
+    const rebuildPosts: unknown[] = []
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => {
+      if (request.url() === chatUrl && request.method() === 'POST') chatPosts.push(request.postDataJSON())
+    })
+    await page.route(routeUrl, route => {
+      if (route.request().method() !== 'POST') return route.continue()
+      rebuildPosts.push(route.request().postDataJSON())
+      if (rebuildPosts.length === 1) {
+        return route.fulfill({
+          status: 504,
+          contentType: 'text/html',
+          headers: { 'Access-Control-Allow-Origin': services.frontend },
+          body: '<html>Gateway timeout</html>',
+        })
+      }
+      return route.continue()
+    })
+
+    await page.goto(services.frontend)
+    await send(page)
+    await loaded(page)
+    const activeRouteId = () => page.evaluate(() => sessionStorage.getItem('trego.activeRouteId'))
+    const originalId = await activeRouteId()
+    expect(originalId).toBeTruthy()
+    await page.getByRole('button', { name: 'Edit route', exact: true }).click()
+    await expect(page.getByRole('combobox', { name: 'Start place', exact: true })).toHaveValue('')
+    await expect(page.getByRole('combobox', { name: 'Finish place', exact: true })).toHaveValue('')
+    const stops = page.getByRole('list', { name: 'Intermediate visits' })
+    await stops.getByRole('button', { name: 'Remove Fixture Falls', exact: true }).first().click()
+    const rebuild = page.getByRole('button', { name: 'Rebuild route', exact: true })
+    await rebuild.click()
+    await expect(page.getByRole('alert')).toContainText('The route may have been saved.')
+    await loaded(page)
+    expect(await activeRouteId()).toBe(originalId)
+    await expect(stops.getByRole('listitem')).toHaveCount(2)
+    expect(rebuildPosts).toHaveLength(1)
+    expect(chatPosts).toHaveLength(1)
+
+    await Promise.all([
+      page.waitForEvent('dialog').then(async dialog => {
+        const message = dialog.message()
+        await dialog.dismiss()
+        expect(message).toContain('Submitting again can create another route.')
+      }),
+      rebuild.click(),
+    ])
+    expect(rebuildPosts).toHaveLength(1)
+    expect(await activeRouteId()).toBe(originalId)
+
+    const saving = page.waitForResponse(response => response.url() === routeUrl && response.request().method() === 'POST')
+    await Promise.all([
+      page.waitForEvent('dialog').then(dialog => dialog.accept()),
+      rebuild.click(),
+    ])
+    const response = await saving
+    expect(response.status()).toBe(201)
+    const saved = await response.json()
+    expect(saved.id).not.toBe(originalId)
+    expect(rebuildPosts).toHaveLength(2)
+    expect(rebuildPosts[1]).toEqual(rebuildPosts[0])
+    expect(rebuildPosts[1]).toMatchObject({ startPlaceId: null, endPlaceId: null })
+    expect(chatPosts).toHaveLength(1)
+    await expect.poll(activeRouteId).toBe(saved.id)
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await page.getByRole('tab', { name: 'Ask', exact: true }).click()
+    await expect(page.getByRole('region', { name: 'Original plan, read only' })).toBeVisible()
+    const nextChat = page.waitForResponse(reply => reply.url() === chatUrl && reply.request().method() === 'POST')
+    await send(page)
+    const nextReply = await nextChat
+    expect(nextReply.status()).toBe(200)
+    const nextRoute = await nextReply.json()
+    await expect.poll(activeRouteId).toBe(nextRoute.routeId)
+    expect(chatPosts).toHaveLength(2)
+    expect(chatPosts[1]).toEqual({ sessionId: expect.any(String), message: corpus.message })
+    expect(chatPosts[1].sessionId).not.toBe(chatPosts[0].sessionId)
+    expect(rebuildPosts).toHaveLength(2)
+    expect(errors).toEqual([])
+  })
+
   test('manual editor rebuilds a new snapshot and restores bindings without agent calls', async ({ page }) => {
     const oldContext = await (await page.request.get(`${services.api}/api/routes/${services.route.id}/editing-context`)).json()
     const seed = await page.request.post(`${services.api}/api/routes`, { data: {

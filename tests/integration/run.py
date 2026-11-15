@@ -236,12 +236,12 @@ def main():
         browser = json.loads((OUT / "browser-results.json").read_text())
         assert browser["stats"]["unexpected"] == browser["stats"]["skipped"] == browser["stats"]["flaky"] == 0
         tests = [test for suite in browser["suites"] for spec in suite.get("specs", []) for test in spec["tests"]]
-        assert len(tests) == (5 if args.editor else 4)
+        assert len(tests) == (6 if args.editor else 4)
         assert all(test["expectedStatus"] == "passed" for test in tests), "Baseline regressions must not expect failure"
         calls = request(agent_url + "/__fixture/calls")
         assert calls.count("nominatim") == 3 and calls.count("exa") == 3
-        assert calls.count("api:POST:/api/routes") == 6
-        assert count("places") == 3 and count("routes") == (8 if args.editor else 6) and len(ors_calls) == (2 if args.editor else 1)
+        assert calls.count("api:POST:/api/routes") == (8 if args.editor else 6)
+        assert count("places") == 3 and count("routes") == (11 if args.editor else 6) and len(ors_calls) == (3 if args.editor else 1)
         evidence.update({"result": "passed",
                          "orsRequests": len(ors_calls), "providerFixtureCalls": calls,
                          "browser": {"passed": len(tests), "knownExpectedFailures": 0, "unexpected": 0, "skipped": 0}})

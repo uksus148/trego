@@ -1,4 +1,4 @@
-import type { LatLon, Place, Route } from '../types'
+import type { LatLon, Place, Route, RouteEditingContext } from '../types'
 import { safeUrl } from './errors'
 
 /** The place's source as a safe link, or null for manual places and anything that is not http(s). */
@@ -32,10 +32,15 @@ const trackPoint = (coordinate: [number, number] | undefined): LatLon | null =>
  * chat list cannot identify an endpoint that repeats a stop or the other endpoint; leave it unbound until
  * the saved-route editing context supplies an explicit endpoint UUID (proposal #80).
  */
-export function routeEndpoints(route: Route, chatPlaces: Place[]): { start: RouteEndpoint | null; end: RouteEndpoint | null } {
-  const extra = contextPlaces(route.places, chatPlaces)
-  const startPlace = extra.find((p) => p.id === chatPlaces[0]?.id)
-  const endPlace = extra.find((p) => p.id === chatPlaces.at(-1)?.id && p.id !== startPlace?.id)
+export function routeEndpoints(
+  route: Route,
+  chatPlaces: Place[],
+  context?: RouteEditingContext | null,
+): { start: RouteEndpoint | null; end: RouteEndpoint | null } {
+  const saved = context?.routeId === route.id ? context : null
+  const extra = saved ? [] : contextPlaces(route.places, chatPlaces)
+  const startPlace = saved ? saved.start.place : extra.find((p) => p.id === chatPlaces[0]?.id)
+  const endPlace = saved ? saved.end.place : extra.find((p) => p.id === chatPlaces.at(-1)?.id && p.id !== startPlace?.id)
   const startPoint = trackPoint(route.geojson.coordinates[0])
   const endPoint = trackPoint(route.geojson.coordinates.at(-1))
   return {

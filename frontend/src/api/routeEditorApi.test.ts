@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Route, RouteEditingContext } from '../types'
-import { realApi, UncertainRouteSaveError } from './realApi'
+import { ApiError, realApi, UncertainRouteSaveError } from './realApi'
 
 const ROUTE_ID = '10000000-0000-4000-8000-000000000001'
 const NEXT_ROUTE_ID = '10000000-0000-4000-8000-000000000002'
+const request = { start: { lat: 49.1, lon: 20.1 }, end: { lat: 49.2, lon: 20.2 }, placeIds: [], preferences: [] }
 const route: Route = {
   id: ROUTE_ID,
   geojson: { type: 'LineString', coordinates: [[20.1, 49.1], [20.2, 49.2]] },
@@ -64,5 +65,44 @@ describe('realApi route editor boundary', () => {
     vi.stubGlobal('fetch', lostFetch)
     await expect(realApi.createRoute(request, ROUTE_ID)).rejects.toBeInstanceOf(UncertainRouteSaveError)
     expect(lostFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([502, 504])('treats an HTML gateway %i as an uncertain save without retry', async (status) => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      new Response('<html>Gateway failure</html>', { status, headers: { 'Content-Type': 'text/html' } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(realApi.createRoute(request, ROUTE_ID)).rejects.toBeInstanceOf(UncertainRouteSaveError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [502, 'routing_provider_error'],
+    [503, 'cache_unavailable'],
+    [503, 'storage_unavailable'],
+    [504, 'routing_timeout'],
+  ])('preserves a confirmed API failure %i %s without retry', async (status, code) => {
+    const detail = 'The requested route could not be produced.'
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(
+      JSON.stringify({ status, code, type: 'about:blank', title: 'Route failed', detail }),
+      { status, headers: { 'Content-Type': 'application/problem+json; charset=utf-8' } },
+    ))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const error = await realApi.createRoute(request, ROUTE_ID).catch((cause: unknown) => cause)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status, code, message: detail })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not trust a Problem Details code that contradicts the HTTP status', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(
+      JSON.stringify({ status: 504, code: 'routing_provider_error', type: 'about:blank', title: 'Failure', detail: 'Gateway failure' }),
+      { status: 504, headers: { 'Content-Type': 'application/problem+json' } },
+    ))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(realApi.createRoute(request, ROUTE_ID)).rejects.toBeInstanceOf(UncertainRouteSaveError)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

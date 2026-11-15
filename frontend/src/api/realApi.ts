@@ -22,7 +22,12 @@ export class UncertainRouteSaveError extends Error {
   }
 }
 const MAX_MESSAGE_LENGTH = 300
-type ErrorBody = { detail?: unknown; code?: unknown }
+type ErrorBody = { detail?: unknown; code?: unknown; type?: unknown; title?: unknown; status?: unknown }
+const ROUTE_SERVER_FAILURES = new Map([
+  [502, ['routing_provider_error']],
+  [503, ['cache_unavailable', 'storage_unavailable']],
+  [504, ['routing_timeout']],
+])
 
 function readableDetail(detail: unknown): string | undefined {
   if (typeof detail === 'string' && detail.trim()) return detail.trim()
@@ -31,11 +36,22 @@ function readableDetail(detail: unknown): string | undefined {
     .filter((msg): msg is string => typeof msg === 'string' && msg.trim() !== '')
   return messages.length > 0 ? messages.join('; ') : undefined
 }
-async function errorFrom(res: Response): Promise<ApiError> {
+async function errorFrom(res: Response, routeSave = false): Promise<ApiError> {
   let body: ErrorBody | undefined
   try { body = (await res.json()) as ErrorBody } catch { body = undefined }
+  const code = typeof body?.code === 'string' ? body.code : undefined
+  if (routeSave && res.status >= 500) {
+    const mediaType = res.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
+    const knownFailure = mediaType === 'application/problem+json'
+      && body?.status === res.status
+      && typeof body?.type === 'string' && body.type.trim() !== ''
+      && typeof body?.title === 'string' && body.title.trim() !== ''
+      && typeof body?.detail === 'string' && body.detail.trim() !== ''
+      && code !== undefined && ROUTE_SERVER_FAILURES.get(res.status)?.includes(code)
+    if (!knownFailure) throw new UncertainRouteSaveError()
+  }
   const message = readableDetail(body?.detail)?.slice(0, MAX_MESSAGE_LENGTH) ?? `Request failed (${res.status}). Please try again.`
-  return new ApiError(message, res.status, typeof body?.code === 'string' ? body.code : undefined)
+  return new ApiError(message, res.status, code)
 }
 async function request<T>(url: string, init?: RequestInit, expectedStatus?: number): Promise<T> {
   const res = await fetch(url, init)
@@ -52,7 +68,7 @@ export const realApi: ApiClient = {
     let res: Response
     try { res = await fetch(`${API_URL}/api/routes`, post(req)) }
     catch { throw new UncertainRouteSaveError() }
-    if (!res.ok) throw await errorFrom(res)
+    if (!res.ok) throw await errorFrom(res, true)
     if (res.status !== 201) throw new UncertainRouteSaveError('The route response was not a confirmed 201. The route may have been saved; submitting again can create another route.')
     try { return parseRoute(await res.json() as unknown, req, sourceRouteId) }
     catch { throw new UncertainRouteSaveError() }
