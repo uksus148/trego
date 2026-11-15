@@ -6,6 +6,19 @@ import pytest
 from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError
 
 
+@pytest.mark.parametrize("description,valid", [("the waterfall near Štrbské Pleso", True), ("unrequested target", False)])
+async def test_descriptive_metadata_is_bound_to_requested_targets_before_research(description, valid):
+    value = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": ["the waterfall near Štrbské Pleso"],
+             "preferences": [], "descriptiveTargets": [description]}
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=tool_response(value)))) as client:
+        extractor = ClaudeIntentExtractor(client, "fixture", "model")
+        if valid:
+            assert (await extractor.extract("fixture request", [])).descriptiveTargets == [description]
+        else:
+            with pytest.raises(ProviderError):
+                await extractor.extract("fixture request", [])
+
+
 def tool_response(intent):
     return {"stop_reason": "tool_use", "content": [{
         "type": "tool_use", "name": "extract_route_intent", "input": intent,
@@ -30,7 +43,7 @@ async def test_extracts_tatras_intent_and_sends_history():
         parsed = await ClaudeIntentExtractor(client, "fixture-key", "fixture-model", timeout_seconds=0.5).extract(
             "Via Skok waterfall, I love wild scenery", history,
         )
-    assert parsed.model_dump() == intent
+    assert parsed.model_dump() == {**intent, "descriptiveTargets": []}
     assert captured[0]["messages"][:-1] == history
     assert captured[0]["model"] == "fixture-model"
     assert captured[0]["tool_choice"]["name"] == "extract_route_intent"
@@ -111,7 +124,7 @@ async def test_normalizes_empty_model_values_before_validating_limits(payload, e
         lambda _: httpx.Response(200, json=tool_response(payload)),
     )) as client:
         result = await ClaudeIntentExtractor(client, "fixture", "model").extract("Find Skok", [])
-    assert result.model_dump() == expected
+    assert result.model_dump() == {**expected, "descriptiveTargets": []}
 
 
 @pytest.mark.parametrize("payload,expected_questions", [

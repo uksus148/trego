@@ -19,7 +19,8 @@ from gopstop_agent.intent import IntentClarificationRequired, ProviderError
 from gopstop_agent.valkey import from_url
 
 
-async def run_probe(settings, client, cache, message: str, *, cold: bool = False, shared_research: bool = False) -> dict:
+async def run_probe(settings, client, cache, message: str, *, cold: bool = False, shared_research: bool = False,
+                    include_identity: bool = False) -> dict:
     settings.require_chat_configuration()
     if not message.strip() or len(message) > 4000:
         raise ValueError("Probe message must contain 1-4000 characters.")
@@ -37,14 +38,22 @@ async def run_probe(settings, client, cache, message: str, *, cold: bool = False
                 finding = await create_discovery(client, cache, settings, diagnostic_namespace=namespace,
                                                  cold_geocoding=cold).discover(message, [])
             report["missingEndpoints"] = finding.missing_endpoints
+            if include_identity:
+                report["intentTargets"] = finding.intent.model_dump(include={"start", "end", "mustSee", "descriptiveTargets"})
             unique = {}
             for place in [finding.start, *finding.stops, finding.end]:
                 if place is not None:
                     unique.setdefault(place.description, place)
             for index, place in enumerate(unique.values()):
                 selection = place.selection
-                report["findings"].append({"candidate": index, "reason": place.reason,
-                    "sourceCount": len(place.sources), **(selection.model_dump(exclude={"location", "reason"}) if selection else {})})
+                item = {"candidate": index, "reason": place.reason,
+                        "sourceCount": len(place.sources), **(selection.model_dump(exclude={"location", "reason"}) if selection else {})}
+                if include_identity:
+                    item["identity"] = {"requestedTarget": place.description,
+                        "resolution": place.resolution.model_dump() if place.resolution else None,
+                        "selectedOsm": {"osmType": place.place.location.osm_type, "osmId": place.place.location.osm_id}
+                            if place.place else None}
+                report["findings"].append(item)
             report["status"] = "ready" if finding.ready_for_handoff else "needs_clarification"
         except IntentClarificationRequired:
             report.update(status="needs_clarification", reason="intent_limits")
@@ -64,7 +73,7 @@ async def run_probe(settings, client, cache, message: str, *, cold: bool = False
     return report
 
 
-async def _main(message, cold, shared_research=False):
+async def _main(message, cold, shared_research=False, include_identity=False):
     settings = Settings()
     async with httpx.AsyncClient(follow_redirects=False) as client, from_url(
         str(settings.valkey_url), decode_responses=True,
@@ -73,7 +82,8 @@ async def _main(message, cold, shared_research=False):
         health_check_interval=settings.valkey_health_check_interval_seconds,
         socket_keepalive=True, retry=Retry(NoBackoff(), 0),
     ) as cache:
-        return await run_probe(settings, client, cache, message, cold=cold, shared_research=shared_research)
+        return await run_probe(settings, client, cache, message, cold=cold, shared_research=shared_research,
+                               include_identity=include_identity)
 
 
 def main():
@@ -81,11 +91,12 @@ def main():
     parser.add_argument("--message", required=True)
     parser.add_argument("--cold", action="store_true", help="Use isolated Nominatim candidate cache; retain the shared rate gate.")
     parser.add_argument("--shared-research", action="store_true", help="Use ordinary chat caches including resolution; do not clean shared keys.")
+    parser.add_argument("--include-identity", action="store_true", help="Include private intent targets and resolution names/queries in local JSON only.")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     logging.getLogger("gopstop_agent.diagnostics").setLevel(logging.INFO)
     try:
-        report = asyncio.run(_main(args.message, args.cold, args.shared_research))
+        report = asyncio.run(_main(args.message, args.cold, args.shared_research, args.include_identity))
     except ValueError:
         report = {"status": "failed", "error": {"reason": "invalid_configuration"}}
     print(json.dumps(report))

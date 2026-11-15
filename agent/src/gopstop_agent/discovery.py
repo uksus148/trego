@@ -31,6 +31,7 @@ class PlaceFinding(BaseModel):
     place: DiscoveredPlace | None = None
     outcome: Literal["not_attempted", "no_sources", "insufficient_evidence", "geocoding"] = "not_attempted"
     selection: CandidateSelection | None = None
+    resolution: SourceResolution | None = Field(default=None, exclude=True)
 
     @property
     def reason(self) -> str:
@@ -85,11 +86,12 @@ class PlaceDiscovery:
 
                 async def locate(finding: PlaceFinding, resolution: SourceResolution,
                                  anchors: list[GeocodedPlace]) -> None:
+                    finding.resolution = resolution
                     with stage("geocoding"):
                         selection = await self._geocoder.geocode_result(
                             resolution.geocodeQuery, name=resolution.name,
                             tags=resolution.tags, anchors=anchors,
-                            requested_name=finding.description,
+                            requested_name=None if finding.description in intent.descriptiveTargets else finding.description,
                         )
                     finding.outcome, finding.selection = "geocoding", selection
                     finding_event(finding.reason, len(finding.sources), selection)

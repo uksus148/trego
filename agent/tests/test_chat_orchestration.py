@@ -214,8 +214,7 @@ async def test_tatras_geocoding_reaches_handoff_without_losing_sources_or_faking
             response = client.post("/api/chat", json={"sessionId": "tatras-51", "message": "Tatras via Skok"})
             assert response.status_code == 200
             assert ("routeId" in response.json()) == (outcome == "ready")
-    assert len(searches) == 7 and model_calls.count("resolve_place") == 3
-    assert searches.count("Skok waterfall") == 1  # Cached settlement verification, not a resolution retry.
+    assert len(searches) == 6 and model_calls.count("resolve_place") == 3
     if outcome == "ambiguous":
         assert writes == [] and response.json()["places"] == []
     else:

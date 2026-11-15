@@ -67,7 +67,7 @@ async def cache():
 async def test_tatras_discovery_preserves_sources_coordinates_waypoint_order_and_history(cache):
     description = "the waterfall from TikTok near Štrbské Pleso"
     intent = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": [description],
-              "preferences": ["wild scenery"]}
+              "preferences": ["wild scenery"], "descriptiveTargets": [description]}
     places = {
         "Štrbské Pleso": ("Štrbské Pleso", [row(1, "Štrbské Pleso", 49.1191, 20.0627)]),
         description: ("Skok waterfall", [row(2, "Skok waterfall", 49.1425, 20.0506)]),
@@ -90,8 +90,7 @@ async def test_tatras_discovery_preserves_sources_coordinates_waypoint_order_and
             payload = result.model_dump()
             assert "id" not in payload["stops"][0]["place"] and "routeId" not in payload
     assert sum(r.url.host == "api.exa.ai" for r in calls) == 3
-    # Three canonical searches and one empty verification of the free-form description.
-    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in calls) == 4
+    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in calls) == 3
     resolution = [r for r in calls if r.url.host == "api.anthropic.com"
                   and json.loads(r.content)["tool_choice"]["name"] == "resolve_place"]
     assert len(resolution) == 3  # Three cold resolutions, none on the repeated discovery.

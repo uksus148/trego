@@ -11,6 +11,32 @@ from test_groq import completion
 from test_geocoding_candidates import SKOK, WESTERN_SKOK
 
 
+@pytest.mark.parametrize("include_identity", [False, True])
+async def test_identity_capture_is_explicit_and_keeps_provider_secrets_and_logs_private(include_identity, caplog):
+    from test_discovery import provider_fixture, row
+    calls = []
+    fixture = provider_fixture({"start": "Private target", "end": "Private target"},
+        {"Private target": ("Private target", [row(1, "Private target", 49, 20)])}, calls)
+    async with fakeredis.aioredis.FakeRedis() as cache, httpx.AsyncClient(transport=httpx.MockTransport(fixture)) as client:
+        settings = Settings(_env_file=None, anthropic_api_key="NEVER_PRINT_KEY", exa_api_key="fixture",
+                            nominatim_user_agent="TrailsTest/1.0 team@example.org")
+        report = await run_probe(settings, client, cache, "Private target",
+                                 cold=True, include_identity=include_identity)
+    serialized = json.dumps(report)
+    assert report["status"] == "ready" and len(calls) == 4
+    assert "NEVER_PRINT_KEY" not in serialized + caplog.text and "Private target" not in caplog.text
+    assert "evidence.example" not in serialized
+    if include_identity:
+        assert report["intentTargets"] == {"start": "Private target", "end": "Private target", "mustSee": [], "descriptiveTargets": []}
+        identity = report["findings"][0]["identity"]
+        assert identity["requestedTarget"] == identity["resolution"]["name"] == "Private target"
+        assert identity["resolution"]["geocodeQuery"] == "Private target, High Tatras, Slovakia"
+        assert identity["selectedOsm"] == {"osmType": "node", "osmId": 1}
+    else:
+        assert "intentTargets" not in report and "identity" not in report["findings"][0]
+        assert "Private target" not in serialized
+
+
 @pytest.mark.parametrize("provider", ["groq", "anthropic"])
 @pytest.mark.parametrize("mode,expected", [("resolved", "resolved"), ("ambiguous", "ambiguous_candidates"), ("empty", "no_sources"),
     ("unsupported", "insufficient_evidence"), ("geocoding", "name_mismatch"), ("error", None), ("missing", None)])
@@ -77,10 +103,9 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
     async with fakeredis.aioredis.FakeRedis() as cache, httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         for _ in range(2):
             assert (await run_probe(settings, client, cache, "Skok"))["status"] == "ready"
-        # Canonical search plus the cached original-name settlement verification.
-        assert len(await cache.keys("gopstop:nominatim:search:v3:*")) == 2
+        assert len(await cache.keys("gopstop:nominatim:search:v3:*")) == 1
         assert not await cache.keys("gopstop:probe-discovery:*")
-    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 2
+    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 1
     assert sum(r.url.host == "api.exa.ai" for r in requests) == 2
     assert sum(r.url.host == "api.anthropic.com" for r in requests) == 4
 
@@ -109,7 +134,7 @@ async def test_shared_research_probe_reproduces_chat_cache_while_isolated_probe_
         key, = await cache.keys("gopstop:place-resolution:v3:*")
         await cache.expire(key, 50)
         shared = await run_probe(settings, client, cache, "Skok", shared_research=True)
-        assert shared["researchCache"] == "shared" and shared["findings"][0]["reason"] == "name_mismatch"
+        assert shared["researchCache"] == "shared" and shared["findings"][0]["reason"] == "requested_identity_mismatch"
         assert len(generations) == 1 and await cache.ttl(key) <= 50
         isolated = await run_probe(settings, client, cache, "Skok")
         assert isolated["status"] == "ready" and len(generations) == 2
