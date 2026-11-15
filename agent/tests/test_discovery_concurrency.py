@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from gopstop_agent.discovery import PlaceDiscovery
+from gopstop_agent.geocoding_candidates import CandidateSelection
 from gopstop_agent.exa import ResearchSource
 from gopstop_agent.geocoding import GeocodedPlace
 from gopstop_agent.intent import ProviderError, RouteIntent
@@ -45,7 +46,7 @@ async def test_research_is_bounded_ordered_and_joined_before_return_or_failure(f
 
     search.search.side_effect = research
     resolver.resolve.side_effect = resolve
-    geocoder.geocode.return_value = GeocodedPlace(osm_type="node", osm_id=1, display_name="Fixture", lat=49, lon=20)
+    geocoder.geocode_result.return_value = CandidateSelection(reason="resolved", candidateCount=1, location=GeocodedPlace(osm_type="node", osm_id=1, display_name="Fixture", lat=49, lon=20))
     discovery = PlaceDiscovery(intent, search, resolver, geocoder)
     if failure:
         with pytest.raises(ProviderError, match="fixture failure"):

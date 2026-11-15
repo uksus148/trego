@@ -62,3 +62,15 @@ def cache_event(cache: str, result: str):
         request, session = current.get()
         log.info("chat trace=%s session=%s candidate=%s cache=%s result=%s",
                  request, session, candidate.get(), cache, result)
+
+
+def finding_event(reason: str, sources: int, selection=None):
+    from gopstop_agent.geocoding_candidates import SelectionReason
+    from typing import get_args
+    allowed = {*get_args(SelectionReason), "not_attempted", "no_sources", "insufficient_evidence"}
+    if current.get() is not None:
+        request, session = current.get()
+        log.info("chat trace=%s session=%s candidate=%s finding=%s source_count=%d candidate_count=%d name_matches=%d identities=%d",
+                 request, session, candidate.get(), reason if reason in allowed else "unknown", sources,
+                 selection.candidateCount if selection else 0, selection.nameMatchCount if selection else 0,
+                 selection.identityCount if selection else 0)
