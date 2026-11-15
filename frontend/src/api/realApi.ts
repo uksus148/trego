@@ -1,3 +1,4 @@
+import { parsePlaceMedia } from '../lib/media'
 import type { ApiClient } from '../types'
 
 const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -61,4 +62,7 @@ export const realApi: ApiClient = {
   addPlace: (place) => request(`${API_URL}/api/places`, post(place)),
   createRoute: (req) => request(`${API_URL}/api/routes`, post(req)),
   getRoute: (id) => request(`${API_URL}/api/routes/${encodeURIComponent(id)}`),
+  // No query parameters: the API rejects unknown ones, including cache-busters.
+  getPlaceMedia: async (placeId) =>
+    parsePlaceMedia(placeId, await request<unknown>(`${API_URL}/api/places/${encodeURIComponent(placeId)}/media`)),
 }

@@ -51,3 +51,20 @@ export function mergePlaces(current: Place[], incoming: Place[]): Place[] {
   const known = new Set(current.map((p) => p.id))
   return [...current, ...incoming.filter((p) => !known.has(p.id))]
 }
+
+/** A place visit with the same label as its map marker: A, B, or the stop's number. */
+export type RouteVisit = { place: Place; label: string }
+
+/**
+ * Every place visit along a route in order: the chat's start place (A), the stops with repeats kept,
+ * then the chat's finish place (B). Without chat context only the stops are known (no endpoint UUIDs from GPS).
+ */
+export function routeVisits(route: Route, chatPlaces: Place[]): RouteVisit[] {
+  const { start, end } = routeEndpoints(route, chatPlaces)
+  const stopIds = uniqueById(route.places).map((p) => p.id)
+  return [
+    ...(start?.place ? [{ place: start.place, label: 'A' }] : []),
+    ...route.places.map((place) => ({ place, label: String(stopIds.indexOf(place.id) + 1) })),
+    ...(end?.place ? [{ place: end.place, label: 'B' }] : []),
+  ]
+}
