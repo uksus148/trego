@@ -51,15 +51,20 @@ ledger, environment prerequisites, diagnostic sequence and actual end-to-end evi
 
 ## Sequential blocks
 
+Follow the approved [stabilization sequence S1-S5](AGENT_STABILIZATION_PLAN.md).
+#62 merged at `5020cd5`; S1 strict extraction is now prepared for review. The earlier
+language/reliability findings are tracked against both separately attributed #63 runs.
+
+
 #56 merged at `cc2112e` with 328 fixture tests; its research core remains internal.
 #59 merged the [#58](https://github.com/uksus148/trego./issues/58) idle Valkey fix
 at `e6b8145` (335 tests); the team's real Aiven idle rerun still gates closure.
-The current block addresses [#61](https://github.com/uksus148/trego./issues/61):
+The merged diagnostics address [#61](https://github.com/uksus148/trego./issues/61):
 safe provider status/code/schema diagnostics, cache/wait evidence and an explicit
 [read-only cold resolution probe](../agent/DIAGNOSTICS.md). The historical cause is
 unconfirmed; fixtures cannot replace the team's live reproduction. No paid retries
 or changed public chat behavior are introduced. The separately assigned language
-issue [#60](https://github.com/uksus148/trego./issues/60) follows after this PR's review/merge.
+issue [#60](https://github.com/uksus148/trego./issues/60) is stabilization block S2, after S1 review/merge.
 
 The #54 review is complete and the typed routing correction merged at `41ffe14`
 (265 agent tests). Mukhamed requested his optional availability-research slice next.

@@ -143,3 +143,32 @@ For an intermittent `resolution` 502, follow [provider diagnostics](DIAGNOSTICS.
 The explicit cold probe makes fresh Exa/model calls without session, cache or Java
 writes and reports safe HTTP/code/schema details. Historical logs cannot establish
 the original cause. Keep #61 open until a same-revision team rerun verifies it.
+
+## Verify strict extraction (S1)
+
+Groq now uses [strict structured output](https://console.groq.com/docs/structured-outputs)
+for 20B/120B instead of forced tool calls. `uv sync --frozen --extra test` installs the
+new schema validator. Repeat preflight before enabling a reviewed deployment; its
+report now includes safe provider diagnostics. The 24-hour resolution cache uses v2;
+old v1 entries cannot mask this transport change and are not deleted.
+
+From `agent/`, with the existing private root configuration and `mkdir -p target`:
+
+```sh
+uv run --frozen python -m gopstop_agent.probe_resolution --intent-only --query "I would like to see a waterfall." > target/intent-20b.json 2> target/intent-20b.log
+uv run --frozen python -m gopstop_agent.probe_resolution --query "Find hiking place: Sandberg near Bratislava. Route context: Devín Castle to Sandberg near Bratislava." > target/resolution-20b.json 2> target/resolution-20b.log
+```
+
+The first command makes exactly one model request, with no Exa/Nominatim/Java/Valkey
+access; it validates the existing root chat configuration. Expected: exit 0,
+`status: needs_clarification`, `missingEndpoints: [start, end]`. The resolution probe
+makes one fresh Exa search and at most one model request. Valid ambiguity exits 0;
+provider/schema failure exits 1 with diagnostics. Neither command creates places/routes.
+
+Run each deliberately five times with distinct report filenames after quota replenishes.
+For the independent 120B profile, set `AGENT_GROQ_MODEL=openai/gpt-oss-120b` for that
+process, use `120b` report filenames and retain the primary root 20B configuration.
+Record commit/model/cache state and all outcomes. Stop on quota errors; no automatic
+retry or uncertain chat POST replay. Then repeat the full preflight and browser matrix.
+Fixture success does not establish live strict-mode access or close #61; the original
+20B resolution cause and the observed 120B intent failure remain separately attributed.

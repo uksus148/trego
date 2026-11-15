@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import AliasChoices, Field, HttpUrl, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from gopstop_agent.structured_output import GROQ_STRUCTURED_MODELS
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -56,3 +58,5 @@ class Settings(BaseSettings):
     def require_chat_configuration(self) -> None:
         if not self.llm_key.get_secret_value().strip() or not self.llm_model.strip() or not self.exa_api_key.get_secret_value().strip():
             raise ValueError("Enabled chat requires the selected LLM key, EXA_API_KEY and a model ID.")
+        if self.llm_provider == "groq" and self.llm_model not in GROQ_STRUCTURED_MODELS:
+            raise ValueError("Groq strict extraction supports only openai/gpt-oss-20b and openai/gpt-oss-120b.")

@@ -31,7 +31,7 @@ async def test_probe_is_uncached_read_only_and_reports_redacted_failure(caplog, 
             ]})
         assert request.url.host == "api.groq.com"  # Java/ORS/Nominatim are forbidden.
         body = json.loads(request.content)
-        assert body["tool_choice"]["function"]["name"] == "resolve_place"
+        assert body["response_format"]["json_schema"]["name"] == "resolve_place"
         if outcome == "groq_http":
             return httpx.Response(400, json={"error": {"code": "tool_use_failed", "failed_generation": secret}})
         return httpx.Response(200, json=completion(value={
@@ -77,3 +77,28 @@ def test_probe_cli_does_not_print_configuration_validation_secrets(monkeypatch, 
     assert caught.value.code == 1
     output = capsys.readouterr()
     assert "invalid_configuration" in output.out and "LEAK" not in output.out + output.err
+
+
+@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b"])
+@pytest.mark.parametrize("failure", [False, True])
+async def test_intent_probe_makes_exactly_one_model_call_without_research_or_writes(model_id, failure):
+    requests = []
+
+    def handle(request):
+        requests.append(request)
+        assert request.url.host == "api.groq.com"
+        body = json.loads(request.content)
+        assert body["model"] == model_id
+        assert body["response_format"]["json_schema"]["name"] == "extract_route_intent"
+        if failure:
+            return httpx.Response(400, json={"error": {"code": "tool_use_failed", "message": "LEAK"}})
+        return httpx.Response(200, json=completion(value={"start": None, "end": None, "mustSee": [], "preferences": []}))
+
+    settings = Settings(_env_file=None, llm_provider="groq", groq_model=model_id, groq_api_key="LEAK", exa_api_key="LEAK")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        report = await run_probe(settings, client, "I would like to see a waterfall.", intent_only=True)
+    assert report["stage"] == "intent" and len(requests) == 1
+    assert report["status"] == ("failed" if failure else "needs_clarification")
+    assert "LEAK" not in json.dumps(report)
+    if not failure:
+        assert report["missingEndpoints"] == ["start", "end"]

@@ -9,6 +9,7 @@ from gopstop_agent import smoke
 from gopstop_agent.config import Settings
 from gopstop_agent.exa import ExaSearch
 from gopstop_agent.llm import ProviderError
+from gopstop_agent.provider_errors import http_failure
 from gopstop_agent.sessions import ValkeySessionStore
 from gopstop_agent.trails_api import HandoffError
 from test_discovery import row
@@ -23,8 +24,8 @@ async def test_preflight_checks_real_adapters_with_fixtures_and_only_deletes_its
     def handle(request):
         calls.append(request)
         if request.url.host == "api.groq.com":
-            name = json.loads(request.content)["tool_choice"]["function"]["name"]
-            value = {"extract_route_intent": {"start": "A", "end": "B"}, "resolve_place": {"place": PLACE},
+            name = json.loads(request.content)["response_format"]["json_schema"]["name"]
+            value = {"extract_route_intent": {"start": "A", "end": "B", "mustSee": [], "preferences": []}, "resolve_place": {"place": PLACE},
                      "write_chat_reply": {"reply": "Where would you like to start?"}}[name]
             return httpx.Response(200, json=completion(name, value))
         if request.url.host == "api.exa.ai":
@@ -95,11 +96,8 @@ async def test_cli_reports_missing_keys_without_secrets_or_network(monkeypatch, 
 async def test_cli_reports_provider_http_status_without_upstream_body(monkeypatch, capsys, status):
     async def fail(http, cache, settings, report):
         report["stage"] = "llm_intent"
-        response = httpx.Response(status, text="private provider body", request=httpx.Request("POST", "https://api.groq.com"))
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise ProviderError("Safe failure") from exc
+        response = httpx.Response(status, json={"error": {"code": "invalid_api_key", "message": "private provider body"}})
+        raise http_failure(response, provider="groq", operation="extract_route_intent")
 
     monkeypatch.setattr(smoke, "Settings", lambda: Settings(_env_file=None, llm_provider="groq", groq_api_key="fixture", exa_api_key="fixture"))
     monkeypatch.setattr(smoke, "from_url", lambda *a, **k: fakeredis.aioredis.FakeRedis())
@@ -107,4 +105,5 @@ async def test_cli_reports_provider_http_status_without_upstream_body(monkeypatc
     assert await smoke.run(SimpleNamespace(chat=False)) == 1
     report = json.loads(capsys.readouterr().out)
     assert report["httpStatus"] == status and report["stage"] == "llm_intent"
+    assert report["diagnostic"]["provider_code"] == "invalid_api_key"
     assert "private" not in json.dumps(report)

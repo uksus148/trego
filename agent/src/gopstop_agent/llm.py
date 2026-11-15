@@ -1,4 +1,4 @@
-"""One validated tool result over Anthropic or Groq, without automatic retries."""
+"""One structured result over Groq JSON Schema or Anthropic tool use; no retries."""
 
 import asyncio
 import json
@@ -6,37 +6,15 @@ import re
 import time
 
 import httpx
+from jsonschema import Draft202012Validator, SchemaError, ValidationError as SchemaValidationError
 
 from gopstop_agent.config import Settings
+from gopstop_agent.structured_output import StructuredRequest
 from gopstop_agent.diagnostics import stage
 from gopstop_agent.provider_errors import ProviderError, ProviderTimeout, http_failure
 
 
-def inline_tool_schema(schema: dict) -> dict:
-    """Expand acyclic Pydantic definitions for Groq's function parameters."""
-    definitions = schema.get("$defs", {})
-
-    def expand(value, active=()):
-        if isinstance(value, list):
-            return [expand(item, active) for item in value]
-        if not isinstance(value, dict):
-            return value
-        siblings = {key: expand(item, active) for key, item in value.items()
-                    if key not in ("$defs", "$ref")}
-        if "$ref" not in value:
-            return siblings
-        ref = value["$ref"]
-        if not isinstance(ref, str) or not ref.startswith("#/$defs/") or ref in active:
-            raise ValueError("Unsupported or recursive tool schema reference.")
-        definition = definitions[ref.removeprefix("#/$defs/")]
-        resolved = expand(definition, (*active, ref))
-        # A $ref and its sibling constraints both apply; do not overwrite either.
-        return {"allOf": [resolved, siblings]} if siblings else resolved
-
-    return expand(schema)
-
-
-class ToolModel:
+class StructuredModel:
     def __init__(self, client: httpx.AsyncClient, key: str, provider: str = "anthropic",
                  timeout_seconds: float = 20) -> None:
         if provider not in ("anthropic", "groq"):
@@ -62,24 +40,22 @@ class ToolModel:
         with stage("model"):
             return await self._call(body)
 
+    def prepare(self, body: dict) -> dict:
+        """The exact credential-free payload used by both transport and cache identity."""
+        try:
+            return StructuredRequest.from_tool_request(body).groq_payload() if self.provider == "groq" else body
+        except (ValueError, KeyError, TypeError, AttributeError, SchemaError) as exc:
+            raise ProviderError("Model request is temporarily unavailable.", provider=self.provider,
+                                operation=body.get("tool_choice", {}).get("name"), reason="request_schema") from exc
+
     async def _call(self, body: dict) -> dict:
         name = body.get("tool_choice", {}).get("name")
         diagnostic = {"provider": self.provider, "operation": name}
         reason = "request_schema"
         try:
             if self.provider == "groq":
-                payload = {
-                    "model": body["model"], "max_completion_tokens": max(2048, body["max_tokens"]),
-                    "messages": [{"role": "system", "content": body["system"]}, *body["messages"]],
-                    "tools": [{"type": "function", "function": {
-                        "name": tool["name"], "description": tool["description"],
-                        "parameters": inline_tool_schema(tool["input_schema"]),
-                    }} for tool in body["tools"]],
-                    "tool_choice": {"type": "function", "function": {"name": name}},
-                    "parallel_tool_calls": False,
-                }
-                if body["model"].startswith("openai/gpt-oss-"):
-                    payload["reasoning_effort"] = "low"
+                payload = self.prepare(body)
+                validator = Draft202012Validator(payload["response_format"]["json_schema"]["schema"])
                 # Shared by intent/resolution/reply in one worker. Outer chat/discovery
                 # deadlines include waiting; 429 responses are never replayed.
                 with stage("model_queue"):
@@ -104,15 +80,22 @@ class ToolModel:
                 reason = "response_json"
                 choices = response.json()["choices"]
                 if len(choices) != 1:
-                    raise ProviderError("Model returned an unexpected tool.", reason="unexpected_tool", **diagnostic)
+                    raise ProviderError("Model returned an unexpected response.", reason="response_json", **diagnostic)
                 diagnostic["finish"] = choices[0]["finish_reason"]
-                if diagnostic["finish"] not in ("tool_calls", "stop"):
-                    raise ProviderError("Model tool generation did not complete.", reason="incomplete_generation", **diagnostic)
-                calls = choices[0]["message"]["tool_calls"]
-                if len(calls) != 1 or calls[0]["type"] != "function" or calls[0]["function"]["name"] != name:
+                message = choices[0]["message"]
+                if message.get("refusal") or diagnostic["finish"] in ("refusal", "content_filter"):
+                    raise ProviderError("Model declined structured extraction.", reason="model_refusal", **diagnostic)
+                if diagnostic["finish"] != "stop":
+                    raise ProviderError("Model generation did not complete.", reason="incomplete_generation", **diagnostic)
+                if message.get("tool_calls"):
                     raise ProviderError("Model returned an unexpected tool.", reason="unexpected_tool", **diagnostic)
-                reason = "tool_arguments"
-                result = json.loads(calls[0]["function"]["arguments"])
+                reason = "structured_content"
+                result = json.loads(message["content"])
+                try:
+                    validator.validate(result)
+                except SchemaValidationError as exc:
+                    raise ProviderError("Model returned invalid structured data.",
+                                        reason="schema_validation", **diagnostic) from exc
             else:
                 response = await self._client.post(
                     "https://api.anthropic.com/v1/messages", json=body,
@@ -139,8 +122,12 @@ class ToolModel:
                                   reason="timeout", timeout=type(exc).__name__, **diagnostic) from exc
         except httpx.HTTPError as exc:
             raise ProviderError("Model request is temporarily unavailable.", reason="transport", **diagnostic) from exc
-        except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError, SchemaError) as exc:
             raise ProviderError("Model request is temporarily unavailable.", reason=reason, **diagnostic) from exc
+
+
+# Existing task constructors share this exact implementation and quota gate.
+ToolModel = StructuredModel
 
 
 def create_tool_model(client: httpx.AsyncClient, settings: Settings) -> ToolModel:

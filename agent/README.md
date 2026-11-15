@@ -119,6 +119,20 @@ outage; valid stops are not silently discarded. Transport, HTTP, and malformed
 responses remain `ProviderError`; typed `ProviderTimeout` maps to 504.
 
 Set `AGENT_LLM_PROVIDER=groq`, `GROQ_API_KEY` and `AGENT_GROQ_MODEL` for Groq.
+Groq supports the two explicit profiles `openai/gpt-oss-20b` and `openai/gpt-oss-120b`
+through `response_format: json_schema` with `strict: true`; unknown model IDs fail
+configuration validation. No tool definitions or tool_choice are sent to Groq.
+`StructuredRequest` describes extraction, and the shared `StructuredModel` retains
+`ToolModel` as a compatibility alias for task constructors. Anthropic keeps tool use.
+
+The wire schema closes every object, requires every property and preserves nullable
+endpoints. String/numeric/list business bounds remain in Pydantic, not constrained
+sampling: over-limit intent must ask for clarification rather than drop requested stops.
+The `jsonschema` dependency validates returned JSON against this wire shape before
+Pydantic applies business bounds/source binding. A structurally valid result is not
+proof of factual correctness. Refusal, truncation, bad content and schema errors fail
+safely without fallback, repair or retry. See [live checks](LIVE_TEST.md#verify-strict-extraction-s1).
+
 Only the selected provider key is required. Anthropic retains its existing settings;
 historical `Claude*` class names remain compatible while transport selects the provider.
 Each network request has a 20-second timeout by default;
@@ -163,9 +177,10 @@ all unfinished chains are cancelled and joined on failure or cancellation.
 
 `CachedPlaceResolver` wraps Claude resolution in the production discovery factory.
 Valkey retains validated results, including unresolved results, for 24 hours.
-The versioned SHA-256 key covers provider and effective request: model, prompt/tool schema,
+The v2 SHA-256 key covers provider, format version, effective request and local validation
+schema: model, prompt/response schema,
 description and ordered source titles, URLs and text (only the three sent to Claude).
-Changing any of those inputs requires a new resolution; credentials and session IDs
+Old v1 entries are ignored without deletion. Changing any of those inputs requires a new resolution; credentials and session IDs
 are excluded. Cache values contain only the typed resolution or null, never the
 original request, keys or conversation history. Intent and replies remain per-message.
 

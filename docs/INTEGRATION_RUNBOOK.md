@@ -2,8 +2,8 @@
 
 This is the shared execution and diagnostic guide for Murat, Mukhamed, and Daniil.
 Read it before changing a service boundary, preparing an integration environment,
-or reporting an end-to-end result. Last checked: November 14, 2026, against
-`main` at `e6b8145` (through merged #59), plus the #61 provider diagnostics under review.
+or reporting an end-to-end result. Last checked: November 15, 2026, against
+`main` at `5020cd5` (through merged #62), plus stabilization S1 strict extraction under review.
 The container is not publicly deployed. Earlier live E4 checks retain their original
 revisions below: the API check ran before rebase, and the agent session check used
 an isolated `b51e4d0` snapshot. They do not establish same-revision browser/E5 acceptance.
@@ -47,7 +47,8 @@ Replace pending evidence with a PR/run link and tested revision; retain useful h
 | B11 | Internal optional availability research | Mukhamed | Merged; not connected to HTTP chat | [#56](https://github.com/uksus148/trego./pull/56), main `cc2112e`, [core and limits](../agent/AVAILABILITY.md); 328 fixture tests; no live acceptance or public activation |
 | B12 | Optional availability-research boundary | Murat; agent/UI remain with their owners | Java input validation and wire proposal submitted for review from main `4efa575`; public research not enabled | [Contract](ROUTE_AVAILABILITY_CONTRACT.md), [fixtures](contracts/route-availability.examples.json); 204 local API tests passed, including ten strict-input cases; needs affected-owner agreement and chat/UI integration; B10/B11 are reserved by the parallel [#56](https://github.com/uksus148/trego./pull/56) |
 | B13 | Idle Valkey connection recovery | Mukhamed | Merged; live idle rerun pending | [#59](https://github.com/uksus148/trego./pull/59), main `e6b8145`; [#58](https://github.com/uksus148/trego./issues/58); 335 agent tests, including local RESP/TCP faults; no application-write or provider retries |
-| B14 | Diagnosable provider failures and cold resolution probe | Mukhamed | Prepared for review; original live cause unconfirmed | [#61](https://github.com/uksus148/trego./issues/61), [diagnostic procedure](../agent/DIAGNOSTICS.md); 372 agent fixture tests; team cold probe and same-revision browser rerun remain |
+| B14 | Diagnosable provider failures and cold resolution probe | Mukhamed | Merged; both reviews; live 20B cold probe and safe 401 diagnostics verified | [#62](https://github.com/uksus148/trego./pull/62), main `5020cd5`; 372 tests; original #61 cause remains unconfirmed; separate 120B intent failure in #63 |
+| B15 | Strict structured model extraction (S1) | Mukhamed | Prepared for review; live strict-mode acceptance pending | [Plan](AGENT_STABILIZATION_PLAN.md), [live checks](../agent/LIVE_TEST.md#verify-strict-extraction-s1); 394 fixture tests; no paid retries or public contract changes |
 | E1 | Researched place ingestion and OSM deduplication | Murat | Merged | [#45](https://github.com/uksus148/trego./pull/45), both approvals; deploy V3 on the selected target |
 | E2 | HTTP chat orchestration and total deadline | Mukhamed | Merged; default disabled | [#43](https://github.com/uksus148/trego./pull/43); #47 adds selected Groq transport and live checks |
 | E3 | Real-service frontend verification | Daniil | Live control route verified; full matrix pending | [#52 review](https://github.com/uksus148/trego./pull/52), tested `ae6dc82`; control track/sources and Rysy no-route behavior passed; record remaining acceptance cases |

@@ -66,7 +66,7 @@ async def run(value=None, *, sources=None, changes=None, policy=POLICY, provider
             result = result(body)
         if provider == "groq":
             assert body["model"] == "openai/gpt-oss-20b"
-            schema = json.dumps(body["tools"][0]["function"]["parameters"])
+            schema = json.dumps(body["response_format"]["json_schema"]["schema"])
             assert '"$ref"' not in schema and '"$defs"' not in schema
             return httpx.Response(200, json=completion("assess_availability", result))
         return httpx.Response(200, json={"stop_reason": "tool_use", "content": [{

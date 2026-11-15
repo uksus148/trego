@@ -26,8 +26,8 @@ from test_resolution_cache import PLACE, SOURCES
     ("length", "incomplete_generation", 200, None),
     ("finish", "incomplete_generation", 200, None),
     ("tool", "unexpected_tool", 200, None),
-    ("arguments", "tool_arguments", 200, None),
-    ("schema", "schema_validation", None, None),
+    ("arguments", "structured_content", 200, None),
+    ("schema", "schema_validation", 200, None),
     ("source", "invalid_source_index", None, None),
 ])
 async def test_resolution_preserves_safe_cause_without_retry_or_caching(caplog, failure, reason, status, code):
@@ -49,17 +49,17 @@ async def test_resolution_preserves_safe_cause_without_retry_or_caching(caplog, 
             return httpx.Response(200, text=secret)
         body = completion()
         choice = body["choices"][0]
-        function = choice["message"]["tool_calls"][0]["function"]
+        message = choice["message"]
         if failure in ("length", "finish"):
             choice["finish_reason"] = "length" if failure == "length" else secret
         elif failure == "tool":
-            function["name"] = secret
+            message["tool_calls"] = [{"name": secret}]
         elif failure == "arguments":
-            function["arguments"] = secret
+            message["content"] = secret
         elif failure == "schema":
-            function["arguments"] = json.dumps({"place": {**PLACE, "sourceIndex": secret, secret: secret}})
+            message["content"] = json.dumps({"place": {**PLACE, "sourceIndex": secret, secret: secret}})
         elif failure == "source":
-            function["arguments"] = json.dumps({"place": {**PLACE, "sourceIndex": 1}})
+            message["content"] = json.dumps({"place": {**PLACE, "sourceIndex": 1}})
         return httpx.Response(200, json=body)
 
     caplog.set_level(logging.INFO, logger="gopstop_agent.diagnostics")
@@ -81,8 +81,7 @@ async def test_resolution_preserves_safe_cause_without_retry_or_caching(caplog, 
     assert secret not in caplog.text and secret not in str(caught.value)
     assert all(record.exc_info is None for record in caplog.records)
     if failure == "schema":
-        assert "validation_count=2" in line.message
-        assert "extra_forbidden,int_type" in line.message
+        assert "reason=schema_validation" in line.message
 
 
 @pytest.mark.parametrize("provider", ["anthropic", "exa"])

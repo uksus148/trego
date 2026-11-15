@@ -19,7 +19,7 @@ from gopstop_agent.config import Settings
 from gopstop_agent.exa import ExaSearch
 from gopstop_agent.geocoding import NominatimGeocoder
 from gopstop_agent.intent import ClaudeIntentExtractor
-from gopstop_agent.llm import create_tool_model
+from gopstop_agent.llm import ProviderError, create_tool_model
 from gopstop_agent.replies import ClaudeReplyWriter
 from gopstop_agent.resolver import ClaudePlaceResolver
 from gopstop_agent.sessions import ValkeySessionStore
@@ -145,6 +145,10 @@ async def run(args) -> int:
         report.update(status="passed", stage="complete")
     except Exception as exc:
         report["error"] = type(exc).__name__  # No provider bodies, messages, URLs or credentials.
+        if isinstance(exc, ProviderError):
+            report["diagnostic"] = exc.diagnostic
+            if "http_status" in exc.diagnostic:
+                report["httpStatus"] = exc.diagnostic["http_status"]
         cause = exc.__cause__ or exc
         if isinstance(cause, httpx.HTTPStatusError):
             report["httpStatus"] = cause.response.status_code

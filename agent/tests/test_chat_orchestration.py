@@ -58,16 +58,14 @@ async def test_http_factories_preserve_sources_history_and_saved_route_with_safe
         if request.url.host == "api.groq.com":
             assert provider == "groq" and request.headers["Authorization"] == "Bearer fixture-groq-secret"
             assert body["model"] == "openai/gpt-oss-20b"
-            parameters = json.dumps(body["tools"][0]["function"]["parameters"])
+            parameters = json.dumps(body["response_format"]["json_schema"]["schema"])
             assert '"$ref"' not in parameters and '"$defs"' not in parameters
-            name = body["tool_choice"]["function"]["name"]
+            name = body["response_format"]["json_schema"]["name"]
             adapted = httpx.Request("POST", "https://api.anthropic.com/v1/messages", json={
                 "tool_choice": {"name": name}, "messages": body["messages"][1:],
             })
             result = handle(adapted).json()["content"][0]["input"]
-            return httpx.Response(200, json={"choices": [{"finish_reason": "tool_calls", "message": {
-                "tool_calls": [{"type": "function", "function": {"name": name, "arguments": json.dumps(result)}}],
-            }}]})
+            return httpx.Response(200, json=completion(name, result))
         if body.get("tool_choice", {}).get("name") == "write_chat_reply":
             reply_calls.append(json.loads(body["messages"][0]["content"]))
             return tool("write_chat_reply", {"reply": "Маршрут через водопад готов."})
@@ -123,7 +121,7 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
         if request.url.host != "api.groq.com":
             return providers(request)
         body = json.loads(request.content)
-        name = body["tool_choice"]["function"]["name"]
+        name = body["response_format"]["json_schema"]["name"]
         if name == "resolve_place":
             resolution_calls.append(request)
             if bad == "tool_use_failed":
@@ -133,7 +131,7 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
                 }})
             return httpx.Response(200, json=completion(value=bad))
         assert name == "extract_route_intent"
-        return httpx.Response(200, json=completion(name=name, value={"start": "Skok", "end": "Skok"}))
+        return httpx.Response(200, json=completion(name=name, value={"start": "Skok", "end": "Skok", "mustSee": [], "preferences": []}))
 
     app, cache, _ = build_app(handle, llm_provider="groq", groq_api_key="fixture-groq-secret",
                                anthropic_api_key="")
@@ -156,7 +154,7 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
 async def test_tatras_geocoding_reaches_handoff_without_losing_sources_or_faking_route(build_app, outcome):
     from test_trails_api import identifier, problem
 
-    intent = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": ["Skok waterfall"]}
+    intent = {"start": "Štrbské Pleso", "end": "Rysy", "mustSee": ["Skok waterfall"], "preferences": []}
     names = [intent["start"], *intent["mustSee"], intent["end"]]
     tags = {names[0]: ["lake"], names[1]: ["waterfall"], names[2]: ["peak"]}
     candidates = {names[0]: [MUNICIPALITY, RESORT, LAKE], names[1]: [WESTERN_SKOK, SKOK], names[2]: [RYSY]}
@@ -167,7 +165,7 @@ async def test_tatras_geocoding_reaches_handoff_without_losing_sources_or_faking
     def handle(request):
         body = json.loads(request.content) if request.content else {}
         if request.url.host == "api.groq.com":
-            name = body["tool_choice"]["function"]["name"]
+            name = body["response_format"]["json_schema"]["name"]
             model_calls.append(name)
             if name == "extract_route_intent":
                 value = intent
