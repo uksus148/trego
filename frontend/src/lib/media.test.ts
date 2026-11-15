@@ -56,6 +56,19 @@ describe('parsePlaceMedia', () => {
   })
 
   it.each([
+    ['UTC', '2026-11-15T00:00:00Z'],
+    ['an offset with fractional seconds', '2026-11-15T01:30:00.123+01:00'],
+  ])('accepts an RFC3339 fetchedAt in %s', (_, fetchedAt) => {
+    expect(parsePlaceMedia(PLACE_ID, { ...ready, fetchedAt }).fetchedAt).toBe(fetchedAt)
+  })
+
+  it.each([
+    ['a ready gallery without fetchedAt', { ...ready, fetchedAt: null }],
+    ['a bare number as fetchedAt', { ...ready, fetchedAt: '1' }],
+    ['a date-only fetchedAt', { ...ready, fetchedAt: '2026-11-15' }],
+    ['a fetchedAt without an offset', { ...ready, fetchedAt: '2026-11-15T00:00:00' }],
+    ['an impossible calendar fetchedAt', { ...ready, fetchedAt: '2026-02-30T00:00:00Z' }],
+    ['a non-string fetchedAt', { ...empty, fetchedAt: 1700000000 }],
     ['a different placeId', { ...ready, placeId: 'other' }],
     ['a full image on the thumbnail host', withPhoto({ url: 'https://thumb.wikimedia.org/full.jpg' })],
     ['a thumbnail on a lookalike host', withPhoto({ thumbUrl: 'https://thumb.wikimedia.org.evil.example/t.jpg' })],
