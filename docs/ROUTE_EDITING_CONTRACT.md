@@ -1,9 +1,9 @@
 # Route editing — backend/frontend contract v1
 
-Status: local proposal for Murat and Daniil, November 15, 2026. Murat explicitly
+Status: implemented v1 under Murat and Daniil review, November 15, 2026. Murat explicitly
 selected the five decisions below. Shared API agreement and implementation review
 are still pending; this document does not claim a deployed editor or completed E2E.
-Baseline inspected: main `9f65a86` (through #79). Read [CLAUDE.md](../CLAUDE.md) first.
+Integrated baseline: main `930cb25` (including #78, #85 and #86). Read [CLAUDE.md](../CLAUDE.md) first.
 Use [the synthetic examples](contracts/route-editing.examples.json) for both services'
 fixtures. No real place, source, photograph or hiking measurement is asserted by them.
 
@@ -305,6 +305,6 @@ database/cache and fixture ORS for failure cases; do not disrupt shared Aiven se
   null. Validate new session behavior with a subsequent explicit planning request,
   without claiming context-aware conversational editing.
 
-All items are pending implementation/verification. Existing photo E2E evidence or a
+The fixture editor scenario and component checks are recorded in api/ROUTE_EDITING.md; the remaining acceptance matrix requires reviewer confirmation. Existing photo E2E evidence or a
 successful old route does not establish acceptance of this editor. General city
 discovery issues remain separate; manual editor E2E must be independently executable.

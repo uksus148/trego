@@ -17,7 +17,9 @@ FINISHES = {"tool_calls", "stop", "length", "content_filter", "tool_use", "end_t
 TIMEOUTS = {"ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout"}
 VALIDATION_TYPES = {"missing", "extra_forbidden", "string_type", "string_too_short", "string_too_long",
                     "int_type", "list_type", "model_type", "dict_type", "less_than_equal",
-                    "greater_than_equal", "too_long", "value_error", "literal_error"}
+                    "greater_than_equal", "too_long", "value_error", "literal_error", "invalid_target_reference"}
+VALIDATION_FIELDS = {"start", "end", "mustSee", "preferences", "descriptiveTargets", "place",
+                     "name", "geocodeQuery", "sourceIndex", "tags"}
 
 
 def allowed(value, choices):
@@ -45,6 +47,8 @@ class ProviderError(Exception):
             errors = validation.errors(include_url=False, include_context=False, include_input=False)
             self.diagnostic["validation_types"] = ",".join(
                 sorted({allowed(error["type"], VALIDATION_TYPES) for error in errors})[:3])
+            self.diagnostic["validation_fields"] = ",".join(sorted({
+                allowed(error["loc"][0], VALIDATION_FIELDS) if error["loc"] else "root" for error in errors})[:3])
 
 
 class ProviderTimeout(ProviderError):

@@ -49,6 +49,7 @@ export function useTrip() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [history, setHistory] = useState<ChatMessage[][]>([])
   const [route, setRoute] = useState<Route | null>(null)
+  const [showingPreviousRoute, setShowingPreviousRoute] = useState(false)
   const activeRouteId = useRef<string | null>(null)
   const [committedContext, setCommittedContext] = useState<RouteEditingContext | null>(null)
   const [start, setStart] = useState<LatLon | null>(null)
@@ -89,6 +90,7 @@ export function useTrip() {
     editorLoad.current = null
     activeRouteId.current = next?.id ?? null
     setRoute(next)
+    setShowingPreviousRoute(false)
     setEditor({ status: 'closed' })
     setPickModeState(null)
     setCommittedContext(null)
@@ -220,15 +222,17 @@ export function useTrip() {
     const token = acquire()
     if (token === null) return Promise.resolve()
     setMessages((previous) => [...previous, message('user', value)])
+    setShowingPreviousRoute(route !== null)
     const requestSessionId = sessionRef.current
     return (async () => {
       try {
         const response = await api.chat({ sessionId: requestSessionId, message: value })
+        const saved = response.routeId ? await api.getRoute(response.routeId) : null
         setMessages((previous) => [...previous, message('assistant', response.reply)])
-        if (response.routeId) {
-          const saved = await api.getRoute(response.routeId)
+        if (saved) {
           activate(saved)
           setChatPlaces(response.places)
+          setPlaces([])
           setStart(null); setEnd(null)
         } else {
           activate(null)
@@ -244,8 +248,8 @@ export function useTrip() {
     if (busy || lock.current !== null) return
     if (pickMode === 'edit-start') updateDraft((draft) => ({ ...draft, start: rawEndpoint(point) }))
     else if (pickMode === 'edit-end') updateDraft((draft) => ({ ...draft, end: rawEndpoint(point) }))
-    else if (pickMode === 'start') setStart(point)
-    else if (pickMode === 'end') setEnd(point)
+    else if (pickMode === 'start') { setStart(point); setShowingPreviousRoute(route !== null) }
+    else if (pickMode === 'end') { setEnd(point); setShowingPreviousRoute(route !== null) }
     else if (pickMode === 'place') setPendingPoint(point)
     setPickModeState(null)
   }
@@ -278,6 +282,7 @@ export function useTrip() {
     const token = acquire()
     if (token === null) return Promise.resolve()
     const request = { start: { ...start }, end: { ...end }, placeIds: places.map((place) => place.id), preferences: [] as string[] }
+    setShowingPreviousRoute(route !== null)
     const stopPlaces = [...places]
     return (async () => {
       try {
@@ -320,6 +325,7 @@ export function useTrip() {
         editorGeneration.current++
         activeRouteId.current = saved.id
         setRoute(saved)
+        setShowingPreviousRoute(false)
         storeId(saved.id)
         setChatPlaces([]); setStart(null); setEnd(null); setPendingPoint(null); setPickModeState(null)
         if (messages.length) setHistory((previous) => [...previous, messages])
@@ -356,7 +362,7 @@ export function useTrip() {
   const editorCanBuild = editor.status === 'ready' && isValidDraft(editor.draft) && isDirty(editor.initial, editor.draft)
 
   return {
-    sessionId, messages, history, route, start, end, places, chatPlaces, pickMode, pendingPoint,
+    sessionId, messages, history, route, showingPreviousRoute, start, end, places, chatPlaces, pickMode, pendingPoint,
     committedContext, availablePlaces, editor, editorCanBuild, editorEnabled: ROUTE_EDITOR_ENABLED,
     restoreLoading, metadataError, busy, rebuilding, error, clearError: () => setError(null),
     sendMessage, handleMapClick, savePlace, removePlace, buildRoute, setPickMode,

@@ -127,11 +127,14 @@ deadline and shared quota gate. It is outside discovery's shorter timeout.
 ## Intent extraction
 
 `ClaudeIntentExtractor` validates tool use through shared `ToolModel` and the internal
-`{start, end, mustSee[], preferences[]}` result. It accepts recent session history,
+`{start, end, mustSee[], preferences[], descriptiveTargets[]}` result. The last
+field references existing target roles (`start`, `end`, `stop:1` through `stop:5`) before research; it defaults to [].
+It is advisory: no classification can waive identity verification. Unbound descriptions
+require an explicit place name through the existing no-write clarification. It accepts recent session history,
 keeps unknown endpoints null, and never asks the model for coordinates. The
 adapter is connected through opt-in chat. Tests use HTTP fixtures, never live providers.
 
-Blank endpoints become null, and blank list items are removed before validation.
+Blank endpoints become null; blank mustSee/preference items are removed before validation.
 If the result still exceeds five intermediate stops or twelve preferences,
 `extract()` raises `IntentClarificationRequired` with a user-facing `question`.
 Chat phrases that question as a normal reply rather than reporting a provider
@@ -229,6 +232,13 @@ point in the same request. It accepts only one remaining OSM identity, never the
 first/nearest/most important hit. Contextual choices do not become new anchors.
 This is a conservative ambiguity filter, not a route-distance limit; several local
 matches or insufficient context remain unresolved without partial ingestion.
+
+Issues #76/#77 bind exact requested targets and reject unverified source-led
+substitutions before handoff/cache acceptance. The internal descriptive-target
+roles remain model-interpreted and cannot authorize identity changes or cache acceptance.
+See [current evidence, limitations and #84 session proposal](IDENTITY_REVIEW.md).
+The opt-in `--include-identity` probe exposes target/resolution/OSM comparisons only
+in private JSON; default logs and public chat fields remain unchanged.
 
 `gopstop:nominatim:search:v3` caches validated candidate arrays for 24 hours, or an
 empty array for five minutes. Selection is recomputed from name/tags/context, so an

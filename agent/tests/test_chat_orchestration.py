@@ -183,7 +183,7 @@ async def test_tatras_geocoding_reaches_handoff_without_losing_sources_or_faking
                 value = {"reply": "Fixture outcome."}
             return httpx.Response(200, json=completion(name, value))
         if request.url.host == "api.exa.ai":
-            name = body["query"].removeprefix("Find hiking place: ").split(". Route context:")[0]
+            name = body["query"].removeprefix("Find information about this exact place: ").split(". Route context:")[0]
             return httpx.Response(200, json={"results": [{"title": name,
                 "url": f"https://evidence.example/{names.index(name)}", "text": "A place in Slovakia."}]})
         if request.url.host == "nominatim.openstreetmap.org":

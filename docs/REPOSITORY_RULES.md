@@ -27,6 +27,12 @@ The infrastructure workflow from PR #1 runs for changes under `infra/**`. The au
 The agent workflow runs frozen Python fixture tests and compilation on agent/configuration
 changes. It uses no live provider credentials; live acceptance remains an explicit team run.
 
+Frontend CI runs tests, production build and lint on frontend/shared-example changes.
+The fixture acceptance workflow covers actual local service integration with synthetic
+external providers; the two #82 cases fixed in #86 are required passing browser regressions.
+Both workflows are conditional. Required statuses remain unchanged until every PR
+can receive the required result; fixture evidence is separate from live acceptance.
+
 ## Assigning reviews
 
 Every PR requires review and at least one approval from a developer other than its author, including internal changes that affect no other component. When no affected owner other than the author exists, explicitly request another developer with the closest relevant expertise.

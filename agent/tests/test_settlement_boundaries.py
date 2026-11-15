@@ -126,7 +126,7 @@ async def test_city_endpoints_reach_complete_discovery_without_relaxing_source_b
                 value = {"place": {"name": names[index], "geocodeQuery": f"{names[index]}, {countries[index]}", "sourceIndex": 0, "tags": ["city"]}}
             return httpx.Response(200, json=completion(value=value)) if provider == "groq" else tool(operation, value)
         if request.url.host == "api.exa.ai":
-            index = next(i for i, name in enumerate(names) if body["query"].startswith(f"Find hiking place: {name}."))
+            index = next(i for i, name in enumerate(names) if body["query"].startswith(f"Find information about this exact place: {name}."))
             return httpx.Response(200, json={"results": [{"title": names[index], "url": f"https://evidence.example/{index}"}]})
         assert request.url.host == "nominatim.openstreetmap.org"
         index = next(i for i, name in enumerate(names) if request.url.params["q"].startswith(name + ","))

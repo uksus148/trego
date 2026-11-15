@@ -1,0 +1,66 @@
+name: Fixture acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'agent/**'
+      - 'frontend/**'
+      - 'infra/postgres/**'
+      - 'tests/integration/**'
+      - 'docs/contracts/**'
+      - '.github/workflows/acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: api/pom.xml
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            tests/integration/package-lock.json
+      - name: Install frozen dependencies and Chromium
+        run: |
+          uv sync --project agent --frozen --extra test
+          npm ci --prefix frontend
+          npm ci --prefix tests/integration
+          cd tests/integration
+          npx playwright install --with-deps chromium
+      - name: Check shared corpus through Java and Python consumers
+        run: |
+          mvn -B -ntp -f api/pom.xml -Dtest=BaselineContractTest test
+          uv run --project agent --frozen --extra test pytest agent/tests/test_baseline_contract.py -q
+          uv run --project agent --frozen --extra test pytest tests/integration/test_guard.py -q
+      - name: Run disposable actual-service acceptance
+        run: python tests/integration/run.py --editor
+      - name: Upload synthetic evidence only
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fixture-acceptance-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            api/target/fixture-e2e/*.log
+            api/target/fixture-e2e/report.json
+            api/target/fixture-e2e/browser-results.json

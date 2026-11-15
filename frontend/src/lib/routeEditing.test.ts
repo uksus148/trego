@@ -1,3 +1,4 @@
+import corpus from '../../../docs/contracts/route-editing.examples.json'
 import { describe, expect, it } from 'vitest'
 import type { Place, Route, RouteEditingContext } from '../types'
 import {
@@ -105,4 +106,13 @@ describe('route response validation', () => {
     expect(() => parseRoute({ ...route, id: ids.route }, request, ids.route)).toThrow(/invalid/)
     expect(() => parseRoute({ ...route, geojson: { type: 'LineString', coordinates: [[20, 49], [181, 49]] } })).toThrow(/invalid/)
   })
+})
+
+
+it('consumes the same v1 wire examples as the Java editor contract', () => {
+  for (const fixture of [corpus.legacyRead, corpus.boundRead]) {
+    expect(parseEditingContext(fixture.response, fixture.response.routeId)).toEqual(fixture.response)
+  }
+  const rebuilt = corpus.rebuildReordered
+  expect(parseRoute(rebuilt.response, rebuilt.request, corpus.boundRead.response.routeId)).toEqual(rebuilt.response)
 })

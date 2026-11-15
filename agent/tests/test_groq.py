@@ -15,6 +15,8 @@ from test_resolution_cache import PLACE, SOURCES
 
 
 def completion(name="resolve_place", value=None, finish="stop"):
+    if isinstance(value, dict) and {"start", "end", "mustSee", "preferences"} & value.keys():
+        value = {"descriptiveTargets": [], **value}
     return {"choices": [{"finish_reason": finish, "message": {
         "content": json.dumps({"place": PLACE} if value is None else value),
     }}]}

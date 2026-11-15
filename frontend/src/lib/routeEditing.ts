@@ -1,3 +1,4 @@
+import { parseRoute as parseBaselineRoute } from './apiContract'
 import type { EditingEndpoint, LatLon, Place, Photo, Route, RouteEditingContext, RouteRequest } from '../types'
 
 type Row = { key: string; place: Place }
@@ -61,28 +62,12 @@ export function parseEditingContext(value: unknown, requestedRouteId: string): R
 }
 
 export function parseRoute(value: unknown, request?: RouteRequest, sourceRouteId?: string): Route {
-  if (!isRecord(value) || !isUuid(value.id) || (sourceRouteId !== undefined && value.id === sourceRouteId) ||
-    !isRecord(value.geojson) || value.geojson.type !== 'LineString' || !Array.isArray(value.geojson.coordinates) ||
-    value.geojson.coordinates.length < 2 ||
-    !value.geojson.coordinates.every((p) => Array.isArray(p) && p.length === 2 && finite(p[0]) && p[0] >= -180 && p[0] <= 180 && finite(p[1]) && p[1] >= -90 && p[1] <= 90) ||
-    !finite(value.distanceKm) || value.distanceKm < 0 || !finite(value.ascentM) || value.ascentM < 0 ||
-    !finite(value.durationMin) || value.durationMin < 0 || !Array.isArray(value.places) || !Array.isArray(value.segments)) {
-    throw new RoutePayloadError('The saved route response is invalid.')
-  }
-  const places = value.places.map(parsePlace)
-  if (request && (places.length !== request.placeIds.length || places.some((p, i) => p.id !== request.placeIds[i]))) {
+  const route = parseBaselineRoute(value)
+  if (sourceRouteId !== undefined && route.id === sourceRouteId) throw new RoutePayloadError('The saved route response is invalid.')
+  if (request && (route.places.length !== request.placeIds.length || route.places.some((place, index) => place.id !== request.placeIds[index]))) {
     throw new RoutePayloadError('The saved route does not preserve the submitted stop order.')
   }
-  const segments = value.segments.map((s) => {
-    if (!isRecord(s) || !finite(s.fromKm) || !finite(s.toKm) || s.fromKm < 0 || s.toKm < s.fromKm || !Array.isArray(s.photos)) {
-      throw new RoutePayloadError('The saved route contains an invalid segment.')
-    }
-    return { fromKm: s.fromKm, toKm: s.toKm, photos: s.photos.map(parsePhoto) }
-  })
-  return {
-    id: value.id, geojson: { type: 'LineString', coordinates: value.geojson.coordinates as [number, number][] },
-    distanceKm: value.distanceKm, ascentM: value.ascentM, durationMin: value.durationMin, places, segments,
-  }
+  return route
 }
 
 export function fromContext(c: RouteEditingContext): Draft {

@@ -257,3 +257,15 @@ describe('useTrip route editing lifecycle', () => {
     expect(trip.committedContext).toBeNull()
   })
 })
+
+
+it('keeps a labelled previous route and suppresses a new ready reply when readback fails', async () => {
+  let trip = await startChatRoute()
+  apiMock.chat.mockResolvedValue({ reply: 'Unverified new ready answer', places: [startPlace, endPlace], routeId: ids.rebuilt })
+  apiMock.getRoute.mockRejectedValue(new ApiError('Readback failed', 404, 'route_not_found'))
+  await trip.sendMessage('A different plan')
+  trip = renderTrip()
+  expect(trip.route?.id).toBe(ids.route)
+  expect(trip.showingPreviousRoute).toBe(true)
+  expect(trip.messages.some(item => item.text === 'Unverified new ready answer')).toBe(false)
+})

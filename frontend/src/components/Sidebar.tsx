@@ -38,7 +38,7 @@ export function Sidebar({ trip }: SidebarProps) {
       </div>}
       {tab === 'chat' && <ChatPanel messages={trip.messages} history={trip.history} busy={trip.busy} editorOpen={trip.editor.status !== 'closed'} suggestions={SUGGESTIONS} onSend={(text) => void trip.sendMessage(text)} />}
       {tab === 'manual' && <ManualPanel trip={trip} />}
-      {trip.route && <RouteSummary route={trip.route} />}
+      {trip.route && <RouteSummary route={trip.route} showingPrevious={trip.showingPreviousRoute} />}
     </aside>
   )
 }

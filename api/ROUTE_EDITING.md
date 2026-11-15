@@ -81,3 +81,20 @@ Backend acceptance does not implement the frontend draft controls, sessionStorag
 photo-store updates or new-chat-session transition. Daniil owns those through the
 unchanged contract/frontend handoff. Complete the joint browser matrix on a reviewed
 combined revision before claiming feature #2 ready end to end.
+
+
+## Joint backend/frontend integration check
+
+PRs #80 and #87 were reconciled with main930cb25 on November 15. Their v1 wire
+examples agree. The original 41 editor HTTP/model tests passed independently, and
+117 combined frontend tests, lint and production build passed after retaining #86
+validation and deferred chat-answer activation. The shared v1 JSON examples are
+also consumed by frontend parser tests.
+
+The disposable actual-service profile `bash tests/integration/check.sh --editor`
+passed four Chromium scenarios in12.8s with V4 applied. The manual editor case
+removes one repeated visit, reorders remaining stops, swaps endpoints, binds a saved
+Place, saves a new ID and restores the binding after reload. It verifies that the
+source route/context stay unchanged and the editor sends zero requests to the agent.
+Provider/map/photo inputs are synthetic fixtures; no Aiven migration, live hiking
+correctness, deployment or shared-owner approval is claimed by this result.

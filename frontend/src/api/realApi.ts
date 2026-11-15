@@ -1,3 +1,4 @@
+import { ApiContractError, parseChatResponse, parsePlace, parseRoute as parseBaselineRoute } from '../lib/apiContract'
 import { parsePlaceMedia } from '../lib/media'
 import { isUuid, parseEditingContext, parseRoute } from '../lib/routeEditing'
 import type { ApiClient } from '../types'
@@ -36,16 +37,17 @@ async function errorFrom(res: Response): Promise<ApiError> {
   const message = readableDetail(body?.detail)?.slice(0, MAX_MESSAGE_LENGTH) ?? `Request failed (${res.status}). Please try again.`
   return new ApiError(message, res.status, typeof body?.code === 'string' ? body.code : undefined)
 }
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
+async function request<T>(url: string, init?: RequestInit, expectedStatus?: number): Promise<T> {
   const res = await fetch(url, init)
   if (!res.ok) throw await errorFrom(res)
-  return (await res.json()) as T
+  if (expectedStatus !== undefined && res.status !== expectedStatus) throw new ApiError(`Unexpected success response (${res.status}). Please try again.`, res.status)
+  try { return (await res.json()) as T } catch { throw new ApiContractError('response') }
 }
 const post = (body: unknown): RequestInit => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
 export const realApi: ApiClient = {
-  chat: (req) => request(`${AGENT_URL}/api/chat`, post(req)),
-  addPlace: (place) => request(`${API_URL}/api/places`, post(place)),
+  chat: async (req) => parseChatResponse(await request<unknown>(`${AGENT_URL}/api/chat`, post(req), 200)),
+  addPlace: async (place) => parsePlace(await request<unknown>(`${API_URL}/api/places`, post(place), 201)),
   async createRoute(req, sourceRouteId) {
     let res: Response
     try { res = await fetch(`${API_URL}/api/routes`, post(req)) }
@@ -57,11 +59,11 @@ export const realApi: ApiClient = {
   },
   async getRoute(id) {
     if (!isUuid(id)) throw new ApiError('Route ID must be a UUID.', 400, 'invalid_request')
-    return parseRoute(await request<unknown>(`${API_URL}/api/routes/${encodeURIComponent(id)}`))
+    return parseBaselineRoute(await request<unknown>(`${API_URL}/api/routes/${encodeURIComponent(id)}`, undefined, 200), id)
   },
   async getRouteEditingContext(routeId) {
     if (!isUuid(routeId)) throw new ApiError('Route ID must be a UUID.', 400, 'invalid_request')
-    return parseEditingContext(await request<unknown>(`${API_URL}/api/routes/${encodeURIComponent(routeId)}/editing-context`), routeId)
+    return parseEditingContext(await request<unknown>(`${API_URL}/api/routes/${encodeURIComponent(routeId)}/editing-context`, undefined, 200), routeId)
   },
   // No query parameters: the API rejects unknown ones, including cache-busters.
   getPlaceMedia: async (placeId) => parsePlaceMedia(placeId, await request<unknown>(`${API_URL}/api/places/${encodeURIComponent(placeId)}/media`)),
