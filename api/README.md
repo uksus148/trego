@@ -57,7 +57,7 @@ api/
 | `resources/db/migration` | Ordered Flyway migrations for the application's database schema |
 | `test/java` | Tests that mirror production packages; the web test covers HTTP through PostGIS |
 
-The request flow is `web → application → persistence`; each layer uses model values as needed. The service currently depends on the JPA repository and maps its entities to response records inside the transaction. Controllers never serialize entities. Future route and photo features belong in sibling `routes` and `photos` packages. Spring discovers components below `io.junction.trails`.
+The request flow is `web → application → persistence`; each layer uses model values as needed. The service currently depends on the JPA repository and maps its entities to response records inside the transaction. Controllers never serialize entities. The implemented `routes` and `media` features use sibling packages; future uploads should follow the same structure. Spring discovers components below `io.junction.trails`.
 
 Components use Lombok `@RequiredArgsConstructor` with final dependency fields, without `@Autowired` on the single generated constructor. Maven configures the annotation processor explicitly, using the Lombok version managed by Spring Boot; Lombok is excluded from the executable JAR. `ApiWebConfiguration` receives the immutable `ApiCorsProperties` bean. Use Lombok for ordinary accessors and constructors in other Java classes too. `PlaceEntity` uses field-level `@Getter` and a protected `@NoArgsConstructor`; derived coordinates, defensive collection access, and validated initialization remain explicit. Add `@Setter` only for properties intended to support unrestricted assignment. Records already provide their component accessors.
 

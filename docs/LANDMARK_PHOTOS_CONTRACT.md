@@ -44,7 +44,7 @@ implicitly while stabilizing/versioning the route MVP. The frontend is merged; v
 ## 2. General discovery and remaining technical agreement
 
 Automatic discovery outside the curated set is part of the requested capability,
-not a claim that arbitrary internet photos are available or verified. The proposed
+not a claim that arbitrary internet photos are available or verified. The implemented
 path is canonical OSM identity -> Nominatim lookup/extratags -> Wikidata P18 ->
 Commons metadata. Missing links return empty; a Commons category is not proof that
 every file depicts the landmark. No proximity-only or arbitrary web-image fallback.

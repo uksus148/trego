@@ -66,7 +66,7 @@ Use partner credits and free tiers. All times in this document are local to the 
 | Events, deferred | **Aiven Kafka**, only after upload/event design and budget agreement | Not provisioned by the current application |
 | Observability, stretch goal | Aiven ClickHouse if credits remain | Credits |
 | Map | MapLibre GL and OpenFreeMap tiles | Free, no key |
-| Points of interest | OSM Overpass API, `historic=castle`, `waterway=waterfall`, `tourism=viewpoint`, `natural=peak` | Free |
+| Place identity/geocoding | Nominatim/OSM; automatic Overpass import remains deferred | Free |
 | Walking routes | OpenRouteService `foot-hiking`, approximately 2,000 requests per day | Free API key |
 | Photos | Wikimedia Commons API, Mapillary, Exa. User uploads may use Cloudinary Free | Free |
 | API and agent hosting | Aiven Runtime if credits suffice, Modal $100 as a fallback | Credits |

@@ -1,8 +1,10 @@
 # trego. Sourced place ingestion and chat-to-route handoff
 
-**Status: accepted design in merged PR #34; runtime implementation incomplete.** This is
-block 3 of [the agent delivery history](AGENT_PLAN.md), following merged PR #31. It does not
-enable HTTP discovery, implement API writes, or change the published contract.
+**Status: accepted in #34 and implemented by merged #39/#40/#41/#43/#45.**
+This document preserves the shared ingestion/handoff agreement. Route editing adds
+optional endpoint bindings in #80 without changing these baseline calls. See
+[the delivery history](AGENT_PLAN.md) for earlier implementation stages; activation
+and live acceptance remain separate from merged code.
 The accepted decisions are published in [CLAUDE.md](../CLAUDE.md#accepted-sourced-place-and-route-handoff).
 Track current implementation gates and live evidence in the [integration runbook](INTEGRATION_RUNBOOK.md).
 
@@ -27,7 +29,7 @@ Keep manual creation exactly as the frontend sends it today:
 ```
 
 The API's merged [manual-creation PR #33](https://github.com/uksus148/trego./pull/33)
-builds on merged #32. The researched extension still needs API implementation;
+builds on merged #32. Researched ingestion merged in #45;
 manual creation alone is not provenance support. Keep the published normalization: all four baseline fields required, empty tags allowed,
 names/tags trimmed, and duplicate tags removed in first-occurrence order with
 case preserved.
@@ -172,7 +174,7 @@ to choose chat behavior. Existing GET /api/places errors are unaffected.
 }
 ```
 
-The issue #49 extension, pending affected-owner review, distinguishes verified
+The issue #49 extension, accepted and merged in #54, distinguishes verified
 `no_hiking_route` (ORS 2009) from `waypoint_not_routable` (ORS 2010). The former asks
 for different endpoints/stops; the latter asks to verify coordinates or choose another
 point. Neither establishes a closure or difficulty/seasonal cause. No radius increase,
