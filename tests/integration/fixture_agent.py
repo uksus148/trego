@@ -25,6 +25,7 @@ class FixtureTransport(httpx.AsyncBaseTransport):
         if url.scheme == "http" and url.host == "127.0.0.1" and url.port == int(os.environ["E2E_API_PORT"]):
             if not url.path.startswith("/api/"):
                 raise AssertionError("Unexpected local API path")
+            CALLS.append("api:" + request.method + ":" + url.path)
             return await self.local.handle_async_request(request)
         body = json.loads(request.content) if request.content else {}
         if url.host == "api.groq.com" and url.path == "/openai/v1/chat/completions":

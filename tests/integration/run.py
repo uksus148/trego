@@ -11,6 +11,7 @@ import signal
 import socket
 import subprocess
 import threading
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -18,6 +19,7 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "api/target/fixture-e2e"
 CORPUS = json.loads((ROOT / "docs/contracts/baseline.examples.json").read_text())
+HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def port():
@@ -29,7 +31,7 @@ def port():
 def request(url, payload=None):
     data = None if payload is None else json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=90) as response:
+    with HTTP.open(req, timeout=90) as response:
         return json.load(response)
 
 
@@ -113,9 +115,16 @@ def main():
                 "externalProviders": "strict fixtures; not live acceptance", "result": "failed"}
     try:
         print("Building canonical PostgreSQL18/PostGIS/pgvector and actual API", flush=True)
-        with (OUT / "build.log").open("w") as build:
-            run(["docker", "build", "-t", "trego-fixture-postgres", "infra/postgres"], stdout=build, stderr=subprocess.STDOUT)
-            run(["mvn", "-B", "-ntp", "-f", "api/pom.xml", "-DskipTests", "package"], stdout=build, stderr=subprocess.STDOUT)
+        # A previous feature branch can leave obsolete migrations/classes in target.
+        # Keep the build log outside target until clean completes.
+        with tempfile.TemporaryFile(mode="w+") as build:
+            try:
+                run(["docker", "build", "-t", "trego-fixture-postgres", "infra/postgres"], stdout=build, stderr=subprocess.STDOUT)
+                run(["mvn", "-B", "-ntp", "-f", "api/pom.xml", "-DskipTests", "clean", "package"], stdout=build, stderr=subprocess.STDOUT)
+            finally:
+                OUT.mkdir(parents=True, exist_ok=True)
+                build.seek(0)
+                (OUT / "build.log").write_text(build.read())
         for image, internal, extras in [
             ("trego-fixture-postgres", 5432, ["-e", "POSTGRES_DB=fixture", "-e", "POSTGRES_USER=fixture", "-e", "POSTGRES_PASSWORD=fixture-only"]),
             ("valkey/valkey:8.1-alpine", 6379, []),
@@ -160,7 +169,7 @@ def main():
         for _ in range(100):
             assert vite.poll() is None, "Frontend exited"
             try:
-                urllib.request.urlopen(frontend_url, timeout=1).close()
+                HTTP.open(frontend_url, timeout=1).close()
                 break
             except OSError:
                 time.sleep(.2)
@@ -191,9 +200,11 @@ def main():
         assert len(ors_calls) == 1
         assert ors_calls[0]["coordinates"] == CORPUS["route"]["geojson"]["coordinates"]
         before = count("places"), count("routes")
+        before_api = [call for call in request(agent_url + "/__fixture/calls") if call.startswith("api:")]
         unclear = chat("fixture-incomplete", CORPUS["incompleteMessage"])
         assert unclear["places"] == [] and "routeId" not in unclear
         assert before == (count("places"), count("routes")) and len(ors_calls) == 1
+        assert before_api == [call for call in request(agent_url + "/__fixture/calls") if call.startswith("api:")]
         for payload, status in [({"unsupported": True}, 400), ({
             "start": {"lat": 49, "lon": 20}, "end": {"lat": 49.2, "lon": 20.2},
             "placeIds": ["ffffffff-ffff-4fff-8fff-ffffffffffff"], "preferences": []}, 422)]:
@@ -208,10 +219,14 @@ def main():
         assert json.loads(stored[0])["content"] == CORPUS["message"]
         extensions = capture(["docker", "exec", db, "psql", "-U", "fixture", "-d", "fixture", "-Atc", "SELECT extname FROM pg_extension ORDER BY extname"])
         assert {"postgis", "vector"} <= set(extensions.splitlines())
+        migrations = capture(["docker", "exec", db, "psql", "-U", "fixture", "-d", "fixture", "-Atc",
+                              "SELECT script FROM flyway_schema_history WHERE success ORDER BY installed_rank"]).splitlines()
+        assert sorted(migrations) == sorted(p.name for p in (ROOT / "api/src/main/resources/db/migration").glob("V*.sql"))
         for i, place in enumerate(first["places"]):
             media = request(api_url + f"/api/places/{place['id']}/media")
             assert media["status"] == ("ready" if i == 1 else "empty")
         evidence.update({"api": api_url, "agent": agent_url, "frontend": frontend_url, "chat": first, "route": saved,
+                         "appliedMigrations": migrations,
                          "checks": {"newIdsOnCacheHit": True, "orderedRepeats": True, "sources": True,
                                     "noPartialPersistence": True, "sessionReadback": True, "postgisAndVector": True}})
         config = OUT / "services.json"
@@ -221,14 +236,16 @@ def main():
         assert browser["stats"]["unexpected"] == browser["stats"]["skipped"] == browser["stats"]["flaky"] == 0
         tests = [test for suite in browser["suites"] for spec in suite.get("specs", []) for test in spec["tests"]]
         assert len(tests) == 3
-        assert sum(test["expectedStatus"] == "passed" for test in tests) == 1
-        assert sum(test["expectedStatus"] == "failed" for test in tests) == 2
+        known_failures = sum(test["expectedStatus"] == "failed" for test in tests)
+        assert 0 <= known_failures <= 2
         calls = request(agent_url + "/__fixture/calls")
         assert calls.count("nominatim") == 3 and calls.count("exa") == 3
+        assert calls.count("api:POST:/api/routes") == 6
         assert count("places") == 3 and count("routes") == 6 and len(ors_calls) == 1
-        evidence.update({"result": "passed with explicit #82 expected failures", "orsRequests": len(ors_calls),
-                         "providerFixtureCalls": calls, "browser": {"passed": 1, "knownExpectedFailures": 2, "unexpected": 0, "skipped": 0}})
-        print("Fixture acceptance complete; known #82 browser failures remain explicit", flush=True)
+        evidence.update({"result": "passed with explicit #82 expected failures" if known_failures else "passed",
+                         "orsRequests": len(ors_calls), "providerFixtureCalls": calls,
+                         "browser": {"passed": 3 - known_failures, "knownExpectedFailures": known_failures, "unexpected": 0, "skipped": 0}})
+        print("Fixture acceptance complete: " + evidence["result"], flush=True)
     finally:
         for proc in reversed(processes):
             if proc.poll() is None:

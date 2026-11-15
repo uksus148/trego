@@ -23,6 +23,8 @@ environment. There are no required cloud keys or root `.env` edits.
 
 Real React/Vite, FastAPI factories/discovery/handoff/sessions, Java HTTP/JPA/Flyway,
 canonical PostgreSQL18/PostGIS/pgvector and Valkey run on disposable loopback ports.
+The API uses a clean Maven build; applied Flyway script names must exactly match
+this checkout's sources, so stale target files from another branch cannot leak in.
 No shared Compose volumes, Aiven services, production data or migration V4 are used.
 The runner removes only its own container IDs and process groups, including on failure.
 
