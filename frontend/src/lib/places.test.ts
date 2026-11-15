@@ -87,6 +87,28 @@ describe('routeVisits', () => {
   it('lists only the stops without chat context', () => {
     expect(routeVisits(routeThrough([place('skok')]), []).map((v) => v.place.id)).toEqual(['skok'])
   })
+
+  it('does not guess that a repeated start place is also the finish for a round trip', () => {
+    const route = routeThrough([place('middle')])
+    const visits = routeVisits(route, [place('start'), place('middle')])
+
+    expect(visits.map((visit) => `${visit.label}:${visit.place.id}`)).toEqual(['A:start', '1:middle'])
+    expect(routeEndpoints(route, [place('start'), place('middle')]).end?.place).toBeUndefined()
+  })
+
+  it('does not duplicate a stop as the finish when its endpoint binding is unavailable', () => {
+    const route = routeThrough([place('finish')])
+    const visits = routeVisits(route, [place('start'), place('finish')])
+
+    expect(visits.map((visit) => `${visit.label}:${visit.place.id}`)).toEqual(['A:start', '1:finish'])
+    expect(routeEndpoints(route, [place('start'), place('finish')]).end?.place).toBeUndefined()
+  })
+
+  it('preserves each repeated intermediate occurrence in order', () => {
+    const visits = routeVisits(routeThrough([place('skok'), place('lake'), place('skok')]), [place('start'), place('skok'), place('lake'), place('end')])
+
+    expect(visits.map((visit) => `${visit.label}:${visit.place.id}`)).toEqual(['A:start', '1:skok', '2:lake', '1:skok', 'B:end'])
+  })
 })
 
 describe('uniqueById', () => {

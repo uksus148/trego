@@ -1,4 +1,5 @@
 import { parsePlaceMedia } from '../lib/media'
+import { ApiContractError, parseChatResponse, parseCreatedRoute, parsePlace, parseRoute } from '../lib/apiContract'
 import type { ApiClient } from '../types'
 
 const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -44,10 +45,15 @@ async function errorFrom(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status, code)
 }
 
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
+async function request<T>(url: string, init?: RequestInit, expectedStatus?: number): Promise<T> {
   const res = await fetch(url, init)
   if (!res.ok) throw await errorFrom(res)
-  return (await res.json()) as T
+  if (expectedStatus !== undefined && res.status !== expectedStatus) throw new ApiError(`Unexpected success response (${res.status}). Please try again.`, res.status)
+  try {
+    return (await res.json()) as T
+  } catch {
+    throw new ApiContractError('response')
+  }
 }
 
 // Only requests with a body declare JSON; bodiless GETs stay "simple" CORS requests with no preflight.
@@ -58,10 +64,10 @@ const post = (body: unknown): RequestInit => ({
 })
 
 export const realApi: ApiClient = {
-  chat: (req) => request(`${AGENT_URL}/api/chat`, post(req)),
-  addPlace: (place) => request(`${API_URL}/api/places`, post(place)),
-  createRoute: (req) => request(`${API_URL}/api/routes`, post(req)),
-  getRoute: (id) => request(`${API_URL}/api/routes/${encodeURIComponent(id)}`),
+  chat: async (req) => parseChatResponse(await request<unknown>(`${AGENT_URL}/api/chat`, post(req), 200)),
+  addPlace: async (place) => parsePlace(await request<unknown>(`${API_URL}/api/places`, post(place), 201)),
+  createRoute: async (req) => parseCreatedRoute(await request<unknown>(`${API_URL}/api/routes`, post(req), 201), req),
+  getRoute: async (id) => parseRoute(await request<unknown>(`${API_URL}/api/routes/${encodeURIComponent(id)}`, undefined, 200), id),
   // No query parameters: the API rejects unknown ones, including cache-busters.
   getPlaceMedia: async (placeId) =>
     parsePlaceMedia(placeId, await request<unknown>(`${API_URL}/api/places/${encodeURIComponent(placeId)}/media`)),

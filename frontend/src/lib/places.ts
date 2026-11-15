@@ -27,8 +27,10 @@ const trackPoint = (coordinate: [number, number] | undefined): LatLon | null =>
   coordinate ? { lat: coordinate[1], lon: coordinate[0] } : null
 
 /**
- * A and B sit on the track's first and last coordinates (the router may snap them away from the stored places).
- * The chat's start/finish places, which the route does not list (D3/D5), supply name and source only.
+ * A and B sit on the track's first and last coordinates (the router may snap them away from stored places).
+ * Chat metadata is used only when its identity is not already an intermediate stop. A deduplicated legacy
+ * chat list cannot identify an endpoint that repeats a stop or the other endpoint; leave it unbound until
+ * the saved-route editing context supplies an explicit endpoint UUID (proposal #80).
  */
 export function routeEndpoints(route: Route, chatPlaces: Place[]): { start: RouteEndpoint | null; end: RouteEndpoint | null } {
   const extra = contextPlaces(route.places, chatPlaces)
