@@ -50,6 +50,8 @@ async def test_read_only_discovery_probe_uses_real_factories_and_cleans_only_its
             name = body["response_format"]["json_schema"]["name"] if provider == "groq" else body["tool_choice"]["name"]
             if name == "extract_route_intent":
                 value = {"start": "Skok", "end": None if mode == "missing" else "Skok", "mustSee": [], "preferences": []}
+            elif name == "select_explore_area":
+                value = {"area": None}
             else:
                 assert name == "resolve_place"
                 value = {"place": None if mode == "unsupported" else {"name": "Skok", "geocodeQuery": "Skok, Slovakia", "sourceIndex": 0, "tags": ["waterfall"]}}
@@ -79,7 +81,7 @@ async def test_read_only_discovery_probe_uses_real_factories_and_cleans_only_its
             assert {m["osmId"] for m in matches} == {SKOK["osm_id"], WESTERN_SKOK["osm_id"]}
             assert all(m["osmType"] == "node" and m["distanceKm"] is None for m in matches)
     elif mode == "missing":
-        assert report["missingEndpoints"] == ["end"] and len(calls) == 1
+        assert report["missingEndpoints"] == ["end"] and len(calls) == 2  # Intent and tour detection.
     else:
         assert report["status"] == "failed" and report["error"]["http_status"] == 429
         assert report["error"]["provider"] == "nominatim"

@@ -360,6 +360,15 @@ seconds is replayed up to twice inside the existing deadlines; a rejected reques
 nothing. Other failures are still never replayed. The frontend keeps the last built route,
 labelled as previous, when chat answers with a clarification instead of clearing the map.
 
+Popular-places tour (proposed, owner review pending): when intent has no complete route,
+one extra model step decides whether the user asks for the popular sights of a city
+("I am in Helsinki, route the most popular places"). The city is resolved as usual; Exa
+research names candidate sights with sources; each is kept only with a single exact OSM
+match within 25 km of the city. Up to seven located sights (start, five stops, end) are
+ordered from westernmost to easternmost and handed off as an ordinary route; fewer than
+two ask for endpoints. The sightseeing order is geographic, not a shortest tour. Public
+chat/route shapes are unchanged.
+
 ### API container packaging
 
 PR #46 prepares the existing Spring Boot API for container execution; public

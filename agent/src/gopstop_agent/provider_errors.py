@@ -5,7 +5,8 @@ from pydantic import ValidationError
 
 
 PROVIDERS = {"anthropic", "groq", "exa", "nominatim"}
-OPERATIONS = {"select_reply_language", "extract_route_intent", "resolve_place", "write_chat_reply", "assess_availability", "search", "geocode"}
+OPERATIONS = {"select_reply_language", "extract_route_intent", "resolve_place", "write_chat_reply", "assess_availability", "search", "geocode",
+              "select_explore_area", "select_popular_places"}
 REASONS = {"http_status", "transport", "timeout", "request_schema", "response_json",
            "incomplete_generation", "unexpected_tool", "tool_arguments", "schema_validation",
            "invalid_source_index", "no_usable_sources", "discovery_deadline", "model_refusal", "structured_content"}
@@ -30,7 +31,8 @@ class ProviderError(Exception):
     """Public message and separate, strictly sanitized diagnostic fields."""
 
     def __init__(self, message: str, *, provider=None, operation=None, reason=None,
-                 status=None, code=None, finish=None, timeout=None, validation: ValidationError | None = None):
+                 status=None, code=None, finish=None, timeout=None, validation: ValidationError | None = None,
+                 retry_after=None):
         super().__init__(message)
         self.diagnostic = {
             "provider": allowed(provider, PROVIDERS), "operation": allowed(operation, OPERATIONS),
@@ -42,6 +44,9 @@ class ProviderError(Exception):
                                     ("timeout_kind", timeout, TIMEOUTS)):
             if value is not None:
                 self.diagnostic[key] = allowed(value, choices)
+        # Distinguishes a short per-minute limit from a long (daily) one without exposing the message.
+        if type(retry_after) is int and 0 <= retry_after <= 86400:
+            self.diagnostic["retry_after_s"] = retry_after
         if validation is not None:
             self.diagnostic["validation_count"] = validation.error_count()
             errors = validation.errors(include_url=False, include_context=False, include_input=False)
@@ -67,4 +72,5 @@ def http_failure(response: httpx.Response, *, provider: str, operation: str) -> 
             pass
     return ProviderError("Provider request is temporarily unavailable.", provider=provider,
                          operation=operation, reason="http_status", status=response.status_code,
-                         code=code if code is not None else "unknown")
+                         code=code if code is not None else "unknown",
+                         retry_after=int(float(retry)) if (retry := response.headers.get("retry-after", "")[:16]).replace(".", "", 1).isdigit() else None)

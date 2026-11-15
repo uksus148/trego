@@ -39,6 +39,8 @@ def provider_fixture(intent, places, calls, region="High Tatras, Slovakia"):
                 return tool("select_reply_language", {"language": "ru" if any(c in message for c in "ХО") else "en"})
             if body["tool_choice"]["name"] == "extract_route_intent":
                 return tool("extract_route_intent", intent)
+            if body["tool_choice"]["name"] == "select_explore_area":
+                return tool("select_explore_area", {"area": None})
             evidence = json.loads(body["messages"][0]["content"])
             name = evidence["sources"][0]["title"]
             return tool("resolve_place", {"place": {

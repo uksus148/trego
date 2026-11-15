@@ -137,3 +137,13 @@ async def test_invalid_quota_headers_cannot_hide_the_primary_http_failure(status
                 await model.call(request_body())
             assert caught.value.diagnostic["http_status"] == 400
             assert caught.value.diagnostic["provider_code"] == "tool_use_failed"
+
+
+def test_rate_limit_diagnostic_keeps_only_a_numeric_retry_after():
+    import httpx
+    from gopstop_agent.provider_errors import http_failure
+    response = httpx.Response(429, headers={"retry-after": "17"}, json={"error": {"code": "rate_limit_exceeded", "message": "org_secret"}})
+    diagnostic = http_failure(response, provider="groq", operation="select_explore_area").diagnostic
+    assert diagnostic["retry_after_s"] == 17 and diagnostic["operation"] == "select_explore_area"
+    assert "org_secret" not in str(diagnostic)
+    assert "retry_after_s" not in http_failure(httpx.Response(429, headers={"retry-after": "soon"}), provider="groq", operation="search").diagnostic
