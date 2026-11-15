@@ -1,4 +1,4 @@
-"""Real RESP connections on loopback; no external Valkey or provider credentials."""
+"""Fault-injection loopback proxy forwarding storage to disposable real Valkey."""
 
 import asyncio
 import ssl
@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
+from redis.asyncio import Redis
 from redis.asyncio.connection import SSLConnection
 from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
@@ -18,6 +19,8 @@ from gopstop_agent.valkey import HealthyConnectionPool, from_url
 
 
 def resp(value):
+    if value is None:
+        return b"$-1\r\n"
     if isinstance(value, list):
         return b"*%d\r\n" % len(value) + b"".join(resp(item) for item in value)
     if isinstance(value, bytes):
@@ -29,33 +32,18 @@ def resp(value):
 
 class ValkeyWire:
     def __init__(self):
-        self.rows, self.commands = {}, []
+        self.keys, self.commands = set(), []
         self.clients, self.tasks, self.stale = set(), set(), set()
         self.stale_failures, self.execs = 0, 0
         self.down, self.lose_exec_reply, self.auth_error = False, False, False
         self.blackhole, self.history_gate, self.history_reads = False, None, 0
 
-    def execute(self, args):
-        cmd = args[0].upper()
-        if cmd in (b"PING", b"CLIENT"):
-            return "PONG" if cmd == b"PING" else "OK"
-        key = args[1]
-        if cmd == b"LRANGE":
-            return self.rows.get(key, [])[int(args[2]):None if args[3] == b"-1" else int(args[3]) + 1]
-        if cmd == b"RPUSH":
-            self.rows.setdefault(key, []).extend(args[2:])
-            return len(self.rows[key])
-        if cmd == b"LTRIM":
-            self.rows[key] = self.rows.get(key, [])[int(args[2]):None if args[3] == b"-1" else int(args[3]) + 1]
-            return "OK"
-        assert cmd == b"EXPIRE"
-        return 1
-
     async def handle(self, reader, writer):
         self.clients.add(writer)
         task = asyncio.current_task()
         self.tasks.add(task)
-        queued = None
+        backend = Redis.from_url(self.backend_url, single_connection_client=True)
+        backend.response_callbacks = {}
         try:
             while True:
                 line = await reader.readline()
@@ -69,6 +57,8 @@ class ValkeyWire:
                     assert await reader.readexactly(2) == b"\r\n"
                 cmd = args[0].upper()
                 self.commands.append(cmd)
+                if cmd in (b"SET", b"GET", b"WATCH", b"RPUSH", b"LRANGE"):
+                    self.keys.add(args[1])
                 # Simulate a silently dropped idle socket: it looks connected
                 # until the next write/read, rather than exposing EOF at checkout.
                 if self.down or writer in self.stale:
@@ -84,25 +74,18 @@ class ValkeyWire:
                     await self.history_gate.wait()
                 if cmd == b"AUTH" and self.auth_error:
                     writer.write(b"-WRONGPASS fixture credentials rejected\r\n")
-                elif cmd == b"MULTI":
-                    queued = []
-                    writer.write(resp("OK"))
-                elif cmd == b"EXEC":
-                    result = [self.execute(command) for command in queued]
-                    queued = None
-                    self.execs += 1
-                    if self.lose_exec_reply:
-                        return  # The writes committed, but their response was lost.
-                    writer.write(resp(result))
-                elif queued is not None:
-                    queued.append(args)
-                    writer.write(resp("QUEUED"))
                 else:
-                    writer.write(resp(self.execute(args)))
+                    result = await backend.execute_command(*args)
+                    if cmd == b"EXEC":
+                        self.execs += 1
+                        if self.lose_exec_reply:
+                            return  # Actual Valkey committed; its response was lost.
+                    writer.write(resp(result))
                 await writer.drain()
         except (asyncio.IncompleteReadError, ConnectionError):
             pass
         finally:
+            await backend.aclose()
             writer.close()
             await writer.wait_closed()
             self.clients.discard(writer)
@@ -110,8 +93,10 @@ class ValkeyWire:
 
 
 @pytest.fixture
-async def wire():
+async def wire(valkey_url):
     server = ValkeyWire()
+    server.backend_url = valkey_url
+    server.backend = Redis.from_url(valkey_url)
     listener = await asyncio.start_server(server.handle, "127.0.0.1", 0)
     server.url = f"redis://127.0.0.1:{listener.sockets[0].getsockname()[1]}/0"
     yield server
@@ -122,6 +107,9 @@ async def wire():
     for task in list(server.tasks):
         task.cancel()
     await asyncio.gather(*list(server.tasks), return_exceptions=True)
+    if server.keys:
+        await server.backend.delete(*server.keys)
+    await server.backend.aclose()
 
 
 def app_for(wire, **overrides):
@@ -150,8 +138,8 @@ async def test_first_chats_recover_all_idle_sockets_before_history_and_store_eac
             }) for i in range(3)))
         assert [r.status_code for r in responses] == [200, 200, 200]
         assert wire.stale_failures == 3 and service.respond.await_count == 3
-        assert wire.execs == 3 and all(len(wire.rows[f"gopstop:chat-session:idle-{i}".encode()]) == 2
-                                       for i in range(3))
+        assert wire.execs == 3
+        assert [await wire.backend.llen(f"gopstop:chat-session:idle-{i}") for i in range(3)] == [2, 2, 2]
         assert cache.connection_pool.connection_kwargs["retry"].get_retries() == 0
     assert not cache.connection_pool._in_use_connections
     assert all(not connection.is_connected for connection in connections)
@@ -186,7 +174,7 @@ async def test_lost_exec_response_returns_503_without_replaying_committed_sessio
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://agent") as http:
             response = await http.post("/api/chat", json={"sessionId": "lost", "message": "Plan a hike"})
         assert response.status_code == 503
-        assert wire.execs == 1 and len(wire.rows[b"gopstop:chat-session:lost"]) == 2
+        assert wire.execs == 1 and await wire.backend.llen("gopstop:chat-session:lost") == 2
         assert service.respond.await_count == 1
 
 
@@ -199,7 +187,7 @@ async def test_real_outage_stays_a_bounded_503_before_any_provider_work(wire):
                 "sessionId": "down", "message": "Plan a hike",
             }), 1)
         assert response.status_code == 503 and service.respond.await_count == 0
-        assert not wire.rows and wire.execs == 0
+        assert wire.execs == 0
 
 
 async def test_authentication_failure_is_not_retried(wire):
