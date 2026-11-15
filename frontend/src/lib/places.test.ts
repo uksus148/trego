@@ -53,6 +53,21 @@ const routeThrough = (stops: Place[]): Route => ({
 })
 
 describe('routeEndpoints', () => {
+  it('keeps the committed markers on the snapped track and uses context only for explicit bindings', () => {
+    const route = routeThrough([place('skok')])
+    const boundStart = { ...place('bound'), lat: 49.10, lon: 20.01 }
+    const context = {
+      routeId: route.id,
+      start: { lat: boundStart.lat, lon: boundStart.lon, place: boundStart },
+      end: { lat: 49.21, lon: 20.20, place: null },
+      stops: route.places, preferences: [],
+    }
+    const endpoints = routeEndpoints(route, [place('chat start'), place('skok'), place('chat end')], context)
+
+    expect(endpoints.start).toEqual({ point: { lat: 49.12, lon: 20.06 }, place: boundStart })
+    expect(endpoints.end).toEqual({ point: { lat: 49.18, lon: 20.09 } })
+  })
+
   it('puts A and B on the track ends and takes name and source from the chat endpoints', () => {
     const start = { ...place('start', 'https://example.org/start'), lat: 49.1, lon: 20.0 }
     const end = { ...place('end', 'https://example.org/end'), lat: 49.2, lon: 20.2 }

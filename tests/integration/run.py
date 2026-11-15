@@ -38,6 +38,7 @@ def request(url, payload=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--python", default=str(ROOT / "agent/.venv/bin/python"))
+    parser.add_argument("--editor", action="store_true", help="Include the saved-route editor browser scenario.")
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     # Allowlist instead of stripping a growing list of cloud-secret variable names.
@@ -164,7 +165,7 @@ def main():
         ready(agent_url + "/openapi.json", agent)
         vite = start("frontend", ["node", str(ROOT / "frontend/node_modules/vite/bin/vite.js"), str(ROOT / "frontend"),
                      "--config", str(ROOT / "tests/integration/vite.config.ts"), "--host", "127.0.0.1", "--port", str(frontend_port), "--strictPort"],
-                     {"VITE_USE_MOCKS": "false", "VITE_API_BASE_URL": api_url, "VITE_AGENT_BASE_URL": agent_url})
+                     {"VITE_USE_MOCKS": "false", "VITE_API_BASE_URL": api_url, "VITE_AGENT_BASE_URL": agent_url, "VITE_ENABLE_ROUTE_EDITOR": str(args.editor).lower()})
         # Vite serves HTML; verify readiness without parsing it as JSON.
         for _ in range(100):
             assert vite.poll() is None, "Frontend exited"
@@ -231,19 +232,19 @@ def main():
                                     "noPartialPersistence": True, "sessionReadback": True, "postgisAndVector": True}})
         config = OUT / "services.json"
         config.write_text(json.dumps(evidence, indent=2))
-        run(["npm", "test", "--prefix", "tests/integration"], env={**env, "E2E_CONFIG": str(config)})
+        run(["npm", "test", "--prefix", "tests/integration"], env={**env, "E2E_CONFIG": str(config), "E2E_EDITOR": "1" if args.editor else "0"})
         browser = json.loads((OUT / "browser-results.json").read_text())
         assert browser["stats"]["unexpected"] == browser["stats"]["skipped"] == browser["stats"]["flaky"] == 0
         tests = [test for suite in browser["suites"] for spec in suite.get("specs", []) for test in spec["tests"]]
-        assert len(tests) == 3
+        assert len(tests) == (6 if args.editor else 4)
         assert all(test["expectedStatus"] == "passed" for test in tests), "Baseline regressions must not expect failure"
         calls = request(agent_url + "/__fixture/calls")
         assert calls.count("nominatim") == 3 and calls.count("exa") == 3
-        assert calls.count("api:POST:/api/routes") == 6
-        assert count("places") == 3 and count("routes") == 6 and len(ors_calls) == 1
+        assert calls.count("api:POST:/api/routes") == (8 if args.editor else 6)
+        assert count("places") == 3 and count("routes") == (11 if args.editor else 6) and len(ors_calls) == (3 if args.editor else 1)
         evidence.update({"result": "passed",
                          "orsRequests": len(ors_calls), "providerFixtureCalls": calls,
-                         "browser": {"passed": 3, "knownExpectedFailures": 0, "unexpected": 0, "skipped": 0}})
+                         "browser": {"passed": len(tests), "knownExpectedFailures": 0, "unexpected": 0, "skipped": 0}})
         print("Fixture acceptance complete: " + evidence["result"], flush=True)
     finally:
         for proc in reversed(processes):

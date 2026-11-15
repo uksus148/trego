@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, realApi } from './realApi'
+import { ApiError, realApi, UncertainRouteSaveError } from './realApi'
 import { ApiContractError } from '../lib/apiContract'
 
 const ROUTE_ID = '00000000-0000-4000-8000-000000000099'
@@ -68,7 +68,7 @@ describe('realApi', () => {
 
     const mismatched = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ ...validRoute, places: [stop] }), { status: 201 }))
     vi.stubGlobal('fetch', mismatched)
-    await expect(realApi.createRoute(request)).rejects.toBeInstanceOf(ApiContractError)
+    await expect(realApi.createRoute(request)).rejects.toBeInstanceOf(UncertainRouteSaveError)
     expect(mismatched).toHaveBeenCalledTimes(1)
   })
 
@@ -86,7 +86,7 @@ describe('realApi errors', () => {
   it('shows the API Problem Details detail and keeps its code', async () => {
     stubFailure(422, JSON.stringify({ type: 'about:blank', title: 'No hiking route', status: 422, detail: 'No walking route connects the requested waypoints.', code: 'no_hiking_route' }), 'application/problem+json')
 
-    const error = await realApi.getRoute('r1').catch((e: unknown) => e)
+    const error = await realApi.getRoute(ROUTE_ID).catch((e: unknown) => e)
 
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ message: 'No walking route connects the requested waypoints.', status: 422, code: 'no_hiking_route' })
@@ -117,7 +117,7 @@ describe('realApi errors', () => {
   it('does not show raw HTML from a proxy error page', async () => {
     stubFailure(502, '<html><body>Bad Gateway</body></html>', 'text/html')
 
-    await expect(realApi.getRoute('r1')).rejects.toThrow('Request failed (502). Please try again.')
+    await expect(realApi.getRoute(ROUTE_ID)).rejects.toThrow('Request failed (502). Please try again.')
   })
 
   it('fetches place media without query parameters and validates the response', async () => {

@@ -52,7 +52,7 @@ jobs:
           uv run --project agent --frozen --extra test pytest agent/tests/test_baseline_contract.py -q
           uv run --project agent --frozen --extra test pytest tests/integration/test_guard.py -q
       - name: Run disposable actual-service acceptance
-        run: python tests/integration/run.py
+        run: python tests/integration/run.py --editor
       - name: Upload synthetic evidence only
         if: always()
         uses: actions/upload-artifact@v7
