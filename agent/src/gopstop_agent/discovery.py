@@ -54,6 +54,13 @@ class DiscoveryResult(BaseModel):
         return [name for name in ("start", "end") if getattr(self.intent, name) is None]
 
     @property
+    def unresolved_targets(self) -> list[dict]:
+        targets = [("start", None, self.start), *(("stop", i + 1, finding) for i, finding in enumerate(self.stops)),
+                   ("end", None, self.end)]
+        return [{"role": role, "number": number, "description": finding.description}
+                for role, number, finding in targets if finding is not None and finding.place is None]
+
+    @property
     def ready_for_handoff(self) -> bool:
         return not self.missing_endpoints and bool(self.start and self.start.place and self.end and self.end.place
                     and all(finding.place is not None for finding in self.stops))
@@ -170,6 +177,6 @@ def create_discovery(client: httpx.AsyncClient, cache: Redis, settings: Settings
                             cache_namespace=f"{diagnostic_namespace}:resolution" if diagnostic_namespace else "gopstop:place-resolution:v3"),
         NominatimGeocoder(client, cache, settings.nominatim_user_agent,
                           str(settings.nominatim_base_url), timeout,
-                          cache_namespace=f"{diagnostic_namespace}:nominatim" if diagnostic_namespace and cold_geocoding else "gopstop:nominatim:search:v2"),
+                          cache_namespace=f"{diagnostic_namespace}:nominatim" if diagnostic_namespace and cold_geocoding else "gopstop:nominatim:search:v3"),
         settings.discovery_timeout_seconds,
     )
