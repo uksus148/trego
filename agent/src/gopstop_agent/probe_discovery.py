@@ -19,14 +19,16 @@ from gopstop_agent.intent import IntentClarificationRequired, ProviderError
 from gopstop_agent.valkey import from_url
 
 
-async def run_probe(settings, client, cache, message: str, *, cold: bool = False) -> dict:
+async def run_probe(settings, client, cache, message: str, *, cold: bool = False, shared_research: bool = False) -> dict:
     settings.require_chat_configuration()
     if not message.strip() or len(message) > 4000:
         raise ValueError("Probe message must contain 1-4000 characters.")
-    namespace = f"gopstop:probe-discovery:{uuid4().hex}"
+    if cold and shared_research:
+        raise ValueError("Shared research requires the ordinary shared geocoding profile.")
+    namespace = None if shared_research else f"gopstop:probe-discovery:{uuid4().hex}"
     report = {"status": "failed", "provider": settings.llm_provider,
               "modelProfile": settings.llm_model if settings.llm_provider == "groq" else "anthropic", "geocodingCache": "isolated" if cold else "shared",
-              "researchCache": "isolated", "findings": []}
+              "researchCache": "shared" if shared_research else "isolated", "findings": []}
     started = time.monotonic()
     with trace("discovery-probe") as trace_id:
         report["traceId"] = trace_id
@@ -53,15 +55,16 @@ async def run_probe(settings, client, cache, message: str, *, cold: bool = False
         finally:
             try:
                 async with asyncio.timeout(2):
-                    async for key in cache.scan_iter(match=namespace + ":*"):
-                        await cache.delete(key)
+                    if namespace is not None:
+                        async for key in cache.scan_iter(match=namespace + ":*"):
+                            await cache.delete(key)
             except (RedisError, TimeoutError):
                 report["cleanupFailed"] = True
     report["elapsedMs"] = round((time.monotonic() - started) * 1000)
     return report
 
 
-async def _main(message, cold):
+async def _main(message, cold, shared_research=False):
     settings = Settings()
     async with httpx.AsyncClient(follow_redirects=False) as client, from_url(
         str(settings.valkey_url), decode_responses=True,
@@ -70,18 +73,19 @@ async def _main(message, cold):
         health_check_interval=settings.valkey_health_check_interval_seconds,
         socket_keepalive=True, retry=Retry(NoBackoff(), 0),
     ) as cache:
-        return await run_probe(settings, client, cache, message, cold=cold)
+        return await run_probe(settings, client, cache, message, cold=cold, shared_research=shared_research)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--message", required=True)
     parser.add_argument("--cold", action="store_true", help="Use isolated Nominatim candidate cache; retain the shared rate gate.")
+    parser.add_argument("--shared-research", action="store_true", help="Use ordinary chat caches including resolution; do not clean shared keys.")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     logging.getLogger("gopstop_agent.diagnostics").setLevel(logging.INFO)
     try:
-        report = asyncio.run(_main(args.message, args.cold))
+        report = asyncio.run(_main(args.message, args.cold, args.shared_research))
     except ValueError:
         report = {"status": "failed", "error": {"reason": "invalid_configuration"}}
     print(json.dumps(report))
