@@ -42,7 +42,7 @@ def provider_fixture(intent, places, calls, region="High Tatras, Slovakia"):
                 "name": name, "geocodeQuery": f"{name}, {region}", "sourceIndex": 0, "tags": [],
             }})
         if request.url.host == "api.exa.ai":
-            description = body["query"].removeprefix("Find hiking place: ").split(". Route context:")[0]
+            description = body["query"].removeprefix("Find information about this exact place: ").split(". Route context:")[0]
             index = list(places).index(description)
             name, _ = places[description]
             return httpx.Response(200, json={"results": [
@@ -52,7 +52,7 @@ def provider_fixture(intent, places, calls, region="High Tatras, Slovakia"):
         assert request.url.host == "nominatim.openstreetmap.org"
         assert request.headers["User-Agent"] == "TrailsTest/1.0 team@example.org"
         name = request.url.params["q"].removesuffix(f", {region}")
-        rows = next(rows for title, rows in places.values() if title == name)
+        rows = next((rows for title, rows in places.values() if title == name), [])
         return httpx.Response(200, json=rows)
     return handle
 
@@ -90,7 +90,8 @@ async def test_tatras_discovery_preserves_sources_coordinates_waypoint_order_and
             payload = result.model_dump()
             assert "id" not in payload["stops"][0]["place"] and "routeId" not in payload
     assert sum(r.url.host == "api.exa.ai" for r in calls) == 3
-    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in calls) == 3
+    # Three canonical searches and one empty verification of the free-form description.
+    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in calls) == 4
     resolution = [r for r in calls if r.url.host == "api.anthropic.com"
                   and json.loads(r.content)["tool_choice"]["name"] == "resolve_place"]
     assert len(resolution) == 3  # Three cold resolutions, none on the repeated discovery.

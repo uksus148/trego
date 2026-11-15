@@ -12,7 +12,7 @@ from test_geocoding_candidates import SKOK, WESTERN_SKOK
 
 
 @pytest.mark.parametrize("provider", ["groq", "anthropic"])
-@pytest.mark.parametrize("mode,expected", [("resolved", "resolved"), ("empty", "no_sources"),
+@pytest.mark.parametrize("mode,expected", [("resolved", "resolved"), ("ambiguous", "ambiguous_candidates"), ("empty", "no_sources"),
     ("unsupported", "insufficient_evidence"), ("geocoding", "name_mismatch"), ("error", None), ("missing", None)])
 async def test_read_only_discovery_probe_uses_real_factories_and_cleans_only_its_cache(provider, mode, expected, caplog):
     calls = []
@@ -33,6 +33,8 @@ async def test_read_only_discovery_probe_uses_real_factories_and_cleans_only_its
         assert request.url.host == "nominatim.openstreetmap.org"  # No Java/ORS/session API access.
         if mode == "error":
             return httpx.Response(429, json={"error": {"code": "rate_limit_exceeded", "message": "LEAK"}})
+        if mode == "ambiguous":
+            return httpx.Response(200, json=[SKOK, WESTERN_SKOK])
         return httpx.Response(200, json=[{**SKOK, "name": "Other", "display_name": "Other"}] if mode == "geocoding" else [SKOK])
 
     settings = Settings(_env_file=None, llm_provider=provider, groq_api_key="LEAK", anthropic_api_key="LEAK", exa_api_key="LEAK")
@@ -46,6 +48,10 @@ async def test_read_only_discovery_probe_uses_real_factories_and_cleans_only_its
     if expected:
         assert report["findings"][0]["reason"] == expected
         assert report["status"] == ("ready" if mode == "resolved" else "needs_clarification")
+        if mode == "ambiguous":
+            matches = report["findings"][0]["matches"]
+            assert {m["osmId"] for m in matches} == {SKOK["osm_id"], WESTERN_SKOK["osm_id"]}
+            assert all(m["osmType"] == "node" and m["distanceKm"] is None for m in matches)
     elif mode == "missing":
         assert report["missingEndpoints"] == ["end"] and len(calls) == 1
     else:
@@ -71,9 +77,10 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
     async with fakeredis.aioredis.FakeRedis() as cache, httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         for _ in range(2):
             assert (await run_probe(settings, client, cache, "Skok"))["status"] == "ready"
-        assert len(await cache.keys("gopstop:nominatim:search:v3:*")) == 1
+        # Canonical search plus the cached original-name settlement verification.
+        assert len(await cache.keys("gopstop:nominatim:search:v3:*")) == 2
         assert not await cache.keys("gopstop:probe-discovery:*")
-    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 1
+    assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 2
     assert sum(r.url.host == "api.exa.ai" for r in requests) == 2
     assert sum(r.url.host == "api.anthropic.com" for r in requests) == 4
 

@@ -42,7 +42,13 @@ FEATURE_ATTRIBUTES = {
 }
 
 SelectionReason = Literal["resolved", "no_geocoding_candidates", "name_mismatch", "type_mismatch",
-                          "ambiguous_candidates", "conflicting_identity", "outside_context"]
+                          "ambiguous_candidates", "conflicting_identity", "outside_context", "requested_identity_mismatch"]
+
+
+class CandidateMatch(BaseModel):
+    osmType: Literal["node", "way", "relation"]
+    osmId: int
+    distanceKm: float | None = None
 
 
 class CandidateSelection(BaseModel):
@@ -51,6 +57,8 @@ class CandidateSelection(BaseModel):
     candidateCount: int
     nameMatchCount: int = 0
     identityCount: int = 0
+    matches: list[CandidateMatch] = Field(default_factory=list)
+    requestedMatches: list[CandidateMatch] = Field(default_factory=list)
 
 
 def words(value: str) -> set[str]:
@@ -84,6 +92,14 @@ def distance_km(left: GeocodedPlace, right: GeocodedPlace) -> float:
     return 6371 * 2 * math.asin(min(1, math.sqrt(a)))
 
 
+def matches_requested_name(candidate: GeocodingCandidate, name: str) -> bool:
+    expected = words(name.split(",")[0])
+    aliases = [candidate.name, candidate.display_name.split(",")[0],
+               *(value for key, value in candidate.namedetails.items() if "name" in key)]
+    return bool(expected) and any(expected == words(alias)
+                                  for item in aliases for alias in item.split(";"))
+
+
 def select_candidate(candidates: list[GeocodingCandidate], name: str,
                      tags: list[str], anchors: list[GeocodedPlace]) -> GeocodedPlace | None:
     return select_candidate_result(candidates, name, tags, anchors).location
@@ -115,6 +131,9 @@ def select_candidate_result(candidates: list[GeocodingCandidate], name: str,
             counts["identityCount"] = len(matched)
             return CandidateSelection(reason="conflicting_identity", **counts)
         matched[identity] = candidate
+    counts["matches"] = [CandidateMatch(osmType=identity[0], osmId=identity[1],
+        distanceKm=round(min(distance_km(candidate, anchor) for anchor in anchors), 3) if anchors else None)
+        for identity, candidate in sorted(matched.items())]
     # Only use independently resolved route points to disambiguate multiple matches.
     # Never choose the nearest/first hit when several remain within the local area.
     if len(matched) > 1 and anchors:

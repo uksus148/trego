@@ -125,7 +125,7 @@ async def test_observed_landmarks_reach_source_bound_handoff_through_actual_fact
                                    "sourceIndex": 0, "tags": [kinds[index]]}}
             return httpx.Response(200, json=completion(value=value)) if provider == "groq" else tool(operation, value)
         if request.url.host == "api.exa.ai":
-            index = next(i for i, name in enumerate(names) if body["query"].startswith("Find hiking place: " + name + "."))
+            index = next(i for i, name in enumerate(names) if body["query"].startswith("Find information about this exact place: " + name + "."))
             return httpx.Response(200, json={"results": [{"title": names[index], "url": sources[index]}]})
         assert request.url.host == "nominatim.openstreetmap.org"
         index = names.index(request.url.params["q"].removesuffix(", Slovakia"))
