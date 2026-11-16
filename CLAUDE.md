@@ -515,6 +515,10 @@ Mocks remain available for development and do not establish live-provider covera
 
 ## Development workflow
 
+Follow the [local development resource rules](infra/README.md#local-development-resource-rules)
+when running local services that access Aiven. They apply to all developers and coding
+agents and define connection budgets, coordinated live checks and shutdown responsibilities.
+
 Use the instructions in this file, [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [repository rules](docs/REPOSITORY_RULES.md). Component READMEs own reproducible
 setup/test commands. Tool installations and private assistant configuration belong
