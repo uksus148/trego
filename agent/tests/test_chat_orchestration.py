@@ -132,6 +132,8 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
                     "failed_generation": {"place": "Skok (waterfall)"},
                 }})
             return httpx.Response(200, json=completion(value=bad))
+        if name == "select_explore_area":
+            return httpx.Response(200, json=completion(name=name, value={"area": None}))
         assert name == "extract_route_intent"
         return httpx.Response(200, json=completion(name=name, value={"start": "Skok", "end": "Skok", "mustSee": [], "preferences": []}))
 

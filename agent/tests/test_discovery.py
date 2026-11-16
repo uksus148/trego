@@ -163,12 +163,14 @@ async def test_excess_stops_propagate_clarification_before_research(cache):
     def handle(request):
         calls.append(request)
         assert request.url.host == "api.anthropic.com"
+        if json.loads(request.content)["tool_choice"]["name"] == "select_explore_area":
+            return tool("select_explore_area", {"area": None})
         return tool("extract_route_intent", {"mustSee": [f"stop {i}" for i in range(6)]})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         with pytest.raises(IntentClarificationRequired):
             await create_discovery(client, cache, settings()).discover("Six stops, please", [])
-    assert len(calls) == 1
+    assert len(calls) == 2  # Intent and tour detection; no research.
 
 
 async def test_whole_discovery_deadline_cancels_work_before_any_research():

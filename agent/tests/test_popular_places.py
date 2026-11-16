@@ -100,5 +100,43 @@ async def test_ordinary_incomplete_request_is_not_a_tour(cache):
 
 async def test_complete_route_never_asks_for_tour_detection(cache):
     calls = []
-    await discover(cache, calls, "From Helsinki to Helsinki", intent={"start": "Helsinki", "end": "Helsinki"})
+    await discover(cache, calls, "From Helsinki to Turku", intent={"start": "Helsinki", "end": "Turku"})
     assert "select_explore_area" not in calls and "select_popular_places" not in calls
+
+
+async def test_tour_request_whose_intent_lists_too_many_sights_still_becomes_a_tour(cache):
+    calls = []
+    many = {"start": None, "end": None, "mustSee": [f"Sight {index}" for index in range(8)]}
+    result = await discover(cache, calls, "я сейчас в париже, дай 5-6 мест обязательных для посещения", intent=many)
+    assert result.ready_for_handoff and result.start.place.name == "Sibelius Monument"
+    assert calls[:2] == ["extract_route_intent", "select_explore_area"]
+
+
+async def test_too_many_stops_without_a_tour_still_asks_to_reduce_them(cache):
+    from gopstop_agent.intent import IntentClarificationRequired
+    many = {"start": "Helsinki", "end": "Turku", "mustSee": [f"Sight {index}" for index in range(8)]}
+    with pytest.raises(IntentClarificationRequired):
+        await discover(cache, [], "From Helsinki to Turku via eight sights", intent=many, area=None)
+
+
+async def test_selector_drops_malformed_suggestions_and_asks_again_after_an_empty_list():
+    from gopstop_agent.exa import ResearchSource
+    from gopstop_agent.popular import PopularPlaceSelector
+    replies = [{"places": []}, {"places": [{"name": "The Louvre", "sourceIndex": 0}, {"name": "", "sourceIndex": 0},
+                                           {"name": "Bad index", "sourceIndex": 7}, "junk", {"name": "Louvre", "sourceIndex": 0}]}]
+
+    class Model:
+        provider = "anthropic"
+
+        async def call(self, body):
+            return replies.pop(0)
+
+    source = ResearchSource(title="Paris", sourceUrl="https://evidence.example/p")
+    result = await PopularPlaceSelector(Model(), "model").select("Paris", [source])
+    assert [place.name for place in result] == ["Louvre"] and not replies
+
+
+async def test_same_start_and_end_city_is_checked_as_a_tour(cache):
+    calls = []
+    result = await discover(cache, calls, "я сейчас в Хельсинки, что посмотреть", intent={"start": "Helsinki", "end": "Helsinki"})
+    assert result.ready_for_handoff and "select_popular_places" in calls

@@ -1,6 +1,7 @@
 """Select well-known sights of an area from supplied web evidence."""
 
 import json
+import re
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -10,6 +11,8 @@ from gopstop_agent.llm import ToolModel
 
 
 MAX_CANDIDATES = 10
+MIN_SUGGESTIONS = 5
+LEADING_ARTICLE = re.compile(r"^the\s+", re.IGNORECASE)
 
 
 class PopularPlace(BaseModel):
@@ -61,12 +64,21 @@ class PopularPlaceSelector:
         """Names are suggestions only; each still needs an exact OSM match in the area."""
         if not sources:
             return []
+        places = await self._select_once(area, sources)
+        # A short list is a weak generation, not an answer: ask once more and merge.
+        if len(places) < MIN_SUGGESTIONS:
+            known = {place.name.casefold() for place in places}
+            places += [place for place in await self._select_once(area, sources) if place.name.casefold() not in known]
+        return places[:MAX_CANDIDATES]
+
+    async def _select_once(self, area: str, sources: list[ResearchSource]) -> list[PopularPlace]:
         try:
             value = await self._tool_model.call({
                 "model": self._model, "max_tokens": 768,
                 "system": (
-                    f"From the supplied web evidence, list up to {MAX_CANDIDATES} of the most popular "
-                    "specific sights inside the given area that a visitor can reach on foot: landmarks, "
+                    f"From the supplied web evidence, list {MAX_CANDIDATES - 2} to {MAX_CANDIDATES} of the most "
+                    "popular specific sights inside the given area that a visitor can reach on foot, fewer only "
+                    "when the evidence names fewer: landmarks, "
                     "squares, cathedrals, churches, monuments, museums, parks, markets. Most popular first. "
                     "Use each sight's commonly used proper name exactly, as a map would label it, without "
                     "descriptions or the city name appended. Exclude the area itself, districts, tours, "
@@ -80,11 +92,19 @@ class PopularPlaceSelector:
                            "input_schema": PopularPlaces.model_json_schema()}],
                 "tool_choice": {"type": "tool", "name": "select_popular_places"},
             })
-            places = PopularPlaces.model_validate(value).places
-        except ValidationError as exc:
-            raise ProviderError("Model returned invalid data.", provider=self._tool_model.provider,
-                                operation="select_popular_places", reason="schema_validation", validation=exc) from exc
+            items = value["places"]
+            if not isinstance(items, list):
+                raise TypeError("places must be a list")
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise ProviderError("Popular place selection is temporarily unavailable.") from exc
+        places = []
+        for item in items:
+            # Suggestions are optional: drop a malformed one instead of failing the whole tour.
+            try:
+                place = PopularPlace.model_validate(item)
+            except ValidationError:
+                continue
+            # Map labels omit the English article: "Eiffel Tower", not "The Eiffel Tower".
+            places.append(place.model_copy(update={"name": LEADING_ARTICLE.sub("", place.name)}))
         unique = {place.name.casefold(): place for place in reversed(places) if place.sourceIndex < min(len(sources), 3)}
         return [place for place in places if unique.get(place.name.casefold()) is place][:MAX_CANDIDATES]

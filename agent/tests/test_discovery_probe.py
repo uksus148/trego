@@ -23,7 +23,8 @@ async def test_identity_capture_is_explicit_and_keeps_provider_secrets_and_logs_
         report = await run_probe(settings, client, cache, "Private target",
                                  cold=True, include_identity=include_identity)
     serialized = json.dumps(report)
-    assert report["status"] == "ready" and len(calls) == 4
+    # Same start and end without stops also asks whether this is a city tour.
+    assert report["status"] == "ready" and len(calls) == 5
     assert "NEVER_PRINT_KEY" not in serialized + caplog.text and "Private target" not in caplog.text
     assert "evidence.example" not in serialized
     if include_identity:
@@ -94,6 +95,8 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
         requests.append(request)
         if request.url.host == "api.anthropic.com":
             name = json.loads(request.content)["tool_choice"]["name"]
+            if name == "select_explore_area":
+                return tool(name, {"area": None})
             return tool(name, {"start": "Skok", "end": "Skok"} if name == "extract_route_intent" else {
                 "place": {"name": "Skok", "geocodeQuery": "Skok, Slovakia", "sourceIndex": 0, "tags": []}})
         if request.url.host == "api.exa.ai":
@@ -109,7 +112,7 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
         assert not await cache.keys("gopstop:probe-discovery:*")
     assert sum(r.url.host == "nominatim.openstreetmap.org" for r in requests) == 1
     assert sum(r.url.host == "api.exa.ai" for r in requests) == 2
-    assert sum(r.url.host == "api.anthropic.com" for r in requests) == 4
+    assert sum(r.url.host == "api.anthropic.com" for r in requests) == 6  # Plus one tour check per run.
 
 
 async def test_shared_research_probe_reproduces_chat_cache_while_isolated_probe_can_differ():
@@ -122,6 +125,8 @@ async def test_shared_research_probe_reproduces_chat_cache_while_isolated_probe_
             name = json.loads(request.content)["tool_choice"]["name"]
             if name == "extract_route_intent":
                 return tool(name, {"start": "Skok", "end": "Skok"})
+            if name == "select_explore_area":
+                return tool(name, {"area": None})
             generations.append(request)
             return tool(name, {"place": {"name": "Wrong" if len(generations) == 1 else "Skok",
                 "geocodeQuery": "Skok, Slovakia", "sourceIndex": 0, "tags": []}})

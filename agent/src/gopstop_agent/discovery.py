@@ -12,7 +12,7 @@ from gopstop_agent.diagnostics import candidate_scope, stage, finding_event
 from gopstop_agent.exa import ExaSearch, ResearchSource
 from gopstop_agent.geocoding_candidates import CandidateSelection
 from gopstop_agent.geocoding import GeocodedPlace, NominatimGeocoder, OSM_ATTRIBUTION
-from gopstop_agent.intent import ClaudeIntentExtractor, Message, ProviderTimeout, RouteIntent
+from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, Message, ProviderTimeout, RouteIntent
 from gopstop_agent.llm import ToolModel, create_tool_model
 from gopstop_agent.popular import PopularPlaceSelector
 from gopstop_agent.resolution_cache import CachedPlaceResolver
@@ -87,13 +87,20 @@ class PlaceDiscovery:
     async def discover(self, message: str, history: list[Message]) -> DiscoveryResult:
         try:
             async with asyncio.timeout(self._timeout_seconds):
-                with stage("intent"):
-                    intent = await self._intent.extract(message, history)
-
-                # Only a request without a complete route can be a popular-places tour.
-                if self._popular is not None and (intent.start is None or intent.end is None):
+                try:
                     with stage("intent"):
-                        area = await self._popular.area(message)
+                        intent = await self._intent.extract(message, history)
+                except IntentClarificationRequired:
+                    # A tour request can make the extractor list many sights as stops.
+                    area = await self._tour_area(message)
+                    if area is None:
+                        raise
+                    return await self._explore(RouteIntent(), area)
+
+                # Only a request without a route between two different places can be a tour;
+                # the extractor may render "I am in Paris" as Paris -> Paris.
+                if intent.start is None or intent.end is None or (intent.start.casefold() == intent.end.casefold() and not intent.mustSee):
+                    area = await self._tour_area(message)
                     if area is not None:
                         return await self._explore(intent, area)
                 return await self._resolve(intent)
@@ -204,6 +211,12 @@ class PlaceDiscovery:
         end = tasks[intent.end].result() if intent.end is not None else None
         return DiscoveryResult(intent=intent, start=start, stops=stops, end=end)
 
+    async def _tour_area(self, message: str) -> str | None:
+        if self._popular is None:
+            return None
+        with stage("intent"):
+            return await self._popular.area(message)
+
     async def _explore(self, intent: RouteIntent, area: str) -> DiscoveryResult:
         """Tour an area's popular sights from its westernmost to its easternmost one."""
         located = await self._resolve(RouteIntent(start=area, end=area))
@@ -222,6 +235,7 @@ class PlaceDiscovery:
             # Suggestions are optional: one without a single exact OSM match is skipped.
             with candidate_scope(index), stage("geocoding"):
                 selection = await self._geocoder.geocode_nearby(suggestion.name, [anchor])
+            finding_event(selection.reason, len(sources), selection)
             if selection.location is None:
                 continue
             identity = selection.location.osm_type, selection.location.osm_id

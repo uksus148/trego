@@ -94,6 +94,15 @@ def distance_km(left: GeocodedPlace, right: GeocodedPlace) -> float:
     return 6371 * 2 * math.asin(min(1, math.sqrt(a)))
 
 
+# Transport and road objects share sight names ("Trocadéro" metro station) but are never the sight.
+INFRASTRUCTURE_CATEGORIES = frozenset({"railway", "public_transport", "highway", "aeroway"})
+INFRASTRUCTURE_TYPES = frozenset({("amenity", "parking"), ("amenity", "parking_entrance"), ("amenity", "bus_station")})
+
+
+def is_infrastructure(candidate: GeocodingCandidate) -> bool:
+    return candidate.category in INFRASTRUCTURE_CATEGORIES or (candidate.category, candidate.type) in INFRASTRUCTURE_TYPES
+
+
 def merge_colocated(candidates: list[GeocodingCandidate]) -> list[GeocodingCandidate]:
     """Collapse OSM representations of one named place: a square, its roads, its car park."""
     groups: list[list[GeocodingCandidate]] = []
