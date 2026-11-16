@@ -92,6 +92,40 @@ def distance_km(left: GeocodedPlace, right: GeocodedPlace) -> float:
     return 6371 * 2 * math.asin(min(1, math.sqrt(a)))
 
 
+# Transport and road objects share place names ("Heldenplatz" car park, "Trocadéro" metro
+# station) but are never the place a visitor names as a stop.
+INFRASTRUCTURE_CATEGORIES = frozenset({"railway", "public_transport", "highway", "aeroway"})
+INFRASTRUCTURE_TYPES = frozenset({("amenity", "parking"), ("amenity", "parking_entrance"), ("amenity", "bus_station")})
+WIKIDATA_ID = re.compile(r"Q[1-9][0-9]*")
+
+
+def is_infrastructure(candidate: GeocodingCandidate) -> bool:
+    return candidate.category in INFRASTRUCTURE_CATEGORIES or (candidate.category, candidate.type) in INFRASTRUCTURE_TYPES
+
+
+def merge_same_wikidata(candidates: list[GeocodingCandidate]) -> list[GeocodingCandidate]:
+    """Collapse OSM objects only on positive evidence that they are one place: the same Wikidata item.
+
+    Proximity, category and shared names are not identity evidence; two same-named hostels
+    next to each other stay two candidates."""
+    seen: set[str] = set()
+    merged = []
+    for candidate in candidates:
+        qid = candidate.extratags.get("wikidata", "")
+        if WIKIDATA_ID.fullmatch(qid):
+            if qid in seen:
+                continue
+            seen.add(qid)
+        merged.append(candidate)
+    return merged
+
+
+def addressed_in_anchor(candidate: GeocodingCandidate, anchors: list[GeocodedPlace]) -> bool:
+    """The candidate's own OSM address names a resolved route place, e.g. '..., Wien, Österreich'."""
+    parts = [words(part) for part in candidate.display_name.split(",")[1:]]
+    return any(name and name in parts for name in (words(anchor.display_name.split(",")[0]) for anchor in anchors))
+
+
 def matches_requested_name(candidate: GeocodingCandidate, name: str) -> bool:
     expected = words(name.split(",")[0])
     aliases = [candidate.name, candidate.display_name.split(",")[0],

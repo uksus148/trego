@@ -59,4 +59,4 @@ class Settings(BaseSettings):
         if not self.llm_key.get_secret_value().strip() or not self.llm_model.strip() or not self.exa_api_key.get_secret_value().strip():
             raise ValueError("Enabled chat requires the selected LLM key, EXA_API_KEY and a model ID.")
         if self.llm_provider == "groq" and self.llm_model not in GROQ_STRUCTURED_MODELS:
-            raise ValueError("Groq strict extraction supports only openai/gpt-oss-20b and openai/gpt-oss-120b.")
+            raise ValueError("Groq strict extraction supports only: " + ", ".join(sorted(GROQ_STRUCTURED_MODELS)) + ".")

@@ -79,7 +79,7 @@ def test_probe_cli_does_not_print_configuration_validation_secrets(monkeypatch, 
     assert "invalid_configuration" in output.out and "LEAK" not in output.out + output.err
 
 
-@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b"])
+@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"])
 @pytest.mark.parametrize("failure", [False, True])
 async def test_intent_probe_makes_exactly_one_model_call_without_research_or_writes(model_id, failure):
     requests = []

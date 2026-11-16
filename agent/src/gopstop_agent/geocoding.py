@@ -14,8 +14,8 @@ from gopstop_agent.diagnostics import cache_event
 from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.provider_errors import http_failure
 from gopstop_agent.geocoding_candidates import (
-    CandidateMatch, CandidateSelection, FEATURE_ATTRIBUTES, FEATURE_TYPES, GeocodingCandidate,
-    matches_feature, matches_requested_name, select_candidate_result, words,
+    CONTEXT_RADIUS_KM, CandidateMatch, CandidateSelection, FEATURE_ATTRIBUTES, FEATURE_TYPES, GeocodingCandidate,
+    addressed_in_anchor, distance_km, is_infrastructure, matches_feature, merge_same_wikidata, matches_requested_name, select_candidate_result, words,
 )
 from gopstop_agent.geocoding_models import GeocodedPlace
 
@@ -30,6 +30,7 @@ return 0
 
 
 locations_adapter = TypeAdapter(list[GeocodingCandidate])
+KM_PER_DEGREE = 111.0
 SEARCH_OPTIONS = {"format": "jsonv2", "limit": 8, "namedetails": 1, "extratags": 1}
 
 
@@ -81,6 +82,32 @@ class NominatimGeocoder:
             raise ProviderError("Place geocoding is temporarily unavailable.", provider="nominatim",
                                 operation="geocode", reason="transport" if isinstance(exc, httpx.HTTPError) else "response_json") from exc
 
+    async def geocode_nearby(self, name: str, anchors: list[GeocodedPlace]) -> CandidateSelection:
+        """Find one exactly named OSM object around independently resolved route points.
+
+        For explicit names that web evidence cannot identify (a generic local name such
+        as a hostel). Never ranks: several local matches remain ambiguous.
+        """
+        name = name.strip()
+        if not name or not anchors:
+            return CandidateSelection(reason="no_geocoding_candidates", candidateCount=0)
+        lat_margin = CONTEXT_RADIUS_KM / KM_PER_DEGREE
+        lon_margin = lat_margin / max(0.1, math.cos(math.radians(max(abs(anchor.lat) for anchor in anchors))))
+        lats, lons = [anchor.lat for anchor in anchors], [anchor.lon for anchor in anchors]
+        viewbox = (f"{min(lons) - lon_margin:.3f},{max(lats) + lat_margin:.3f},"
+                   f"{max(lons) + lon_margin:.3f},{min(lats) - lat_margin:.3f}")
+        candidates = await self._search(name, viewbox=viewbox)
+        nearby = [candidate for candidate in candidates
+                  if not is_infrastructure(candidate) and matches_requested_name(candidate, name)
+                  and any(distance_km(candidate, anchor) <= CONTEXT_RADIUS_KM for anchor in anchors)]
+        places = merge_same_wikidata(nearby)
+        # Address containment is evidence, not ranking: 'Heldenplatz' in Vienna rather
+        # than the same name in a neighbouring town. Otherwise ambiguity remains.
+        inside = [candidate for candidate in places if addressed_in_anchor(candidate, anchors)]
+        if len(places) > 1 and len(inside) == 1:
+            places = inside
+        return select_candidate_result(places, name, [], anchors)
+
     async def _guard_settlement_identity(self, selection: CandidateSelection, candidates: list[GeocodingCandidate],
                                          name: str, query_name: str, requested_name: str | None,
                                          anchors: list[GeocodedPlace]) -> CandidateSelection:
@@ -117,8 +144,10 @@ class NominatimGeocoder:
         return selection.model_copy(update={"reason": "requested_identity_mismatch", "location": None, "identityCount": 0,
             "requestedMatches": [CandidateMatch(osmType=kind, osmId=number) for kind, number in sorted(identities)]})
 
-    async def _search(self, query: str) -> list[GeocodingCandidate]:
-        identity = json.dumps([self._base_url, query, SEARCH_OPTIONS], sort_keys=True)
+    async def _search(self, query: str, *, viewbox: str | None = None) -> list[GeocodingCandidate]:
+        # Unbounded searches keep their existing cache identity.
+        options = SEARCH_OPTIONS if viewbox is None else {**SEARCH_OPTIONS, "viewbox": viewbox, "bounded": 1}
+        identity = json.dumps([self._base_url, query, options], sort_keys=True)
         digest = hashlib.sha256(identity.encode()).hexdigest()
         # v1 cached a selected place/null for 24h. v2 retains candidates so a
         # different category or geographic context cannot inherit an old decision.
@@ -142,7 +171,7 @@ class NominatimGeocoder:
                     response = await self._client.get(
                         self._base_url + "/search", timeout=self._timeout, follow_redirects=False,
                         headers={"User-Agent": self._user_agent},
-                        params={"q": query, **SEARCH_OPTIONS},
+                        params={"q": query, **options},
                     )
                     if response.is_error or response.is_redirect:
                         raise http_failure(response, provider="nominatim", operation="geocode")

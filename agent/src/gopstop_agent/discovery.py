@@ -18,6 +18,11 @@ from gopstop_agent.resolution_cache import CachedPlaceResolver
 from gopstop_agent.resolver import ClaudePlaceResolver, SourceResolution
 
 
+# Identity guards (requested_identity_mismatch, conflicting_identity, outside_context) are final.
+NEARBY_LOOKUP_REASONS = frozenset({"no_sources", "insufficient_evidence", "no_geocoding_candidates",
+                                   "name_mismatch", "type_mismatch", "ambiguous_candidates"})
+
+
 class DiscoveredPlace(BaseModel):
     name: str
     tags: list[str]
@@ -103,6 +108,20 @@ class PlaceDiscovery:
                             source=finding.sources[resolution.sourceIndex], location=location,
                         )
 
+                async def locate_nearby(finding: PlaceFinding, anchors: list[GeocodedPlace]) -> None:
+                    with stage("geocoding"):
+                        selection = await self._geocoder.geocode_nearby(finding.description, anchors)
+                    location = selection.location
+                    if location is None:
+                        return
+                    name = location.display_name.split(",")[0].strip()
+                    finding.outcome, finding.selection = "geocoding", selection
+                    finding.place = DiscoveredPlace(
+                        name=name, tags=[], location=location,
+                        source=ResearchSource(title=name, sourceUrl=location.osm_url),
+                    )
+                    finding_event(finding.reason, len(finding.sources), selection)
+
                 async def find(description: str) -> PlaceFinding:
                     query = (f"Find information about this exact place: {description}. Route context: "
                              f"{intent.start or 'unspecified'} to {intent.end or 'unspecified'}.")
@@ -156,6 +175,14 @@ class PlaceDiscovery:
                             finding = tasks[name].result()
                             await self._resolver.record_selection(name, finding.sources, resolution,
                                                                   accepted=finding.place is not None)
+                # An explicit name that research could not identify may still be one exactly
+                # named OSM place beside the route; OSM is then its recorded source. This runs
+                # after cache feedback so a rejected model resolution is never promoted.
+                for index, task in enumerate(tasks.values()):
+                    finding = task.result()
+                    if anchors and finding.place is None and finding.reason in NEARBY_LOOKUP_REASONS:
+                        with candidate_scope(index):
+                            await locate_nearby(finding, anchors)
                 start = tasks[intent.start].result() if intent.start is not None else None
                 stops = [tasks[name].result() for name in intent.mustSee]
                 end = tasks[intent.end].result() if intent.end is not None else None

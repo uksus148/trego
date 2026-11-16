@@ -40,7 +40,7 @@ def test_each_task_has_a_closed_required_wire_schema_without_mutating_business_v
     assert original == snapshot
 
 
-@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b"])
+@pytest.mark.parametrize("model_id", ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"])
 @pytest.mark.parametrize("case", ["incomplete", "too_many_stops", "too_many_preferences", "missing_field"])
 async def test_intent_nulls_and_limits_are_validated_after_strict_extraction(model_id, case):
     value = {"start": None, "end": None, "mustSee": [], "preferences": []}
@@ -125,3 +125,12 @@ async def test_unknown_groq_model_fails_before_network():
     with pytest.raises(ProviderError) as caught:
         await ToolModel(None, "fixture", "groq").call(body)
     assert caught.value.diagnostic["reason"] == "request_schema"
+
+
+@pytest.mark.parametrize("model_id, effort", [("openai/gpt-oss-20b", "low"), ("openai/gpt-oss-120b", "low"),
+                                               ("qwen/qwen3.8-27b", "none")])
+def test_reasoning_effort_is_selected_per_model(model_id, effort):
+    from gopstop_agent.intent import RouteIntent
+    from gopstop_agent.structured_output import StructuredRequest
+    request = StructuredRequest("extract_route_intent", model_id, "system", [], RouteIntent.model_json_schema(), 1024)
+    assert request.groq_payload()["reasoning_effort"] == effort

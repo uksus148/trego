@@ -14,6 +14,21 @@ from gopstop_agent.diagnostics import stage
 from gopstop_agent.provider_errors import ProviderError, ProviderTimeout, http_failure
 
 
+RATE_LIMIT_REPLAYS = 2
+MAX_RETRY_AFTER_SECONDS = 60.0
+
+
+def retry_after_seconds(response: httpx.Response) -> float | None:
+    """Per-minute input/output limits are not all visible in the advisory quota headers."""
+    if response.status_code != 429:
+        return None
+    try:
+        seconds = float(response.headers.get("retry-after", "")[:32])
+    except ValueError:
+        return None
+    return seconds if 0 <= seconds <= MAX_RETRY_AFTER_SECONDS else None
+
+
 class StructuredModel:
     def __init__(self, client: httpx.AsyncClient, key: str, provider: str = "anthropic",
                  timeout_seconds: float = 20) -> None:
@@ -57,7 +72,8 @@ class StructuredModel:
                 payload = self.prepare(body)
                 validator = Draft202012Validator(payload["response_format"]["json_schema"]["schema"])
                 # Shared by intent/resolution/reply in one worker. Outer chat/discovery
-                # deadlines include waiting; 429 responses are never replayed.
+                # deadlines include waiting. A rejected 429 generated nothing, so it is replayed
+                # only when the provider states a short Retry-After; other failures never are.
                 with stage("model_queue"):
                     await self._lock.acquire()
                 try:
@@ -66,12 +82,18 @@ class StructuredModel:
                     if self._remaining is not None and self._remaining < estimate:
                         with stage("quota_wait"):
                             await asyncio.sleep(max(0, self._reset - time.monotonic()))
-                    response = await self._client.post(
-                        "https://api.groq.com/openai/v1/chat/completions", json=payload,
-                        headers={"Authorization": f"Bearer {self._key}"},
-                        timeout=self._timeout, follow_redirects=False,
-                    )
-                    self._record_quota(response)
+                    for replay in range(RATE_LIMIT_REPLAYS + 1):
+                        response = await self._client.post(
+                            "https://api.groq.com/openai/v1/chat/completions", json=payload,
+                            headers={"Authorization": f"Bearer {self._key}"},
+                            timeout=self._timeout, follow_redirects=False,
+                        )
+                        self._record_quota(response)
+                        wait = retry_after_seconds(response)
+                        if wait is None or replay == RATE_LIMIT_REPLAYS:
+                            break
+                        with stage("quota_wait"):
+                            await asyncio.sleep(wait)
                     if response.is_error or response.is_redirect:
                         raise http_failure(response, **diagnostic)
                 finally:

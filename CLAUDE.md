@@ -342,6 +342,25 @@ ignored without flushing. Unresolved normalized names use start/end/stop role
 clarification when literal user wording is unavailable. No fuzzy name guesses,
 travel modes, corridor POIs or photo capabilities are added. Both owners review.
 
+Follow-up stops (proposed, owner review pending): a latest message naming both endpoints
+is a complete request, so a stop typed only in an earlier follow-up that never became part
+of a built route is not carried over. Model-normalized names are never dropped. An explicit
+name without usable web evidence may resolve to the single exactly named OSM object within
+25 km of independently resolved route points, using a bounded Nominatim search; its recorded
+source is the OSM object URL. The lookup also follows no-candidate, name/type-mismatch and
+ambiguous results, after resolution-cache feedback; identity-guard rejections stay final.
+Road, parking and transport objects are never candidates. Distinct same-named objects merge
+only on positive identity evidence (the same Wikidata item), never on proximity or category,
+and a candidate whose own OSM address names a resolved route place is preferred over the same
+name elsewhere. Remaining distinct matches still clarify; distance is never ranked.
+Public shapes, caches for unbounded searches and the shared rate gate are unchanged.
+
+Groq additionally supports `qwen/qwen3.8-27b`, sent with reasoning disabled because its tier
+allows 1000 output tokens per minute. A Groq 429 that states a Retry-After of at most 60
+seconds is replayed up to twice inside the existing deadlines; a rejected request generated
+nothing. Other failures are still never replayed. The frontend keeps the last built route,
+labelled as previous, when chat answers with a clarification instead of clearing the map.
+
 ### API container packaging
 
 PR #46 prepares the existing Spring Boot API for container execution; public
