@@ -31,8 +31,6 @@ FEATURE_TYPES = {
 }
 GENERIC_WORDS = {"waterfall", "peak", "mount", "mountain", "lake", "castle"}
 CONTEXT_RADIUS_KM = 25
-SAME_PLACE_KM = 0.5
-REPRESENTATION_ORDER = ("place", "tourism", "historic", "leisure", "natural", "amenity", "building")
 
 # Exact OSM attributes can retain identity when Nominatim chooses another primary
 # category. A generic tourism=attraction is deliberately not a castle criterion.
@@ -94,31 +92,32 @@ def distance_km(left: GeocodedPlace, right: GeocodedPlace) -> float:
     return 6371 * 2 * math.asin(min(1, math.sqrt(a)))
 
 
-# Transport and road objects share sight names ("Trocadéro" metro station) but are never the sight.
+# Transport and road objects share place names ("Heldenplatz" car park, "Trocadéro" metro
+# station) but are never the place a visitor names as a stop.
 INFRASTRUCTURE_CATEGORIES = frozenset({"railway", "public_transport", "highway", "aeroway"})
 INFRASTRUCTURE_TYPES = frozenset({("amenity", "parking"), ("amenity", "parking_entrance"), ("amenity", "bus_station")})
+WIKIDATA_ID = re.compile(r"Q[1-9][0-9]*")
 
 
 def is_infrastructure(candidate: GeocodingCandidate) -> bool:
     return candidate.category in INFRASTRUCTURE_CATEGORIES or (candidate.category, candidate.type) in INFRASTRUCTURE_TYPES
 
 
-def merge_colocated(candidates: list[GeocodingCandidate]) -> list[GeocodingCandidate]:
-    """Collapse OSM representations of one named place: a square, its roads, its car park."""
-    groups: list[list[GeocodingCandidate]] = []
+def merge_same_wikidata(candidates: list[GeocodingCandidate]) -> list[GeocodingCandidate]:
+    """Collapse OSM objects only on positive evidence that they are one place: the same Wikidata item.
+
+    Proximity, category and shared names are not identity evidence; two same-named hostels
+    next to each other stay two candidates."""
+    seen: set[str] = set()
+    merged = []
     for candidate in candidates:
-        group = next((group for group in groups if distance_km(candidate, group[0]) <= SAME_PLACE_KM), None)
-        if group is None:
-            groups.append([candidate])
-        else:
-            group.append(candidate)
-
-    def representation(candidate: GeocodingCandidate) -> tuple:
-        order = REPRESENTATION_ORDER.index(candidate.category) if candidate.category in REPRESENTATION_ORDER \
-            else len(REPRESENTATION_ORDER)
-        return order, candidate.osm_type, candidate.osm_id
-
-    return [min(group, key=representation) for group in groups]
+        qid = candidate.extratags.get("wikidata", "")
+        if WIKIDATA_ID.fullmatch(qid):
+            if qid in seen:
+                continue
+            seen.add(qid)
+        merged.append(candidate)
+    return merged
 
 
 def addressed_in_anchor(candidate: GeocodingCandidate, anchors: list[GeocodedPlace]) -> bool:

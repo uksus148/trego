@@ -15,7 +15,7 @@ from gopstop_agent.intent import ProviderError, ProviderTimeout
 from gopstop_agent.provider_errors import http_failure
 from gopstop_agent.geocoding_candidates import (
     CONTEXT_RADIUS_KM, CandidateMatch, CandidateSelection, FEATURE_ATTRIBUTES, FEATURE_TYPES, GeocodingCandidate,
-    addressed_in_anchor, distance_km, is_infrastructure, matches_feature, merge_colocated, matches_requested_name, select_candidate_result, words,
+    addressed_in_anchor, distance_km, is_infrastructure, matches_feature, merge_same_wikidata, matches_requested_name, select_candidate_result, words,
 )
 from gopstop_agent.geocoding_models import GeocodedPlace
 
@@ -97,9 +97,10 @@ class NominatimGeocoder:
         viewbox = (f"{min(lons) - lon_margin:.3f},{max(lats) + lat_margin:.3f},"
                    f"{max(lons) + lon_margin:.3f},{min(lats) - lat_margin:.3f}")
         candidates = await self._search(name, viewbox=viewbox)
-        nearby = [candidate for candidate in candidates if not is_infrastructure(candidate) and matches_requested_name(candidate, name)
+        nearby = [candidate for candidate in candidates
+                  if not is_infrastructure(candidate) and matches_requested_name(candidate, name)
                   and any(distance_km(candidate, anchor) <= CONTEXT_RADIUS_KM for anchor in anchors)]
-        places = merge_colocated(nearby)
+        places = merge_same_wikidata(nearby)
         # Address containment is evidence, not ranking: 'Heldenplatz' in Vienna rather
         # than the same name in a neighbouring town. Otherwise ambiguity remains.
         inside = [candidate for candidate in places if addressed_in_anchor(candidate, anchors)]

@@ -349,8 +349,9 @@ name without usable web evidence may resolve to the single exactly named OSM obj
 25 km of independently resolved route points, using a bounded Nominatim search; its recorded
 source is the OSM object URL. The lookup also follows no-candidate, name/type-mismatch and
 ambiguous results, after resolution-cache feedback; identity-guard rejections stay final.
-Same-named OSM objects within 500 m are one place (a square, its roads, its car park), and
-a candidate whose own OSM address names a resolved route place is preferred over the same
+Road, parking and transport objects are never candidates. Distinct same-named objects merge
+only on positive identity evidence (the same Wikidata item), never on proximity or category,
+and a candidate whose own OSM address names a resolved route place is preferred over the same
 name elsewhere. Remaining distinct matches still clarify; distance is never ranked.
 Public shapes, caches for unbounded searches and the shared rate gate are unchanged.
 
@@ -544,6 +545,10 @@ Mocks remain available for development and do not establish live-provider covera
 | Sunday, 10:30 | Peer review, all team members present |
 
 ## Development workflow
+
+Follow the [local development resource rules](infra/README.md#local-development-resource-rules)
+when running local services that access Aiven. They apply to all developers and coding
+agents and define connection budgets, coordinated live checks and shutdown responsibilities.
 
 Use the instructions in this file, [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [repository rules](docs/REPOSITORY_RULES.md). Component READMEs own reproducible
