@@ -112,6 +112,36 @@ async def test_tour_request_whose_intent_lists_too_many_sights_still_becomes_a_t
     assert calls[:2] == ["extract_route_intent", "select_explore_area"]
 
 
+NAMED = ["Helsinki Cathedral", "Temppeliaukio Church", "Market Square", "Uspenski Cathedral",
+         "Sibelius Monument", "Helsinki Cathedral"]
+
+
+async def test_tour_through_more_sights_than_a_route_allows_keeps_the_ones_the_user_named(cache):
+    calls = []
+    message = "In Helsinki: Helsinki Cathedral, Temppeliaukio Church, Market Square, Uspenski Cathedral and Sibelius Monument"
+    result = await discover(cache, calls, message, intent={"mustSee": NAMED})
+    assert result.ready_for_handoff
+    assert [result.start.place.name, *(stop.place.name for stop in result.stops), result.end.place.name] == [
+        "Sibelius Monument", "Temppeliaukio Church", "Helsinki Cathedral", "Market Square", "Uspenski Cathedral"]
+    assert str(result.start.place.source.sourceUrl) == "https://www.openstreetmap.org/way/15"
+    assert "select_popular_places" not in calls and calls.count("exa") == 1  # Only the city research.
+
+
+async def test_a_named_sight_that_cannot_be_found_is_asked_about_instead_of_dropped(cache):
+    message = "Helsinki: Helsinki Cathedral, Market Square, Uspenski Cathedral, Sibelius Monument, Kiasma, Temppeliaukio Church"
+    named = ["Helsinki Cathedral", "Market Square", "Uspenski Cathedral", "Sibelius Monument", "Kiasma", "Temppeliaukio Church"]
+    result = await discover(cache, [], message, intent={"mustSee": named})
+    assert not result.ready_for_handoff and result.unresolved == ["Kiasma"]
+    assert result.intent.start == "Helsinki Cathedral" and result.intent.end == "Temppeliaukio Church"
+
+
+async def test_more_named_sights_than_a_tour_holds_still_asks_to_reduce_them(cache):
+    from gopstop_agent.intent import IntentClarificationRequired
+    named = [f"Sight {index}" for index in range(8)]
+    with pytest.raises(IntentClarificationRequired):
+        await discover(cache, [], "Helsinki: " + ", ".join(named), intent={"mustSee": named})
+
+
 async def test_too_many_stops_without_a_tour_still_asks_to_reduce_them(cache):
     from gopstop_agent.intent import IntentClarificationRequired
     many = {"start": "Helsinki", "end": "Turku", "mustSee": [f"Sight {index}" for index in range(8)]}

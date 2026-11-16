@@ -366,7 +366,10 @@ one extra model step decides whether the user asks for the popular sights of a c
 research names candidate sights with sources; each is kept only with a single exact OSM
 match within 25 km of the city. Up to seven located sights (start, five stops, end) are
 ordered from westernmost to easternmost and handed off as an ordinary route; fewer than
-two ask for endpoints. The sightseeing order is geographic, not a shortest tour. Public
+two ask for endpoints. When the intent lists more stops than a route allows and the user
+wrote every listed sight (no explicit start and end), those sights replace research: each
+must bind to a single exact OSM match, an unmatched one is asked about, and more than seven
+still ask to reduce them. The sightseeing order is geographic, not a shortest tour. Public
 chat/route shapes are unchanged.
 
 ### API container packaging

@@ -12,7 +12,8 @@ from gopstop_agent.diagnostics import candidate_scope, stage, finding_event
 from gopstop_agent.exa import ExaSearch, ResearchSource
 from gopstop_agent.geocoding_candidates import CandidateSelection
 from gopstop_agent.geocoding import GeocodedPlace, NominatimGeocoder, OSM_ATTRIBUTION
-from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, Message, ProviderTimeout, RouteIntent
+from gopstop_agent.intent import (ClaudeIntentExtractor, IntentClarificationRequired, Message, ProviderTimeout,
+                                  RouteIntent, named_in_message)
 from gopstop_agent.llm import ToolModel, create_tool_model
 from gopstop_agent.popular import PopularPlaceSelector
 from gopstop_agent.resolution_cache import CachedPlaceResolver
@@ -90,12 +91,14 @@ class PlaceDiscovery:
                 try:
                     with stage("intent"):
                         intent = await self._intent.extract(message, history)
-                except IntentClarificationRequired:
-                    # A tour request can make the extractor list many sights as stops.
+                except IntentClarificationRequired as exc:
+                    # A tour request can list more sights than a route allows stops. Sights the
+                    # user wrote are kept; ones the extractor suggested itself give way to research.
                     area = await self._tour_area(message)
-                    if area is None:
+                    named = exc.places if named_in_message(exc.places, message) else []
+                    if area is None or len(named) > MAX_EXPLORE_PLACES:
                         raise
-                    return await self._explore(RouteIntent(), area)
+                    return await self._explore(RouteIntent(), area, named)
 
                 # Only a request without a route between two different places can be a tour;
                 # the extractor may render "I am in Paris" as Paris -> Paris.
@@ -217,13 +220,37 @@ class PlaceDiscovery:
         with stage("intent"):
             return await self._popular.area(message)
 
-    async def _explore(self, intent: RouteIntent, area: str) -> DiscoveryResult:
-        """Tour an area's popular sights from its westernmost to its easternmost one."""
+    async def _explore(self, intent: RouteIntent, area: str, named: list[str] | None = None) -> DiscoveryResult:
+        """Tour an area's sights from the westernmost to the easternmost one.
+
+        Named sights are the user's own and must all be found; otherwise popular sights
+        from research are optional candidates."""
         located = await self._resolve(RouteIntent(start=area, end=area))
         if located.start is None or located.start.place is None:
             return DiscoveryResult(intent=intent.model_copy(update={"start": area, "end": area}),
                                    start=located.start, end=located.start)
         anchor = located.start.place.location
+        if named:
+            findings = [await self._locate_sight(index, name, anchor) for index, name in enumerate(named)]
+            if any(finding.place is None for finding in findings):
+                return DiscoveryResult(intent=intent.model_copy(update={
+                    "start": named[0], "end": named[-1], "mustSee": named[1:-1], "descriptiveTargets": []}),
+                    start=findings[0], stops=findings[1:-1], end=findings[-1])
+        else:
+            findings = await self._popular_sights(area, anchor)
+        found: dict[tuple[str, int], PlaceFinding] = {}
+        for finding in findings:
+            location = finding.place.location
+            found.setdefault((location.osm_type, location.osm_id), finding)
+        if len(found) < 2:
+            return DiscoveryResult(intent=intent)
+        ordered = sorted(found.values(), key=lambda finding: finding.place.location.lon)
+        names = [finding.description for finding in ordered]
+        route = intent.model_copy(update={"start": names[0], "end": names[-1], "mustSee": names[1:-1],
+                                          "descriptiveTargets": []})
+        return DiscoveryResult(intent=route, start=ordered[0], stops=ordered[1:-1], end=ordered[-1])
+
+    async def _popular_sights(self, area: str, anchor: GeocodedPlace) -> list[PlaceFinding]:
         with stage("research"):
             sources = await self._search.search(f"Most popular must-see sights and landmarks to visit on foot in {area}")
         with stage("resolution"):
@@ -233,24 +260,25 @@ class PlaceDiscovery:
             if len(found) == MAX_EXPLORE_PLACES:
                 break
             # Suggestions are optional: one without a single exact OSM match is skipped.
-            with candidate_scope(index), stage("geocoding"):
-                selection = await self._geocoder.geocode_nearby(suggestion.name, [anchor])
-            finding_event(selection.reason, len(sources), selection)
-            if selection.location is None:
-                continue
-            identity = selection.location.osm_type, selection.location.osm_id
-            found.setdefault(identity, PlaceFinding(
-                description=suggestion.name, sources=sources, outcome="geocoding", selection=selection,
-                place=DiscoveredPlace(name=suggestion.name, tags=[], source=sources[suggestion.sourceIndex],
-                                      location=selection.location)))
-        if len(found) < 2:
-            return DiscoveryResult(intent=intent)
-        ordered = sorted(found.values(), key=lambda finding: finding.place.location.lon)
-        names = [finding.description for finding in ordered]
-        route = intent.model_copy(update={"start": names[0], "end": names[-1], "mustSee": names[1:-1],
-                                          "descriptiveTargets": []})
-        return DiscoveryResult(intent=route, start=ordered[0], stops=ordered[1:-1], end=ordered[-1])
+            finding = await self._locate_sight(index, suggestion.name, anchor, sources, sources[suggestion.sourceIndex])
+            if finding.place is not None:
+                found.setdefault((finding.place.location.osm_type, finding.place.location.osm_id), finding)
+        return list(found.values())
 
+    async def _locate_sight(self, index: int, name: str, anchor: GeocodedPlace,
+                            sources: list[ResearchSource] | None = None,
+                            source: ResearchSource | None = None) -> PlaceFinding:
+        """Bind a sight to the single exactly named OSM object near the area."""
+        with candidate_scope(index), stage("geocoding"):
+            selection = await self._geocoder.geocode_nearby(name, [anchor])
+        finding_event(selection.reason, len(sources or []), selection)
+        finding = PlaceFinding(description=name, sources=sources or [], outcome="geocoding", selection=selection)
+        location = selection.location
+        if location is None:
+            return finding
+        # A sight the user named has no research source; its OSM object is the evidence.
+        evidence = source or ResearchSource(title=name, sourceUrl=location.osm_url)
+        return finding.model_copy(update={"place": DiscoveredPlace(name=name, tags=[], source=evidence, location=location)})
 
 def create_discovery(client: httpx.AsyncClient, cache: Redis, settings: Settings,
                      tool_model: ToolModel | None = None, *, diagnostic_namespace: str | None = None,
