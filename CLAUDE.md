@@ -349,8 +349,9 @@ name without usable web evidence may resolve to the single exactly named OSM obj
 25 km of independently resolved route points, using a bounded Nominatim search; its recorded
 source is the OSM object URL. The lookup also follows no-candidate, name/type-mismatch and
 ambiguous results, after resolution-cache feedback; identity-guard rejections stay final.
-Same-named OSM objects within 500 m are one place (a square, its roads, its car park), and
-a candidate whose own OSM address names a resolved route place is preferred over the same
+Road, parking and transport objects are never candidates. Distinct same-named objects merge
+only on positive identity evidence (the same Wikidata item), never on proximity or category,
+and a candidate whose own OSM address names a resolved route place is preferred over the same
 name elsewhere. Remaining distinct matches still clarify; distance is never ranked.
 Public shapes, caches for unbounded searches and the shared rate gate are unchanged.
 

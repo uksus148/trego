@@ -109,10 +109,32 @@ HELDENPLATZ = [square("way", 264828970, "amenity", "parking", "48.2057", "16.364
                square("way", 92840523, "place", "square", "48.1205", "16.2642", "Perchtoldsdorf, Niederösterreich, Österreich")]
 
 
-async def test_nearby_lookup_merges_representations_and_prefers_the_address_inside_a_route_place(cache):
+async def test_nearby_lookup_skips_road_and_parking_objects_and_prefers_the_address_inside_a_route_place(cache):
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=HELDENPLATZ))) as client:
         result = await NominatimGeocoder(client, cache, "Trails/1.0").geocode_nearby("Heldenplatz", [VIENNA])
     assert result.reason == "resolved" and (result.location.osm_type, result.location.osm_id) == ("node", 276645373)
+
+
+def hostel(osm_id, lat, **extra):
+    return {"osm_type": "way", "osm_id": osm_id, "category": "tourism", "type": "hostel", "name": "Tourist Hostel",
+            "display_name": "Tourist Hostel, Example City, Slovakia", "lat": lat, "lon": "17.0", **extra}
+
+
+EXAMPLE_CITY = GeocodedPlace(osm_type="relation", osm_id=1000, display_name="Example City, Slovakia", lat=48.0005, lon=17.0)
+
+
+async def test_nearby_lookup_keeps_close_same_named_establishments_ambiguous(cache):
+    rows = [hostel(1, "48.000"), hostel(2, "48.001")]  # About 110 m apart, same city and type.
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=rows))) as client:
+        result = await NominatimGeocoder(client, cache, "Trails/1.0").geocode_nearby("Tourist Hostel", [EXAMPLE_CITY])
+    assert result.reason == "ambiguous_candidates" and result.location is None and result.identityCount == 2
+
+
+async def test_nearby_lookup_merges_objects_only_when_they_share_a_wikidata_item(cache):
+    rows = [hostel(1, "48.000", extratags={"wikidata": "Q42"}), hostel(2, "48.001", extratags={"wikidata": "Q42"})]
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=rows))) as client:
+        result = await NominatimGeocoder(client, cache, "Trails/1.0").geocode_nearby("Tourist Hostel", [EXAMPLE_CITY])
+    assert result.reason == "resolved" and result.location.osm_id == 1
 
 
 async def test_nearby_lookup_stays_ambiguous_when_no_address_names_a_route_place(cache):
