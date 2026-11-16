@@ -34,6 +34,8 @@ def providers(calls, *, area="Helsinki", suggestions=None, intent=None):
         if request.url.host == "api.anthropic.com":
             name = body["tool_choice"]["name"]
             calls.append(name)
+            if name == "select_reply_language":
+                return tool(name, {"language": "en"})
             if name == "extract_route_intent":
                 return tool(name, intent or {"start": "Helsinki", "end": None})
             if name == "select_explore_area":
@@ -46,6 +48,9 @@ def providers(calls, *, area="Helsinki", suggestions=None, intent=None):
             calls.append("exa")
             return httpx.Response(200, json={"results": [{"title": "Helsinki", "url": "https://evidence.example/city", "text": "Capital"},
                                                          {"title": "Top sights", "url": "https://evidence.example/top", "text": "Sights"}]})
+        if request.url.host == "api.example":
+            calls.append("java")
+            return httpx.Response(500)
         calls.append("nominatim")
         query = request.url.params["q"]
         if "viewbox" not in request.url.params:
@@ -170,3 +175,21 @@ async def test_same_start_and_end_city_is_checked_as_a_tour(cache):
     calls = []
     result = await discover(cache, calls, "я сейчас в Хельсинки, что посмотреть", intent={"start": "Helsinki", "end": "Helsinki"})
     assert result.ready_for_handoff and "select_popular_places" in calls
+
+
+@pytest.mark.parametrize("intent", [{"start": "Helsinki", "end": "Helsinki"}, {"start": "Helsinki", "end": None}])
+@pytest.mark.parametrize("suggestions", [[], ["Helsinki Cathedral"]])
+async def test_tour_with_too_few_sights_asks_for_the_destination_over_http_without_writes(intent, suggestions):
+    from fastapi.testclient import TestClient
+    from gopstop_agent.main import create_app
+    calls = []
+    settings = Settings(_env_file=None, chat_enabled=True, anthropic_api_key="fixture", exa_api_key="fixture",
+                        nominatim_user_agent="Trails/1.0", api_base_url="https://api.example")
+    async with fakeredis.aioredis.FakeRedis(decode_responses=True) as redis, httpx.AsyncClient(
+            transport=httpx.MockTransport(providers(calls, intent=intent, suggestions=suggestions))) as client:
+        with TestClient(create_app(settings, redis, client)) as http:
+            response = http.post("/api/chat", json={"sessionId": "tour", "message": "I am in Helsinki, show me the sights"})
+        assert response.status_code == 200
+        assert response.json() == {"reply": "Please specify the destination.", "places": []}
+        assert await redis.llen("gopstop:chat-session:tour") == 2
+    assert "java" not in calls and "select_popular_places" in calls

@@ -243,7 +243,9 @@ class PlaceDiscovery:
             location = finding.place.location
             found.setdefault((location.osm_type, location.osm_id), finding)
         if len(found) < 2:
-            return DiscoveryResult(intent=intent)
+            # No tour: ask for endpoints. A same-city loop names no destination of its own.
+            loop = intent.start is not None and intent.end is not None and intent.start.casefold() == intent.end.casefold()
+            return DiscoveryResult(intent=intent.model_copy(update={"end": None}) if loop else intent)
         ordered = sorted(found.values(), key=lambda finding: finding.place.location.lon)
         names = [finding.description for finding in ordered]
         route = intent.model_copy(update={"start": names[0], "end": names[-1], "mustSee": names[1:-1],
