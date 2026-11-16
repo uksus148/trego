@@ -4,6 +4,10 @@ Create a task branch from the current `main` and open a pull request that can be
 
 Read [CLAUDE.md](CLAUDE.md) before making changes. The [repository rules](docs/REPOSITORY_RULES.md) apply to all three developers. GitHub automatically inserts the [PR template](.github/pull_request_template.md).
 
+Follow the [local development resource rules](infra/README.md#local-development-resource-rules)
+when running the project. They define the shared Aiven connection budget, live-test
+coordination, cache/data usage and shutdown responsibilities for developers and coding agents.
+
 ## Branches and commits
 
 Use descriptive branch names such as `feat/places-bbox`, `fix/route-distance`, `docs/api-contract`, `infra/local-database`, or `chore/dependencies`.
