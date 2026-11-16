@@ -4,7 +4,7 @@
 and structured output.** Field names/state rules below are the concrete proposal for
 Mukhamed and Daniil to review. They are not enabled on the current chat endpoint.
 Murat's Java change enforces the separate routing boundary. The
-[team plan](ROUTE_AVAILABILITY_RESEARCH_PLAN.md) defines evidence rules and ownership.
+sections below define evidence rules, ownership and the internal interface.
 
 ## Ownership and storage
 
@@ -17,11 +17,9 @@ Murat's Java change enforces the separate routing boundary. The
   Java research endpoint or additional routing call is needed for this slice. A later
   cache/history design needs separate agreement; do not inherit the route cache TTL.
 
-Related work: Mukhamed's [PR #56](https://github.com/uksus148/trego./pull/56) proposes
-an internal research core without HTTP chat wiring. This PR does not include that
-implementation or claim its approval. Mapping the proposed public dates/evidence to
-that internal interface needs his review. Java validation can be reviewed independently;
-reconcile shared documentation when the other PR merges, preserving both ownership entries.
+The internal research core merged in [PR #56](https://github.com/uksus148/trego./pull/56).
+Its interface and limits are retained below. Public chat mapping, operator policy and
+activation remain deferred and require affected-owner agreement.
 
 ## Chat request proposal
 
@@ -97,7 +95,8 @@ design; it must not silently replay the route POST.
 
 ## Spring API boundary implemented by Murat
 
-`POST /api/routes` accepts exactly `start`, `end`, `placeIds`, `preferences`.
+`POST /api/routes` requires `start`, `end`, `placeIds`, `preferences` and accepts the optional
+`startPlaceId`/`endPlaceId` bindings from the editor contract.
 Each endpoint accepts exactly `lat`, `lon`. Research flags, planning dates, evidence,
 provider/profile overrides and other unknown fields return 400 `invalid_request` before
 ORS work, route-cache writes or route persistence. They are never silently treated as
@@ -112,3 +111,106 @@ Review the exact names/validation with both owners, then add equivalent agent/fr
 tests before activation. The current chat service still rejects these new request fields.
 Java regression tests cover strict root/endpoint input and zero provider/cache/route
 effects on rejection; the existing route tests cover compatible successful requests.
+
+
+## Inputs and gates
+
+The caller supplies a **verified** `no_hiking_route` or `waypoint_not_routable`
+result and the exact authoritative API Place records used in the failed route.
+Outages, unknown UUIDs and other errors cannot enter this typed workflow.
+Require explicit consent, a user-confirmed named section and jurisdiction; the
+provider exposes no reliable failing-point index. Do not guess that section.
+
+`extract_planning_dates` accepts an ISO day, month or inclusive range with an
+explicit year: `2027-07-15`, `2027-07`, `2027-07-15/2027-07-20`. Invalid,
+relative, free-form or yearless input such as "July" returns clarification.
+This first slice asks for an unambiguous date expression instead of using another
+model call or inferring a year from the event/history. Pass the current confirmed
+expression on each changed plan; no history dates are silently reused. These
+dates filter evidence, not ORS geometry.
+
+Operator-reviewed `ResearchPolicy` provides exact official hostnames and a
+publication/update age limit (1–365 days). There is no implicit trusted list or
+accepted production freshness default. Never populate it from user/page/model
+text. No policy, no consent, missing scope/dates or no remaining budget prevents
+paid research. Add `www` separately if approved; subdomains are not implicitly trusted.
+
+## Bounded research and validation
+
+One fresh, domain-filtered Exa search returns at most three sources. It bypasses
+the ordinary 24-hour place cache without reading, overwriting or clearing it.
+This request-scoped exception avoids applying place-cache freshness to notices.
+Notice searches request uncapped full text (`contents.text=true`, without
+`maxCharacters`), as documented by [Exa](https://docs.exa.ai/reference/contents-retrieval).
+Internal `textComplete` provenance requires that mode and, when supplied, one
+successful provider content status. Capped, cached or unknown coverage stays
+unconfirmed regardless of text length. Oversized pages remain incomplete markers;
+the workflow rejects incomplete sources or more than 10,000 total characters before
+assessment, without slicing or dropping a possible exception/revocation.
+This records the provider's full-text contract, not an independent audit of opaque
+provider omissions. Provenance is excluded from normal place-cache/prompt serialization.
+One selected-provider tool call extracts at most three notices; it reuses Groq
+`openai/gpt-oss-20b` or the selected Anthropic transport. All work, including quota
+waits, fits the smaller of the caller's remaining deadline and the internal budget
+(20 seconds by default, at most 60). There are no retries, source-page fetches,
+routing calls, background jobs or writes.
+
+Validation requires approved hosts, credential-free standard-port URLs, verbatim
+excerpts, matching section/jurisdiction, publication date and applicability interval.
+All evidence dates must appear literally as ISO dates in their respective excerpts;
+natural-language/annual rules without explicit dates stay unconfirmed in this slice.
+Freshness requires a source-parsed English `Published`, `Publication date`, `Updated`
+or `Last modified` fact at a line/sentence boundary. The publication excerpt must
+include that labelled ISO date; an applicability date cannot substitute for it.
+Unsupported publication formats/roles remain unconfirmed.
+A recent fetch alone does not make an old publication fresh. Truncated, missing,
+stale or future-dated evidence, invented quotes/indices/fields and conflicting
+overlapping notices stay unconfirmed. Model extraction still needs semantic/live
+evaluation; these checks do not certify legal access, safety or exhaustive coverage.
+
+Each finding retains the original URL, quote, publication date, retrieval time,
+full applicability period and its intersection with the requested dates.
+Missing applicable restrictions never means "open". The technical routing code
+is preserved separately and `routingCause` is always `unconfirmed`; evidence cannot
+establish why ORS failed. Optional failures preserve that result without private
+errors; caller cancellation propagates.
+
+## Internal use
+
+```python
+from gopstop_agent.availability import create_availability_research
+from gopstop_agent.availability_models import AvailabilityRequest, ResearchPolicy
+
+# canonical_places are the actual ApiPlace objects used in the failed request.
+research = create_availability_research(
+    http, cache, settings,
+    ResearchPolicy(trustedHosts=("tanap.sk", "www.tanap.sk"), maxSourceAgeDays=30),
+    tool_model=shared_tool_model,
+)
+result = await research.investigate(
+    AvailabilityRequest(
+        routingCode="waypoint_not_routable", places=canonical_places, optedIn=True,
+        section="Rysy", jurisdiction="Slovakia", planningText="2027-07",
+    ),
+    remaining_seconds=remaining_chat_seconds,
+)
+```
+
+The sample policy is an integration-review example, not an enabled runtime choice.
+Results are internal facts, not a new wire response. Chat integration must validate/
+clarify dates before ingestion, then invoke research only for a verified failure.
+Review mapping the proposed planningWindow into this core, carrying authoritative
+visits/confirmed scope, rendering sources/dates, localizing questions and preserving
+the existing session-save step. The core
+supplies no routeId and does not retry an earlier route POST. UI/date fields and
+SQL/Kafka remain separate.
+
+## Remaining integration work
+
+This is deferred public behavior. Before activation, the affected owners must agree
+the wire-to-core date/evidence mapping, operator-owned host/freshness policy, consent,
+localized questions and UI rendering. Murat owns Java contracts and routing limits;
+Mukhamed owns research/session integration; Daniil owns opt-in and evidence presentation.
+Unknown, stale, incomplete or conflicting evidence stays unconfirmed. Keep technical
+routing failure separate from external restrictions. Never certify safe/open access,
+move waypoints or replay the failed route POST to obtain a successful route.

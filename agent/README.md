@@ -1,6 +1,6 @@
 # trego. Agent
 
-The [optional route-availability research core](AVAILABILITY.md) implements the
+The [optional route-availability research core](../docs/ROUTE_AVAILABILITY_CONTRACT.md) implements the
 internal agent slice of #54's plan. It is not connected to HTTP chat/startup;
 public source/date delivery and activation remain owner decisions.
 
@@ -49,7 +49,7 @@ work. Actual outages still return 503; cancellation/total chat expiry can return
 504. A socket can still fail after its check, so failed requests may leave committed
 data. The factory retains redis-py's URL parsing, TLS verification and owned-pool
 cleanup; caller-injected clients retain their original configuration/ownership.
-See [the #58 idle check](../docs/INTEGRATION_RUNBOOK.md#issue-58-idle-valkey-check).
+See [provider and cache diagnostics](DIAGNOSTICS.md).
 
 If port 5173 is busy, Vite may start the frontend on 5174. Check the URL printed
 by Vite and add that exact origin to `AGENT_CORS_ORIGINS` in the root `.env`, for
@@ -72,12 +72,11 @@ claiming the exchange was saved.
 
 Run automated tests with `pytest`.
 
-## Enable orchestration after integration preflight
+## Enable chat after preflight
 
-E1/E2 merged in #45/#43. Keep `AGENT_CHAT_ENABLED=false` until this provider PR is
-reviewed/merged and E4 confirms the selected model, keys and service connectivity.
+Keep `AGENT_CHAT_ENABLED=false` until the selected model, keys and service connectivity pass preflight.
 Follow [the executable Groq preflight and HTTP end-to-end guide](LIVE_TEST.md),
-then enable chat for E3/E5. This PR's tests do not certify the team's live credentials.
+then enable chat for browser acceptance. Fixture tests do not certify live credentials.
 The manual place handler is not a research fallback or capability probe.
 See the [shared runbook](../docs/INTEGRATION_RUNBOOK.md) for the remaining gates.
 
@@ -88,7 +87,7 @@ clients/service for fixtures; the caller retains ownership of injected resources
 
 Chat loads the latest six exchanges and selects a supported reply language before
 discovery. It clarifies incomplete/excessive intent or calls the route handoff,
-renders the known result locally, then stores the exchange before 200. See S2 below.
+renders the known result locally, then stores the exchange before 200. See factual localized replies below.
 Verified no-path and unmatched-waypoint results produce distinct normal clarifications
 under issue #49's accepted extension, merged in #54. Neither identifies a closure,
 season or difficulty as its cause. Provider/invalid-response failures return 502, storage/cache failures 503, and deadlines 504, with safe detail.
@@ -103,7 +102,7 @@ session IDs. [Provider diagnostics](DIAGNOSTICS.md) explains safe status/code/sc
 metadata, cache events, queue/quota timing and the read-only cold resolution probe.
 These are internal diagnostics, not new public response fields.
 
-## Factual localized replies (S2)
+## Factual localized replies
 
 The enabled factory selects language before discovery through a dedicated structured
 `select_reply_language` task, using only current and previous user messages (six
@@ -142,7 +141,8 @@ outage; valid stops are not silently discarded. Transport, HTTP, and malformed
 responses remain `ProviderError`; typed `ProviderTimeout` maps to 504.
 
 Set `AGENT_LLM_PROVIDER=groq`, `GROQ_API_KEY` and `AGENT_GROQ_MODEL` for Groq.
-Groq supports the two explicit profiles `openai/gpt-oss-20b` and `openai/gpt-oss-120b`
+Groq supports `openai/gpt-oss-20b`, `openai/gpt-oss-120b` and
+`qwen/qwen3.8-27b` (reasoning disabled for Qwen)
 through `response_format: json_schema` with `strict: true`; unknown model IDs fail
 configuration validation. No tool definitions or tool_choice are sent to Groq.
 `StructuredRequest` describes extraction, and the shared `StructuredModel` retains
@@ -154,15 +154,15 @@ sampling: over-limit intent must ask for clarification rather than drop requeste
 The `jsonschema` dependency validates returned JSON against this wire shape before
 Pydantic applies business bounds/source binding. A structurally valid result is not
 proof of factual correctness. Refusal, truncation, bad content and schema errors fail
-safely without fallback, repair or retry. See [live checks](LIVE_TEST.md#verify-strict-extraction-s1).
+safely without fallback, repair or retry. See [live checks](LIVE_TEST.md#isolate-extraction-and-discovery).
 
 Only the selected provider key is required. Anthropic retains its existing settings;
 historical `Claude*` class names remain compatible while transport selects the provider.
 Each network request has a 20-second timeout by default;
 its `timeout_seconds` argument overrides the supplied HTTP client's timeouts.
 `AGENT_PROVIDER_TIMEOUT_SECONDS` supplies the setting for chat adapters.
-No automatic paid retries are performed. Live account/model availability has not
-been verified.
+Groq 429 may be replayed up to twice when Retry-After is at most 60 seconds,
+within the existing deadlines. Other paid failures are not automatically replayed. Account/model availability must be checked in the selected environment.
 
 ## Exa research adapter
 
@@ -178,8 +178,7 @@ cached or retried, and request timeouts are explicit.
 
 `EXA_API_KEY` loads from the root `.env` as a masked secret. The adapter is used by
 opt-in chat; it does not create API place IDs or infer photo licensing.
-See [the delivery plan](../docs/AGENT_PLAN.md) for the next blocks and the owner
-agreements required before API persistence and route integration.
+The persisted handoff below implements the accepted shared contract.
 
 ## Source-grounded place discovery
 
@@ -226,7 +225,7 @@ feature words ignored) and a matching OSM type when an evidenced supported categ
 is supplied. Recognized tags are waterfall, peak, lake, castle, cathedral, church, village, town,
 city and resort. Recognized entity tags constrain jointly; secondary exact OSM
 attributes can support a feature when the primary category differs. Generic
-attractions are insufficient. See [landmark identity evidence](OSM_IDENTITIES.md). Unrecognized interests do not become OSM filters. For several matches,
+attractions are insufficient. See [identity invariants](#identity-and-session-invariants). Unrecognized interests do not become OSM filters. For several matches,
 discovery can reconsider the candidates within 25 km of an independently resolved
 point in the same request. It accepts only one remaining OSM identity, never the
 first/nearest/most important hit. Contextual choices do not become new anchors.
@@ -236,7 +235,7 @@ matches or insufficient context remain unresolved without partial ingestion.
 Issues #76/#77 bind exact requested targets and reject unverified source-led
 substitutions before handoff/cache acceptance. The internal descriptive-target
 roles remain model-interpreted and cannot authorize identity changes or cache acceptance.
-See [current evidence, limitations and #84 session proposal](IDENTITY_REVIEW.md).
+See [identity and session invariants](#identity-and-session-invariants).
 The opt-in `--include-identity` probe exposes target/resolution/OSM comparisons only
 in private JSON; default logs and public chat fields remain unchanged.
 
@@ -261,7 +260,7 @@ the user's language as agreed with Daniil in PR #28; UI labels remain English.
 
 ## Persisted route handoff
 
-The [accepted D1–D5 contract](../CLAUDE.md#accepted-sourced-place-and-route-handoff)
+The [accepted D1–D5 contract](../docs/API_CONTRACT.md#accepted-sourced-place-and-route-handoff)
 is published after both owner approvals in #34. `create_handoff(client, settings)`
 composes `RouteHandoff`; `await handoff.persist(discovery_result)` accepts only a
 complete resolved discovery. It ingests sourced places through the API, reuses
@@ -277,7 +276,7 @@ for display, and OSM attribution. Original discovery evidence is left intact.
 A complete 422 Problem Detail with `code: "no_hiking_route"` raises `NoHikingRoute`.
 Issue #49 adds `code: "waypoint_not_routable"` as a separate `WaypointNotRoutable`;
 it asks for coordinate verification or a different point without a radius retry or
-unsupported closure claim. See [routing evidence](../docs/ROUTING_DIAGNOSTICS.md).
+unsupported closure claim. See [routing evidence](../api/ROUTES.md#preserve-the-routing-conditions).
 Other failures raise safe `HandoffError`
 with an HTTP status of 502/503/504 and no remote body. Neither POST retries
 nor redirects are followed; lost responses/deadlines may leave saved data behind.
@@ -298,30 +297,52 @@ The Groq/Anthropic fixture suite and opt-in smoke runner are checked in agent CI
 In two same-input discoveries/chat
 requests, the three places require three resolution calls total, rather than six;
 history, canonical places and saved-route readback still pass. This is call-count
-evidence, not a measured live speedup. Live API/ORS, actual model language behavior,
-and the browser flow remain unverified.
+evidence, not a measured live speedup. Live API/ORS, model and browser results must be recorded per revision and environment.
 
-Before photos are enabled, agree the API/agent policy for incomplete attribution
-or invalid photo URLs. The current strict photo model rejects an invalid photo
-with the route; empty author/license or unsafe URLs must not silently become
-verified credits. This increment leaves that future policy unchanged.
+Legacy Photo validation rejects unsafe or incomplete records. The implemented
+landmark gallery uses a separate Java media endpoint with its own verified metadata
+contract; it does not populate legacy Route.segments or require agent photo work.
 
-## Discovery outcomes and probes (S3)
+## Identity and session invariants
 
-Missing endpoints now stop before research; findings expose internal reason/count
-metadata while the public chat response stays unchanged. The existing geocode and
-candidate-selection helpers remain compatible, with typed result variants used by
-discovery. See [discovery diagnostics](DISCOVERY_DIAGNOSTICS.md) for the read-only
-full probe, cold-cache isolation, shared Nominatim rate gate and reason meanings.
-The #65 review's cold Rysy/Štrbské Pleso observation still needs live reproduction;
-this diagnostic block does not loosen identity matching or claim that case fixed.
+Every target retains requested-name verification. The model's descriptiveTargets
+classification cannot authorize an identity change or positive cache promotion.
+Names/aliases and source-supported types must match; ambiguous identities clarify
+before ingestion. Exact OSM historic/building/water attributes can support feature
+types. St./Saint normalization is limited to church/cathedral names. Settlement
+boundaries require addresstype or exact place labels. A linked boundary/node pair
+needs matching Wikidata, names, types, coordinates and linked_place evidence.
 
-S4b adds exact OSM feature-attribute checks and narrow St./Saint normalization for
-religious building aliases. [Observed records, limits and live acceptance](OSM_IDENTITIES.md)
-explain the Castle/Cathedral correction and retained Štrbské Pleso ambiguity.
+A bounded nearby lookup can recover explicitly named places without usable Exa
+evidence or after ordinary selection failures. It uses exact names within 25 km of
+independently resolved anchors; road, parking and transport records are excluded.
+Distinct objects merge only with positive identity evidence such as a shared Wikidata
+item. Proximity alone is insufficient. Requested-identity rejections stay final.
+OSM-only findings retain the selected OSM object URL as source.
 
-Issue #69 adds city/town/village/hamlet evidence from settlement labels on
-administrative boundaries, with the same name/identity checks. Candidate v3 keeps
-`addresstype`; older serialized candidates cannot mask this field. When a normalized
-unresolved name cannot be echoed literally, chat identifies its start/end/stop role
-instead. See [settlement evidence and limits](OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles).
+A complete new request can discard a stop introduced in an earlier follow-up that
+never appeared in a built route. Model-normalized names are retained. See intent.py
+and test_followup_stops.py for the precise transition rules.
+
+A random-token Valkey lease encloses history/respond/save across workers. Contention
+returns 409 before provider work. Expiry fences stale session appends, and token-checked
+release cannot delete another owner's lease. Exchanges must be nonblank and at most
+4000 characters. Storage failure returns 503; timeout returns 504. Session fencing
+does not fence an already issued Java POST or provide cross-service rollback.
+
+## Popular places
+
+An incomplete city-tour request can enter select_explore_area and select_popular_places.
+Complete explicit routes retain the ordinary path. Candidate sights need independent
+identity verification and an independently resolved city anchor. The implementation
+selects at most five intermediate visits and builds a west-to-east walking itinerary;
+this ordering is a product rule, not route optimization. Too few resolved sights
+produce clarification without a saved route. Read popular.py and the discovery
+integration together when changing this behavior.
+
+## Tests and diagnostics
+
+Use the [live-test procedure](LIVE_TEST.md) for explicit provider/browser checks and
+[diagnostics](DIAGNOSTICS.md) for stage, cache and place-selection failures. Fixtures
+run without live keys. Historical acceptance counts and individual issue experiments
+remain in the merged PRs and Git history.
