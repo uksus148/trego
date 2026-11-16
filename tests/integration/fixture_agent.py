@@ -37,6 +37,9 @@ class FixtureTransport(httpx.AsyncBaseTransport):
                 incomplete = CORPUS["incompleteMessage"] in body["messages"][-1]["content"]
                 result = {"start": None, "end": None, "mustSee": [], "preferences": []} if incomplete else CORPUS["intent"]
                 result = {**result, "descriptiveTargets": []}
+            elif operation == "select_explore_area":
+                # The fixture corpus contains no popular-places tour requests.
+                result = {"area": None}
             elif operation == "resolve_place":
                 evidence = json.loads(body["messages"][-1]["content"])
                 name = evidence["sources"][0]["title"]

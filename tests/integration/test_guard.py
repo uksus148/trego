@@ -49,7 +49,7 @@ async def test_current_discovery_factory_accepts_fixture_protocol_without_live_r
             assert result.ready_for_handoff == (not incomplete)
             assert not any(call.startswith("api:") for call in module.CALLS)
             if incomplete:
-                assert module.CALLS == ["extract_route_intent"]
+                assert module.CALLS == ["extract_route_intent", "select_explore_area"]
             else:
                 findings = [result.start, *result.stops, result.end]
                 by_name = {p["name"]: (module.CORPUS["osmIds"][i], p["source"])

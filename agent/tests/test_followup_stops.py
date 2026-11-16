@@ -224,3 +224,12 @@ async def test_discovery_uses_the_nearby_lookup_after_a_type_mismatch_without_pr
     assert str(place.source.sourceUrl) == "https://www.openstreetmap.org/node/276645373"
     ttls = [await cache.ttl(key) for key in await cache.keys("gopstop:place-resolution:v3:*")]
     assert sorted(ttl > 300 for ttl in ttls) == [False, True, True]
+
+
+async def test_nearby_lookup_never_selects_a_transport_stop_named_like_the_sight(cache):
+    station = {**HOSTEL, "osm_type": "node", "osm_id": 5, "category": "railway", "type": "station", "name": "Trocadéro",
+               "display_name": "Trocadéro, Paris, France", "lat": "48.8630", "lon": "2.2873"}
+    paris = GeocodedPlace(osm_type="relation", osm_id=7444, display_name="Paris, France", lat=48.8566, lon=2.3522)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=[station]))) as client:
+        result = await NominatimGeocoder(client, cache, "Trails/1.0").geocode_nearby("Trocadéro", [paris])
+    assert result.location is None

@@ -17,8 +17,10 @@ MAX_PREFERENCES = 12
 class IntentClarificationRequired(Exception):
     """The caller should ask this question instead of reporting an outage."""
 
-    def __init__(self, question: str) -> None:
+    def __init__(self, question: str, places: list[str] | None = None) -> None:
         self.question = question
+        # Places an over-limit extraction named without both endpoints, in the user's order.
+        self.places = places or []
         super().__init__(question)
 
 
@@ -74,6 +76,21 @@ class RouteIntent(BaseModel):
 def _folded(text: str) -> str:
     plain = unicodedata.normalize("NFKD", text.casefold())
     return " ".join("".join(c for c in plain if not unicodedata.combining(c)).split())
+
+
+def requested_places(result: object) -> list[str]:
+    """Places of an over-limit extraction that may form a tour; none when both endpoints are set."""
+    if not isinstance(result, dict) or (result.get("start") and result.get("end")):
+        return []
+    stops = result.get("mustSee") if isinstance(result.get("mustSee"), list) else []
+    names = [result.get("start"), *stops, result.get("end")]
+    return list(dict.fromkeys(name.strip() for name in names if isinstance(name, str) and name.strip()))
+
+
+def named_in_message(places: list[str], message: str) -> bool:
+    """True when the user wrote every place, rather than the model suggesting them."""
+    text = _folded(message)
+    return bool(places) and all(_folded(place).removeprefix("the ") in text for place in places)
 
 
 def drop_stale_stops(intent: RouteIntent, message: str, history: list[Message]) -> RouteIntent:
@@ -163,7 +180,7 @@ class ClaudeIntentExtractor:
             if all(error["type"] == "too_long" and error["loc"] in questions for error in errors):
                 question = " ".join(questions[location] for location in questions
                                     if any(error["loc"] == location for error in errors))
-                raise IntentClarificationRequired(question) from None
+                raise IntentClarificationRequired(question, requested_places(result)) from None
             raise ProviderError("Intent extraction returned invalid data.", provider=self._tool_model.provider,
                                 operation="extract_route_intent", reason="schema_validation", validation=exc) from exc
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
