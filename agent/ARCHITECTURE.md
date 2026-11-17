@@ -25,9 +25,41 @@ including failures; it does not mean infallible language understanding.
   accepted HTTP/identity/unit/error contracts until that agreement exists.
 
 Covered together: product responsibilities, the broad pipeline and provider roles.
-Next: inspect one request's actual values in the local lab, then understand the
-endpoint/stop handoff and reproduce one failure before changing the implementation.
+Current learning step: distinguish product goals, accepted contracts, current
+implementation choices and deferred ideas. Next: turn goals into a few observable
+conversation scenarios, then discuss the new core's data and actions before coding.
 Explain each stage's input, output and failure behavior before replacing it.
+
+### Requirements for the replacement
+
+Product goal: help a visitor plan a sourced walking trip through intended places,
+including city sightseeing and outdoor trips. Historical hackathon deadlines and
+vendor-credit choices explain the old design; they are not the definition of a
+correct user result. Replacing a provider still must satisfy accepted contracts.
+
+The first replacement must preserve these observable behaviors:
+
+- Named route: keep requested start/end and ordered/repeated stops; attach evidence
+  to verified places and use Java's canonical records before routing.
+- Conversation: add/remove/correct a stop, answer a pending question, or start an
+  unrelated plan without leaking stale places. Preserve unfinished intent as well
+  as the last saved route. The state representation is new work, not delivered code.
+- Uncertainty: ask a specific question for missing/ambiguous targets; never silently
+  replace a city with a sight or an airport with its city. Provider outages remain
+  errors rather than invented locations or claims that a place does not exist.
+- City tour: retain evidence-backed sight suggestions as a separate supported
+  scenario. Existing west-to-east ordering is a baseline to compare, not optimal routing.
+- Completion: factual localized reply, correct saved-route ID/metrics when real Java
+  is used, clear simulation labels in the lab, and no false success after failure.
+- Developer control: one local launcher, explicit module/provider/key choices,
+  inspectable stage inputs/outputs, bounded time/calls and private safe diagnostics.
+
+Baseline examples: a direct named walk; that walk plus a repeated stop; an airport
+request followed by destination clarification; a fresh unrelated request; a city
+tour; an ambiguous same-name place; and a provider failure. For each, write the
+expected action, retained state and whether any Java write is allowed before coding.
+Record fixture/live mode; fixed numeric performance/cost targets need measurements.
+Preferences are user wishes, not evidence that today's router optimizes scenery.
 
 ## Implemented request flow
 
@@ -149,29 +181,33 @@ See [VERIFY.md](VERIFY.md) for commands and evidence limits.
 
 ## Replacement direction and sequence
 
-**Proposed direction:** build a small understandable core in an isolated branch,
-replace one boundary at a time, and integrate through small reviewed PRs. Keep the
-current service available for comparison. Do not delete safeguards because their
-implementation looks complicated; first establish which requirement they protect.
+**Working direction:** write a new small core in `refactor/agent-v2`, starting with
+explicit data, conversation decisions and stage orchestration. The old implementation
+is a behavioral reference, not the structure to copy. Reuse verified provider clients,
+identity checks, Java handoff and storage protection when suitable; rework them only
+with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-1. Understand the baseline. Walk through one success and one clarification; identify
-   original target, evidence, OSM ID, canonical UUID and route request. Done when the
-   owner can explain the values and responsibilities without generated commentary.
-2. Make the local lab reproducible. Review/migrate the existing uncommitted lab work
-   separately. One launcher, personal key controls, fixtures, simulated Java, stage
-   input/output and explicit WARNING/ERROR. No production entrypoint or shared dotenv.
-3. Fix the smallest proven conversation defect. Capture a failing multi-turn case;
-   introduce explicit draft/saved state with tests for new requests and stale stops.
-   Preserve wire shape, lease ownership, TTL and atomic exchange semantics.
-4. Simplify discovery behind stable data types. Separate orchestration, provider
-   adapters and deterministic verification. Preserve source/OSM identity, repetitions,
-   deadlines and cache acceptance; compare old/new behavior on the same offline corpus.
-5. Integrate the new core behind the existing chat/handoff boundary. Keep one clear
-   rollback path; retire old modules only after references/tests prove replacement.
-   Share real Java/browser acceptance with teammates when their services are available.
-6. Add capabilities individually after baseline acceptance. Evaluate alternative
-   research/geocoding services, then separately agreed product features. Measure
-   identities, ambiguity, sources, latency, calls and cost instead of counting tests.
+1. Goals and requirements (current). Explain the product, ownership and baseline
+   examples above. Separate mandatory compatibility from implementation choices and
+   later features. Done when each example has an expected observable outcome.
+2. Contracts. Trace message -> intended target -> evidence -> OSM identity -> Java
+   UUID -> saved route. Explain input/output/failure at every boundary and which
+   actions can save data. Keep public shapes and Java ownership unchanged.
+3. Architecture discussion. Define draft versus saved state, clarification versus
+   failure, and application actions versus model suggestions. Choose the smallest
+   useful responsibility split and stage data; no speculative framework/scaffolding.
+4. Local proof. Review/migrate the existing lab separately; one launcher, personal
+   keys, fixtures, simulated Java and stage inspection. Capture the airport/context
+   failure on a pinned version before deciding exactly what state correction is needed.
+5. First new-core slice. Implement one named-route conversation through the existing
+   adapters and lab, including missing endpoint and follow-up. Use explicit state,
+   meaningful regression tests, bounded calls and the existing write safeguards.
+6. Expand and compare. Add stop edits, fresh plans, ambiguity and city tours, then
+   compare old/new identities, sources, order, failure behavior and measured cost/time.
+   Retire old modules only after proving their responsibilities are replaced.
+7. Integrate and improve. Move accepted slices into main with a rollback path; arrange
+   real Java/browser acceptance with teammates. Evaluate providers and separately
+   approved capabilities after baseline acceptance, without coupling them to the rewrite.
 
 Aim for several focused days: understanding/lab, one state fix, then one discovery
 slice and comparison. This is a work order, not a promise of a complete rewrite in
@@ -225,7 +261,7 @@ Reuse the current package, tests and verified client/identity behavior where use
 Choose file names when implementing the first slice. Avoid a second production
 service, speculative frameworks, new dependencies or duplicated routing logic.
 
-### First implementation slice
+### Next technical slice, after requirements and architecture
 
 1. Review the existing local lab diff against this branch. Move only the launcher,
    development UI/key controls and inspection boundary needed for a reproducible
