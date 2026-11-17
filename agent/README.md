@@ -1,327 +1,70 @@
-# trego. Agent
+# trego. AI agent
 
-The [optional route-availability research core](AVAILABILITY.md) implements the
-internal agent slice of #54's plan. It is not connected to HTTP chat/startup;
-public source/date delivery and activation remain owner decisions.
+Python understands a walking request, finds and verifies places, and asks Java to
+save them and calculate a route. Java owns routing and PostgreSQL; the frontend
+owns the map. A model response alone never proves that a place or route is correct.
 
-The FastAPI `POST /api/chat` endpoint composes discovery, persisted route handoff,
-language-aware replies, and Valkey history. Orchestration is opt-in and fixture-tested;
-the default remains the baseline placeholder until the live prerequisites below pass.
+<a id="source-grounded-place-discovery"></a>
 
-## Run locally
+## Read and work here
 
-From this directory, create and activate a virtual environment, then install the service and test dependencies:
+1. [ARCHITECTURE.md](ARCHITECTURE.md): responsibilities, data flow, safeguards,
+   open questions and the replacement plan. This is our single working notebook.
+2. [VERIFY.md](VERIFY.md): checks without team keys, provider probes, diagnostics
+   and the limits of each kind of evidence.
+3. [Accepted handoff](../docs/AGENT_API_HANDOFF.md) and [root decisions](../CLAUDE.md):
+   authoritative shared contracts. The notebook cannot override them.
 
-```sh
-python -m venv .venv
-. .venv/bin/activate
-pip install -e '.[test]'
+The [availability core](AVAILABILITY.md) is implemented internally but disconnected
+from chat/startup. Older agent guide paths are short compatibility links; their
+superseded reports remain in Git history. Do not add another report for each task.
+
+## Install and run the existing service
+
+Python 3.11+ is required; CI uses 3.12. From `agent/`:
+
+```powershell
+uv sync --frozen --extra test
+uv run --frozen uvicorn gopstop_agent.main:app --app-dir src --host 127.0.0.1 --port 8000 --log-config logging.json
 ```
 
-For reproducible installs with uv, run `uv sync --frozen --extra test` instead;
-`uv.lock` is committed alongside `pyproject.toml`.
+Without uv, use `python -m venv .venv`, then
+`.venv\Scripts\python.exe -m pip install -e ".[test]"` on Windows. Run commands
+through that environment's Python. Prefer uv's frozen lock for reproducibility.
 
-Settings load from the repository root `.env` and process environment. Set `AGENT_VALKEY_URL` to a Redis-compatible Valkey URL; when it is unset, the service also accepts the shared `SPRING_DATA_REDIS_URL` variable. The default is `redis://localhost:6379/0`. `AGENT_SESSION_TTL_SECONDS` defaults to 86400 (one day), and `AGENT_SESSION_MAX_MESSAGES` defaults to 200 messages per session (must be even so history is retained in complete user/assistant exchanges). Start the API with:
+Settings read the private repository-root `.env` and process environment. See
+[.env.example](../.env.example) and [config.py](src/gopstop_agent/config.py).
+Do not publish keys or point experiments at team storage by accident.
 
-```sh
-uvicorn gopstop_agent.main:app --reload --log-config logging.json
-```
+- `AGENT_CHAT_ENABLED=false` is the default: it saves an exchange and returns a
+  placeholder, rather than researching places. Storage is still required.
+- Enabled chat needs `EXA_API_KEY`, the selected model key and Valkey. Explicitly
+  set `AGENT_LLM_PROVIDER=groq` and `GROQ_API_KEY`, or `anthropic` and
+  `ANTHROPIC_API_KEY`; the source default is Anthropic, the example selects Groq.
+- Groq's allowlist is `openai/gpt-oss-20b`, `openai/gpt-oss-120b` and
+  `qwen/qwen3.8-27b`. Choose with `AGENT_GROQ_MODEL`; compare profiles separately.
+  Anthropic uses `AGENT_ANTHROPIC_MODEL`. Configuration is not a live access check.
+- `AGENT_VALKEY_URL` falls back to `SPRING_DATA_REDIS_URL`, then local port 6379.
+  `AGENT_API_BASE_URL` defaults to `http://localhost:8080` for real Java handoff.
+- Nominatim uses `AGENT_NOMINATIM_BASE_URL` and an identifying
+  `AGENT_NOMINATIM_USER_AGENT`; the configured public endpoint needs no API key.
+- Browser CORS defaults to `http://localhost:5173`. Set `AGENT_CORS_ORIGINS` to
+  a JSON list containing the frontend's actual origin, then restart the agent.
 
-Browser calls are allowed from `http://localhost:5173` by default. Set
-`AGENT_CORS_ORIGINS` to a JSON list of frontend origins for deployment, for example
-`["https://trego.example.org"]`. Only POST and the Content-Type request header are
-allowed. Valkey connection and read/write timeouts default to two seconds each;
-configure `AGENT_VALKEY_CONNECT_TIMEOUT_SECONDS` and
-`AGENT_VALKEY_SOCKET_TIMEOUT_SECONDS` to change them. Timeouts return the same 503
-as connection failures. These settings are listed in the root `.env.example`.
+Follow [verification](VERIFY.md) before enabling real chat. Startup validates
+configuration, not provider access, API migrations or route correctness.
+The local Agent Lab exists in separate, uncommitted development work; its launcher
+and payload inspector are not included in this documentation-only change.
 
-Managed Valkey connections use TCP keepalive and
-`AGENT_VALKEY_HEALTH_CHECK_INTERVAL_SECONDS=15` (positive, at most 300).
-The interval is an idle threshold for a PING before use, not a background heartbeat.
-The pool validates/probes a connection before giving it to a command or transaction.
-One failed pre-command connection check may reconnect and try again; authentication
-failures propagate immediately. Each attempt retains the existing connect/socket
-timeouts, and the outer chat/discovery deadlines include this work.
+## Stable boundary
 
-Application command retries remain **zero**. A lost response to RPUSH/EXEC, SET NX
-or EVAL must not replay a write, append the exchange twice or repeat provider/API
-work. Actual outages still return 503; cancellation/total chat expiry can return
-504. A socket can still fail after its check, so failed requests may leave committed
-data. The factory retains redis-py's URL parsing, TLS verification and owned-pool
-cleanup; caller-injected clients retain their original configuration/ownership.
-See [the #58 idle check](../docs/INTEGRATION_RUNBOOK.md#issue-58-idle-valkey-check).
+`POST /api/chat` accepts only `{sessionId, message}`: nonblank strings, at most
+128 and 4000 characters respectively. It returns `{reply, places, routeId?}`.
+Only a validated saved-route readback permits `routeId`. Clarification has no
+route ID. Unknown fields/invalid input return 422; overlapping turns in one
+session return 409; dependency failures 502; cache/storage failures 503;
+deadlines 504. Never replay an uncertain write automatically.
 
-If port 5173 is busy, Vite may start the frontend on 5174. Check the URL printed
-by Vite and add that exact origin to `AGENT_CORS_ORIGINS` in the root `.env`, for
-example `AGENT_CORS_ORIGINS=["http://localhost:5173","http://localhost:5174"]`.
-Restart the agent after changing this setting so the browser preflight succeeds.
-
-## Chat contract
-
-```http
-POST /api/chat
-Content-Type: application/json
-
-{"sessionId":"demo-session","message":"Plan a walk from Bratislava Castle to St. Martin's Cathedral in Bratislava."}
-```
-
-The response follows `{reply, places:[Place], routeId?}`. Only a validated,
-fetchable saved route supplies routeId; clarification has empty places and no ID.
-Invalid payloads return FastAPI's `422`. Storage failures return `503` without
-claiming the exchange was saved.
-
-Run automated tests with `pytest`.
-
-## Enable orchestration after integration preflight
-
-E1/E2 merged in #45/#43. Keep `AGENT_CHAT_ENABLED=false` until this provider PR is
-reviewed/merged and E4 confirms the selected model, keys and service connectivity.
-Follow [the executable Groq preflight and HTTP end-to-end guide](LIVE_TEST.md),
-then enable chat for E3/E5. This PR's tests do not certify the team's live credentials.
-The manual place handler is not a research fallback or capability probe.
-See the [shared runbook](../docs/INTEGRATION_RUNBOOK.md) for the remaining gates.
-
-Enabled startup checks the selected LLM/Exa keys and model ID are nonblank; it makes
-no provider requests and cannot prove account/model availability. Managed HTTP and
-Valkey clients close on shutdown or failed startup. `create_app` accepts injected
-clients/service for fixtures; the caller retains ownership of injected resources.
-
-Chat loads the latest six exchanges and selects a supported reply language before
-discovery. It clarifies incomplete/excessive intent or calls the route handoff,
-renders the known result locally, then stores the exchange before 200. See S2 below.
-Verified no-path and unmatched-waypoint results produce distinct normal clarifications
-under issue #49's accepted extension, merged in #54. Neither identifies a closure,
-season or difficulty as its cause. Provider/invalid-response failures return 502, storage/cache failures 503, and deadlines 504, with safe detail.
-Failed requests do not record success; already committed API data may survive
-reply/storage failure or cancellation. Never automatically retry uncertain POSTs.
-
-`AGENT_CHAT_TIMEOUT_SECONDS` defaults to 180 (maximum 300) and covers history,
-language classification, discovery, handoff, local reply rendering and session storage. Existing shorter stage
-limits still apply. `logging.json` enables stage elapsed time/outcome logs with a
-random request trace and hashed session label, without message text, keys or raw
-session IDs. [Provider diagnostics](DIAGNOSTICS.md) explains safe status/code/schema
-metadata, cache events, queue/quota timing and the read-only cold resolution probe.
-These are internal diagnostics, not new public response fields.
-
-## Factual localized replies (S2)
-
-The enabled factory selects language before discovery through a dedicated structured
-`select_reply_language` task, using only current and previous user messages (six
-maximum). Assistant messages may contain the #60 error and are not used. Place names,
-URLs and quoted text are not evidence of the user's conversational language. A place/
-link-only follow-up inherits the previous substantive user language. This is model
-classification, not a guaranteed language detector; verify mixed-name and follow-up
-cases live. Unknown/unsupported language returns a selection question before discovery.
-
-`FactualReplyWriter` renders English/Russian/Slovak/Finnish catalogs for every current
-outcome. It uses canonical persisted visit names in order (including repeats) and
-readback metrics rounded to one decimal km (without redundant .0), integer ascent and
-hours/minutes matching the route summary. No directions,
-closure explanations or preference-based track changes are generated. No LLM call
-runs after route handoff; the existing session-save step still follows rendering.
-The old `ClaudeReplyWriter` remains an unwired compatibility adapter; enabled chat
-and preflight no longer use it. Preflight replaces `llm_reply` with `reply_language`.
-The language call replaces the former reply-generation call, under the total chat
-deadline and shared quota gate. It is outside discovery's shorter timeout.
-
-## Intent extraction
-
-`ClaudeIntentExtractor` validates tool use through shared `ToolModel` and the internal
-`{start, end, mustSee[], preferences[], descriptiveTargets[]}` result. The last
-field references existing target roles (`start`, `end`, `stop:1` through `stop:5`) before research; it defaults to [].
-It is advisory: no classification can waive identity verification. Unbound descriptions
-require an explicit place name through the existing no-write clarification. It accepts recent session history,
-keeps unknown endpoints null, and never asks the model for coordinates. The
-adapter is connected through opt-in chat. Tests use HTTP fixtures, never live providers.
-
-Blank endpoints become null; blank mustSee/preference items are removed before validation.
-If the result still exceeds five intermediate stops or twelve preferences,
-`extract()` raises `IntentClarificationRequired` with a user-facing `question`.
-Chat phrases that question as a normal reply rather than reporting a provider
-outage; valid stops are not silently discarded. Transport, HTTP, and malformed
-responses remain `ProviderError`; typed `ProviderTimeout` maps to 504.
-
-Set `AGENT_LLM_PROVIDER=groq`, `GROQ_API_KEY` and `AGENT_GROQ_MODEL` for Groq.
-Groq supports the two explicit profiles `openai/gpt-oss-20b` and `openai/gpt-oss-120b`
-through `response_format: json_schema` with `strict: true`; unknown model IDs fail
-configuration validation. No tool definitions or tool_choice are sent to Groq.
-`StructuredRequest` describes extraction, and the shared `StructuredModel` retains
-`ToolModel` as a compatibility alias for task constructors. Anthropic keeps tool use.
-
-The wire schema closes every object, requires every property and preserves nullable
-endpoints. String/numeric/list business bounds remain in Pydantic, not constrained
-sampling: over-limit intent must ask for clarification rather than drop requested stops.
-The `jsonschema` dependency validates returned JSON against this wire shape before
-Pydantic applies business bounds/source binding. A structurally valid result is not
-proof of factual correctness. Refusal, truncation, bad content and schema errors fail
-safely without fallback, repair or retry. See [live checks](LIVE_TEST.md#verify-strict-extraction-s1).
-
-Only the selected provider key is required. Anthropic retains its existing settings;
-historical `Claude*` class names remain compatible while transport selects the provider.
-Each network request has a 20-second timeout by default;
-its `timeout_seconds` argument overrides the supplied HTTP client's timeouts.
-`AGENT_PROVIDER_TIMEOUT_SECONDS` supplies the setting for chat adapters.
-No automatic paid retries are performed. Live account/model availability has not
-been verified.
-
-## Exa research adapter
-
-`ExaSearch` provides internal text evidence as `{title, sourceUrl, text}`. It keeps
-up to three results, preserves source URLs, and caches successful responses,
-including empty results, in Valkey for 24 hours. Cache keys hash the full search
-request. Missing titles fall back to the source URL; missing text becomes empty.
-Mixed responses keep the valid sources; a non-empty response with no usable
-source is a provider error. Corrupt cache entries are refreshed. A failed cache
-read stops before Exa. A failed cache write propagates after Exa has already
-consumed credits; the adapter does not retry the call. Provider errors are not
-cached or retried, and request timeouts are explicit.
-
-`EXA_API_KEY` loads from the root `.env` as a masked secret. The adapter is used by
-opt-in chat; it does not create API place IDs or infer photo licensing.
-See [the delivery plan](../docs/AGENT_PLAN.md) for the next blocks and the owner
-agreements required before API persistence and route integration.
-
-## Source-grounded place discovery
-
-`create_discovery(client, cache, settings)` builds `PlaceDiscovery` using the root
-settings and validates the selected LLM/Exa keys when explicitly enabled by a caller.
-`await discovery.discover(message, history)` runs intent, Exa, Claude place
-resolution, and Nominatim as one bounded internal pipeline. The default total
-deadline is 60 seconds (`AGENT_DISCOVERY_TIMEOUT_SECONDS`); provider timeouts use
-`AGENT_PROVIDER_TIMEOUT_SECONDS`. Tests do not call live providers.
-
-The result retains start/end findings, ordered stops, all research sources, and
-the selected source with each uniquely geocoded place. `unresolved` and
-`missing_endpoints` support clarification; `ready_for_handoff` is false while any
-required location is missing. Repeated targets reuse work without removing visits.
-`IntentClarificationRequired` propagates before research for over-limit intent.
-Up to three unique candidate chains run concurrently, retaining requested order;
-all unfinished chains are cancelled and joined on failure or cancellation.
-
-`CachedPlaceResolver` wraps resolution in the production discovery factory. v3 hashes
-provider, effective request and local validation schema; old v1/v2 keys are ignored
-without deletion. Every new result, including null, starts with a five-minute TTL.
-Only after final geocoding/context selection succeeds does discovery atomically
-promote the exact matching resolution to 24 hours. A later failed selection demotes
-an accepted entry to at most five minutes, preserving a shorter remaining TTL.
-Repeated hits and repeated accepted/rejected feedback do not extend lifetime.
-Compare-and-update Lua prevents feedback for an older concurrent value from changing
-its replacement. Expired keys are not recreated by feedback. Failure/cancellation
-before final selection leaves new entries provisional; dependency outages do not
-become negative geographic evidence. Any cache/feedback failure propagates before
-API ingestion, without a paid retry. Context is recomputed on every discovery.
-Standalone `resolve()` callers do not obtain the long TTL without selection feedback.
-Concurrent misses may still make duplicate model calls; there is no single-flight guarantee.
-
-No new configuration is needed; it uses the existing Valkey client and deadlines.
-
-Nominatim requests use up to eight candidates and include OSM name aliases and extra feature attributes. The
-resolver asks for an evidenced canonical name and country, omitting broad mountain
-regions. An empty `name, region, country` search can make one distinct
-`name, country` search; HTTP errors and ambiguous results do not trigger fallback.
-Both searches share one provider deadline and the existing distributed request gate.
-
-Selection requires a matching name/alias (case/diacritics normalized, generic English
-feature words ignored) and a matching OSM type when an evidenced supported category
-is supplied. Recognized tags are waterfall, peak, lake, castle, cathedral, church, village, town,
-city and resort. Recognized entity tags constrain jointly; secondary exact OSM
-attributes can support a feature when the primary category differs. Generic
-attractions are insufficient. See [landmark identity evidence](OSM_IDENTITIES.md). Unrecognized interests do not become OSM filters. For several matches,
-discovery can reconsider the candidates within 25 km of an independently resolved
-point in the same request. It accepts only one remaining OSM identity, never the
-first/nearest/most important hit. Contextual choices do not become new anchors.
-This is a conservative ambiguity filter, not a route-distance limit; several local
-matches or insufficient context remain unresolved without partial ingestion.
-
-Issues #76/#77 bind exact requested targets and reject unverified source-led
-substitutions before handoff/cache acceptance. The internal descriptive-target
-roles remain model-interpreted and cannot authorize identity changes or cache acceptance.
-See [current evidence, limitations and #84 session proposal](IDENTITY_REVIEW.md).
-The opt-in `--include-identity` probe exposes target/resolution/OSM comparisons only
-in private JSON; default logs and public chat fields remain unchanged.
-
-`gopstop:nominatim:search:v3` caches validated candidate arrays for 24 hours, or an
-empty array for five minutes. Selection is recomputed from name/tags/context, so an
-ambiguous decision is not frozen as null. Cache identity includes host, exact query
-and search options; hits do not refresh TTL. Old v1/v2 entries are ignored
-without clearing shared data. A shared Valkey token gate holds through each request and for one second after it
-finishes, including errors. Waiting has a deadline; ownership checks prevent an
-expired worker from changing another's gate. Set `AGENT_NOMINATIM_USER_AGENT` to
-identify the team; `AGENT_NOMINATIM_BASE_URL` can select a hosted service. Display
-the returned OSM attribution when using these coordinates.
-
-Pytest clears ambient service settings and disables dotenv loading before collection;
-tests opt into explicit fixture settings. A developer's enabled root `.env` must not
-select live providers during the fixture suite. This does not change application startup.
-
-This is an internal result, not an API `Place`: it has OSM type/ID and source
-evidence, but no persisted UUID or routeId. Enabled startup composes the factory;
-researched ingestion and live integration remain prerequisites. Chat replies use
-the user's language as agreed with Daniil in PR #28; UI labels remain English.
-
-## Persisted route handoff
-
-The [accepted D1–D5 contract](../CLAUDE.md#accepted-sourced-place-and-route-handoff)
-is published after both owner approvals in #34. `create_handoff(client, settings)`
-composes `RouteHandoff`; `await handoff.persist(discovery_result)` accepts only a
-complete resolved discovery. It ingests sourced places through the API, reuses
-OSM type/ID writes within the operation, and uses the authoritative UUIDs and
-coordinates returned by the API. It never invents IDs or drops repeated visits.
-
-The route POST contains only intermediate UUIDs in visit order. The result is
-validated as a full Route and then fetched by ID; mismatched IDs/stops, malformed
-geometry, invalid units/coordinates, or a failed readback produce an error.
-`HandoffResult` holds the saved route, persisted place records deduplicated only
-for display, and OSM attribution. Original discovery evidence is left intact.
-
-A complete 422 Problem Detail with `code: "no_hiking_route"` raises `NoHikingRoute`.
-Issue #49 adds `code: "waypoint_not_routable"` as a separate `WaypointNotRoutable`;
-it asks for coordinate verification or a different point without a radius retry or
-unsupported closure claim. See [routing evidence](../docs/ROUTING_DIAGNOSTICS.md).
-Other failures raise safe `HandoffError`
-with an HTTP status of 502/503/504 and no remote body. Neither POST retries
-nor redirects are followed; lost responses/deadlines may leave saved data behind.
-There is no cross-service rollback or generated fallback route.
-
-Root settings: `AGENT_API_BASE_URL` defaults to `http://localhost:8080`;
-`AGENT_API_TIMEOUT_SECONDS` defaults to 20 seconds per API call and
-`AGENT_HANDOFF_TIMEOUT_SECONDS` to 60 seconds for ingestion/create/readback together.
-This internal deadline runs within the total chat deadline described above.
-
-The factory is composed by opt-in chat. Routes/cache merged in #39/#41 and researched
-ingestion in #45; deploy that API/V3 before use. This client is not a capability probe.
-Tests use HTTP fixtures, including repeats,
-direct hikes, first-write replay, incomplete intent, provider/storage failures,
-malformed responses, possible partial writes, and cancellation. HTTP chat tests
-cover language/history, saved-route publication, failures, and every deadline stage.
-The Groq/Anthropic fixture suite and opt-in smoke runner are checked in agent CI.
-In two same-input discoveries/chat
-requests, the three places require three resolution calls total, rather than six;
-history, canonical places and saved-route readback still pass. This is call-count
-evidence, not a measured live speedup. Live API/ORS, actual model language behavior,
-and the browser flow remain unverified.
-
-Before photos are enabled, agree the API/agent policy for incomplete attribution
-or invalid photo URLs. The current strict photo model rejects an invalid photo
-with the route; empty author/license or unsafe URLs must not silently become
-verified credits. This increment leaves that future policy unchanged.
-
-## Discovery outcomes and probes (S3)
-
-Missing endpoints now stop before research; findings expose internal reason/count
-metadata while the public chat response stays unchanged. The existing geocode and
-candidate-selection helpers remain compatible, with typed result variants used by
-discovery. See [discovery diagnostics](DISCOVERY_DIAGNOSTICS.md) for the read-only
-full probe, cold-cache isolation, shared Nominatim rate gate and reason meanings.
-The #65 review's cold Rysy/Štrbské Pleso observation still needs live reproduction;
-this diagnostic block does not loosen identity matching or claim that case fixed.
-
-S4b adds exact OSM feature-attribute checks and narrow St./Saint normalization for
-religious building aliases. [Observed records, limits and live acceptance](OSM_IDENTITIES.md)
-explain the Castle/Cathedral correction and retained Štrbské Pleso ambiguity.
-
-Issue #69 adds city/town/village/hamlet evidence from settlement labels on
-administrative boundaries, with the same name/identity checks. Candidate v3 keeps
-`addresstype`; older serialized candidates cannot mask this field. When a normalized
-unresolved name cannot be echoed literally, chat identifies its start/end/stop role
-instead. See [settlement evidence and limits](OSM_IDENTITIES.md#issue-69-settlement-boundaries-and-unresolved-roles).
+Current routing is walking. Preferences do not change ORS geometry. Cycling,
+transit, day planning, embeddings and uploads are deferred; public availability
+research also needs owner agreement. Local simulation cannot certify any of them.
