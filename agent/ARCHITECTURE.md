@@ -24,11 +24,12 @@ including failures; it does not mean infallible language understanding.
 - Shared changes need affected-owner agreement; an internal rewrite preserves the
   accepted HTTP/identity/unit/error contracts until that agreement exists.
 
-Covered together: product responsibilities, the broad pipeline and provider roles.
-Current learning step: distinguish product goals, accepted contracts, current
-implementation choices and deferred ideas. Next: turn goals into a few observable
-conversation scenarios, then discuss the new core's data and actions before coding.
-Explain each stage's input, output and failure behavior before replacing it.
+Covered together: product responsibilities, the broad pipeline, provider roles and
+the accepted request/handoff boundary. The owner now wants implementation-led
+learning: build, inspect and explain one working increment at a time.
+Current task: step 1 of the implementation plan below, the isolated core foundation.
+No new core code is implemented yet. Update this position after a step is checked;
+do not mark a topic understood or a capability delivered merely because it was described.
 
 ### Requirements for the replacement
 
@@ -187,31 +188,131 @@ is a behavioral reference, not the structure to copy. Reuse verified provider cl
 identity checks, Java handoff and storage protection when suitable; rework them only
 with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-1. Goals and requirements (current). Explain the product, ownership and baseline
-   examples above. Separate mandatory compatibility from implementation choices and
-   later features. Done when each example has an expected observable outcome.
-2. Contracts. Trace message -> intended target -> evidence -> OSM identity -> Java
-   UUID -> saved route. Explain input/output/failure at every boundary and which
-   actions can save data. Keep public shapes and Java ownership unchanged.
-3. Architecture discussion. Define draft versus saved state, clarification versus
-   failure, and application actions versus model suggestions. Choose the smallest
-   useful responsibility split and stage data; no speculative framework/scaffolding.
-4. Local proof. Review/migrate the existing lab separately; one launcher, personal
-   keys, fixtures, simulated Java and stage inspection. Capture the airport/context
-   failure on a pinned version before deciding exactly what state correction is needed.
-5. First new-core slice. Implement one named-route conversation through the existing
-   adapters and lab, including missing endpoint and follow-up. Use explicit state,
-   meaningful regression tests, bounded calls and the existing write safeguards.
-6. Expand and compare. Add stop edits, fresh plans, ambiguity and city tours, then
-   compare old/new identities, sources, order, failure behavior and measured cost/time.
-   Retire old modules only after proving their responsibilities are replaced.
-7. Integrate and improve. Move accepted slices into main with a rollback path; arrange
-   real Java/browser acceptance with teammates. Evaluate providers and separately
-   approved capabilities after baseline acceptance, without coupling them to the rewrite.
+All steps below are planned. Each ends with something runnable, a focused behavior
+check and a short explanation from actual input/output. Use synthetic providers
+first; own-key checks are deliberate and optional when quota is available. Missing
+team services must not block core development. Run tests relevant to each change;
+local simulation never substitutes for final real-service acceptance.
 
-Aim for several focused days: understanding/lab, one state fix, then one discovery
-slice and comparison. This is a work order, not a promise of a complete rewrite in
-that time. If a step is larger than one reviewable change, split it before proceeding.
+1. **Foundation and main entrypoint.** Start the new internal `gopstop_agent/v2/`
+   package alongside the old implementation. Add only the request/result data and
+   executable behavior needed now. `main.py` assembles a FastAPI app and dependencies;
+   settings arrive explicitly; a thin handler delegates to the core. Define safe
+   trace IDs, stage timing and error outcomes from the start. No automatic root-dotenv
+   loading in lab mode, provider calls or new production activation.
+   Learn: entrypoint, configuration, request/response and dependency injection
+   (supplying a component instead of constructing it inside business code).
+   Check: the local app starts/stops, validates the existing chat envelope and can
+   run an explicitly labelled fixture turn without contacting external services.
+
+2. **Minimal local lab for the new core.** Review and reuse only the necessary parts
+   of the existing uncommitted launcher/UI/key controls. Attach the new app, stage
+   inputs/outputs and fixture scenarios; keep Java simulated. Loopback-only launch,
+   personal key controls, opt-in private payload inspection, redaction and bounded
+   capture are part of this slice. INFO/WARNING/ERROR must distinguish normal work,
+   recoverable conditions and failed stages. Do not copy the dirty tree wholesale.
+   Learn: how to reproduce a run and find the first wrong value.
+   Check: one launcher opens the lab; fixture success, clarification and failure
+   are distinguishable; reset/shutdown and unexpected-network blocking work.
+
+3. **LLM connection.** Introduce the small structured-model interface when first used;
+   inspect/reuse a suitable existing transport behind it. Start with one selected
+   Groq profile and a fake model, keeping prompt/task logic outside the HTTP adapter.
+   Validate JSON shape and application rules; handle invalid output, refusal,
+   access/quota errors, timeout and cancellation without hidden provider fallback.
+   Account for every call/wait in the deadline; preserve the documented bounded
+   replay policy only if the reviewed adapter is reused unchanged.
+   Learn: model request, structured response, validation and provider error.
+   Check: fixtures cover malformed output, timeout and quota; an optional own-key
+   extraction is inspectable without Java, research or geographic calls.
+
+4. **Understand one message.** Define validated proposed actions such as a new
+   route, stop edit or answer to a question, with the needed endpoint/stop fields.
+   Retain original wording/qualifiers alongside normalized names; unknown values
+   stay unknown. Model suggestions cannot authorize writes or identity changes.
+   Start with a named walk and missing endpoint, adding action types only as used.
+   Learn: a user's intention versus a verified geographic fact.
+   Check: named route, incomplete request and excessive/invalid output have explicit
+   results, with no coordinates invented and no Java writes.
+
+5. **Conversation and decisions.** Implement explicit draft plan, pending question
+   and last saved route; apply validated actions deterministically. Start with
+   isolated in-memory lab storage and introduce a storage boundary when it is needed.
+   Distinguish new plan, clarification answer, correction and abandoned plan.
+   Ask for missing data rather than guessing; do not parse assistant prose as state.
+   Learn: state before/after a turn and why history alone is insufficient.
+   Check: airport qualifier survives destination clarification; add/remove/repeat
+   stops work; an unrelated request clears stale context; sessions remain isolated.
+   Capture the existing airport report on a pinned version before claiming its cause fixed.
+
+6. **Research and sources.** Add a research adapter, initially Exa, returning
+   application-owned title/URL/text evidence. Separate query construction from
+   network access, keep sources bound to results, and preserve bounded/cancellable
+   work. Decide explicitly when a task needs research; a model suggestion or a
+   search result is not a confirmed coordinate or proof of image rights.
+   Learn: evidence, provenance and the difference between no results and an outage.
+   Check: fixtures exercise empty/mixed/invalid sources and dependency failures;
+   optional own-key research shows which source supports each proposed place.
+
+7. **Geocoding and identity.** Add the geocoding adapter, initially Nominatim, and
+   use/rework deterministic selection behind the new data types. Preserve original
+   target, evidenced name, OSM type/ID, aliases, feature/context checks, ambiguity,
+   attribution and public-provider request gating. Neither LLM classification nor
+   provider choice can disable validation. Any nearby lookup has explicit bounds.
+   Learn: coordinates versus entity identity; why a city and its castle differ.
+   Check: city substitution, airport qualifier, genuine aliases, same-name places,
+   empty identity proof and cache acceptance controls; ambiguity creates no Java writes.
+
+8. **Java boundary with a simulator first.** Adapt the existing verified handoff
+   client to new-core data: ingest only complete verified findings, use canonical
+   UUIDs/coordinates, preserve intermediate-stop order/repeats, create once and
+   GET the saved result. Keep uncertain-write failure explicit; no POST replay.
+   Learn: source/OSM identity versus Java UUID, persistence and partial failure.
+   Check: a recording fake Java verifies exact requests, first-write canonical
+   records, lost responses, malformed readback and distinct routing failures.
+   Synthetic geometry/metrics must remain visibly simulated.
+
+9. **Complete chat behavior and factual replies.** Assemble the named-route flow
+   through the growing coordinator; render only known results. Preserve EN/RU/SK/FI
+   behavior and unsupported-language clarification before write actions. No final
+   LLM-generated directions/metrics. Save a successful plan only after route readback;
+   pending and previously saved state must survive appropriate clarification/failure.
+   Learn: interpretation, application decision and user-facing outcome as separate steps.
+   Check: full local conversations return either saved-route-shaped simulated success,
+   a specific clarification or an honest failure; no invented route ID or metrics.
+
+10. **Storage, caches and runtime safeguards.** Bring reviewed Valkey/session/cache
+    adapters behind the new boundaries. Preserve lease ownership, atomic exchange/state
+    persistence, expiry, selection-aware caching, cancellation and zero uncertain-write
+    replay. Version changed cache/state payloads instead of reading incompatible data.
+    Deadlines, privacy and provider gating already apply in earlier steps; validate
+    their combined behavior here. No real Java activation before these protections.
+    Learn: memory versus persisted state, TTL, cache hits and concurrent turns.
+    Check: disposable local/CI Valkey covers overlap, stale owner, restart/expiry,
+    corrupt records, outage and promotion/demotion without shared Aiven access.
+
+11. **City tours and provider comparison.** Add the evidence-backed city-sights
+    scenario with bounded optional suggestions and existing stop limits. Keep explicit
+    user destinations mandatory. Retain west-to-east ordering as the comparison
+    baseline; changing its product semantics is separate work. Add a second research,
+    model or geocoding adapter only after specifying required capabilities and measuring
+    the same scenarios; routing-provider changes remain Java-owned.
+    Learn: suggestions versus required stops, provider capabilities and measured tradeoffs.
+    Check: tours, too few valid sights, named-place preservation and source/OSM continuity;
+    compare correctness, clarification rate, elapsed time, calls and available usage data.
+
+12. **Gradual integration and retirement.** Keep one local choice between old and
+    new paths; do not dual-execute real writes. Package coherent accepted slices as
+    small PRs against main, preserving the accepted HTTP contract and a rollback path.
+    Team-owned real Java/browser checks happen when services are available, on a
+    reviewed revision. Remove old code only when its behavior is demonstrably replaced.
+    Check: offline regression corpus and isolated service checks pass; record any
+    outstanding live acceptance honestly before enabling the replacement in production.
+
+After each step: explain the change briefly, inspect one concrete run together,
+review the diff and relevant checks, then record delivered behavior and the next
+step here. Aim for a small working core within several focused days; all later
+capabilities and real-service acceptance are not promised within that estimate.
 
 ### Providers and deferred scope
 
@@ -257,29 +358,18 @@ Proposed responsibilities, not an instruction to create empty scaffolding:
 - Chat: choose the next action, render factual outcomes and use the existing
   ownership/storage boundary. Route geometry remains Java's responsibility.
 
-Reuse the current package, tests and verified client/identity behavior where useful.
-Choose file names when implementing the first slice. Avoid a second production
-service, speculative frameworks, new dependencies or duplicated routing logic.
+Reuse the existing Python package, dependencies and tests where useful. New core
+code starts in its internal `v2/` namespace so old imports keep working during
+development. `v2/main.py` composes the app; task/data/state/orchestration modules
+belong beside it, provider/storage clients behind adapters. Choose further file
+names when responsibilities become executable; do not create empty layers upfront.
+The development lab stays outside the production package. This is one service's
+replacement core, not a second deployed service or a new agent framework.
 
-### Next technical slice, after requirements and architecture
-
-1. Review the existing local lab diff against this branch. Move only the launcher,
-   development UI/key controls and inspection boundary needed for a reproducible
-   fixture run; review coupled runtime changes separately. Never copy private dotenv,
-   credentials, reports, environments or the entire dirty working tree.
-2. Demonstrate one named-route success, one missing endpoint and one intentional
-   provider/schema failure through the actual Python pipeline with simulated Java.
-   Confirm no unexpected network path, redacted keys, bounded capture and explicit
-   fixture/live labels. Validate shutdown and loopback-only launch.
-3. Inspect one own-key discovery manually, if quota permits. Write the expected
-   target/source/OSM outcome before running; do not invoke real Java.
-4. Reproduce the airport-qualifier/clarification report on a pinned version.
-   Capture the first changed value; a state change is justified only by that evidence.
-
-Done when the owner can launch the lab, select modules/keys, find the first failed
-stage and explain what was simulated. Next slice: the smallest tested draft-state
-correction, including a new unrelated request and unchanged session ownership.
-Update this checkpoint after each slice instead of opening a new planning document.
+Next executable slice: step 1, an isolated app with explicit configuration, a thin
+chat boundary, basic safe stage logs and a deterministic fixture. No LLM keys or
+Java are needed to demonstrate it. The minimal lab UI follows in step 2; paid model
+calls follow in step 3. Update this checkpoint instead of opening another plan file.
 
 ## History, not current acceptance
 
