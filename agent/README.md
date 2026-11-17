@@ -19,6 +19,39 @@ The [availability core](AVAILABILITY.md) is implemented internally but disconnec
 from chat/startup. Older agent guide paths are short compatibility links; their
 superseded reports remain in Git history. Do not add another report for each task.
 
+## Open the new local lab (step 2)
+
+Double-click **Start-Agent-Lab.cmd** in this repository root (the `agent-next`
+working copy). Python must be available as `python`; first launch may download uv,
+Python 3.12 and frozen dependencies. Later launches reuse the prepared environment.
+The authenticated page opens on http://127.0.0.1:8012. Use the launcher to reopen
+it after a tab refresh; the private launch token is never written to a plaintext file.
+An occupied port belonging to another program is reported, never killed.
+
+Enter any message and choose a **technical** check: foundation response, deliberate
+failure, or waiting for timeout/cancel. These call the actual v2 HTTP factory in
+process, not the old agent. They do not interpret a travel request. LLM, research,
+geocoding, Java and conversation storage are explicitly marked not implemented.
+
+Enable **Show input/output values** before running to inspect data. Otherwise only
+metadata is retained. Review INFO/WARNING/ERROR events, choose an earlier run,
+cancel work, reset local reports or explicitly export reviewed JSON. Capture is
+bounded to 20 runs, 128 events per run and bounded individual payloads; truncation
+is marked without altering inputs to the core. Known keys/auth fields/private
+reasoning are redacted, but free text may still contain personal information.
+
+Personal key cards prepare Groq/Anthropic/Exa keys for later steps; no connection
+test or live call is claimed. Keys stay in process unless **Remember in Windows**
+is selected. Remember uses a separate `trego.agent-v2-lab/` Credential Manager
+namespace; the old lab's keys are never imported or overwritten. Values are not
+returned to the browser, browser storage or `.lab/`. An unavailable vault has no
+plaintext fallback. Delete/replace keys through the same card.
+
+**Reset** clears reports, not saved keys. **Stop lab** cancels active work and stops
+only this server; process-only data disappears. After Python code changes, stop
+and relaunch to load the new version. Inspect `.lab/server.log` for safe startup
+metadata. The earlier lab in the separate `source` copy remains on port 8010.
+
 ## Run the new foundation locally (step 1)
 
 The old agent stays in place while `src/trego_agent/v2/` is built and compared.
@@ -36,8 +69,8 @@ From `agent/`, after `uv sync --frozen --extra test`:
 Open http://127.0.0.1:8011/docs and try `POST /api/chat` with
 `{"sessionId":"learning","message":"Walk from Bratislava to Vienna."}`.
 Expect a `[LOCAL FIXTURE]` reply, empty places and no routeId; nothing is stored.
-Use Ctrl+C to stop it. This is the HTTP foundation, not the full Agent Lab UI;
-the old lab remains separate on port 8010 until step 2.
+Use Ctrl+C to stop it. This is a separate HTTP-only probe; the new lab above is
+the preferred entrypoint and does not need this extra server.
 
 `create_app(settings, service)` accepts the chat implementation explicitly.
 `X-Trace-Id` links the HTTP response to safe stage logs. Invalid input returns a
@@ -81,8 +114,8 @@ Do not publish keys or point experiments at team storage by accident.
 
 Follow [verification](VERIFY.md) before enabling real chat. Startup validates
 configuration, not provider access, API migrations or route correctness.
-The full local Agent Lab exists in separate, uncommitted development work; its
-launcher and payload inspector are not yet included in this branch.
+The earlier full-pipeline lab exists in the separate uncommitted working copy.
+The new v2 lab is included here and exposes only the implemented foundation.
 
 ## Stable boundary
 

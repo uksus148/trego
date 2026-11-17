@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'agent/**'
+      - 'devtools/**'
+      - 'start_agent_lab.py'
+      - 'Start-Agent-Lab.cmd'
       - '.env.example'
       - '.github/workflows/agent.yml'
 
@@ -31,7 +34,25 @@ jobs:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v7
       - name: Validate agent without live credentials
-        working-directory: agent
         run: |
-          uv run --frozen --extra test pytest -q
-          uv run --frozen python -m compileall -q src tests
+          uv run --project agent --frozen --extra test python -m pytest agent/tests devtools/tests -q -o asyncio_mode=auto
+          uv run --project agent --frozen python -m compileall -q agent/src agent/tests devtools start_agent_lab.py
+
+  lab-windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate local launcher and inspection without live credentials
+        run: |
+          uv run --project agent --frozen --extra test python -m pytest devtools/tests agent/tests/test_v2_foundation.py -q -o asyncio_mode=auto
+          node --check devtools/agent_lab/lab.js

@@ -34,19 +34,29 @@ settlement features, nearby ambiguity, repeated stops, language switches, incomp
 intent, invalid output/source indices, provider errors, cancellation and uncertain writes.
 Prefer a regression reproducing the actual failure over many implementation-shaped tests.
 
-## Local Agent Lab: separate development work
+## Local Agent Lab: step 2
 
-The existing local lab is not committed on this baseline and is not introduced by
-the documentation PR. Its launcher, key management and pipeline instrumentation must
-be reviewed/tested in a separate implementation change before becoming repo setup steps.
-Until then, use its existing working copy; do not expect a fresh clone of this branch
-to contain `Start-Agent-Lab.cmd` or `devtools/`.
+Use [the launcher](README.md#open-the-new-local-lab-step-2). The new UI exposes
+the actual v2 foundation, technical failure/timeout diagnostics and bounded private
+inspection. Live adapters, Java and conversation state are not implemented; it
+does not invent synthetic routes. The older full-pipeline lab remains separate.
 
-Required boundary for that work: loopback only, personal keys, fixture/live choices,
-no shared dotenv/storage, simulated Java clearly labelled, and bounded private reports.
-Its synthetic geometry/zero metrics never prove real road routing or persistence.
-Keep detailed message/model/state capture local; exports can contain private locations.
-See the [notebook plan](ARCHITECTURE.md#replacement-direction-and-sequence).
+From the repository root, after dependencies are prepared:
+
+```powershell
+agent\.venv\Scripts\python.exe -m pytest devtools\tests agent\tests\test_v2_foundation.py -q -o asyncio_mode=auto
+agent\.venv\Scripts\python.exe -m compileall -q devtools start_agent_lab.py
+node --check devtools\agent_lab\lab.js
+```
+
+These tests use an in-memory vault and ASGI HTTP, blocking external transport.
+They cover loopback host/origin/auth, bounded requests, real core validation,
+opt-in/redacted payloads, ERROR/WARNING capture, timeout/cancellation/overlap,
+reset/shutdown, report bounds, write-only keys, vault failure without plaintext,
+launcher reuse/occupied ports/startup cleanup and worktree-isolated setup.
+The existing agent workflow now includes Linux checks and a Windows lab job;
+configured CI jobs are not evidence of a completed CI run.
+Review exports for private free text even after known-secret redaction.
 
 ## Explicit provider probes
 

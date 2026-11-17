@@ -27,10 +27,10 @@ including failures; it does not mean infallible language understanding.
 Covered together: product responsibilities, the broad pipeline, provider roles and
 the accepted request/handoff boundary. The owner now wants implementation-led
 learning: build, inspect and explain one working increment at a time.
-Step 1 is locally verified. New `v2/` code implements
+Steps 1 and 2 are locally verified. New `v2/` code implements
 the explicit app factory, request/result validation, deterministic fixture and safe
 trace/stage logs; no interpretation, providers or conversation state are connected.
-Next: step 2, attach this foundation to the minimal lab UI. Update this position after a step is checked;
+Next: step 3, the selected LLM connection. Update this position after a step is checked;
 do not mark a topic understood or a capability delivered merely because it was described.
 
 ### Requirements for the replacement
@@ -68,7 +68,7 @@ Preferences are user wishes, not evidence that today's router optimizes scenery.
 
 **Implemented:** the HTTP foundation. **Temporary fixture:** a fixed diagnostic
 reply. **Not implemented:** LLM interpretation, draft state, research, discovery,
-Java handoff or the new lab UI. Passing the foundation tests proves none of those.
+Java handoff. The new local UI inspects the foundation, not a functional travel agent.
 The Python import package is `trego_agent`; its distribution is `trego-agent`.
 Persisted `gopstop:` Valkey keys stay compatible with Java and existing data; their
 migration is separate from renaming Python imports. No old-package alias is provided;
@@ -107,7 +107,7 @@ repository consumers and commands are updated together.
   `stage` measures elapsed time and records success, cancellation or failure, then
   propagates exceptions. INFO/WARNING/ERROR carry metadata only; no user text,
   raw session IDs, credentials or exception bodies. Detailed private inspection
-  is an opt-in lab collector to be built in step 2, not current behavior.
+  is now an opt-in collector in `devtools/agent_lab/`, outside production logging.
 - [__init__.py](src/trego_agent/v2/__init__.py): marks the package and documents its
   development status. It has no configuration, client construction or startup work.
 
@@ -247,7 +247,7 @@ is a behavioral reference, not the structure to copy. Reuse verified provider cl
 identity checks, Java handoff and storage protection when suitable; rework them only
 with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-Step 1 is locally verified; steps 2-12 remain planned. Its tests establish HTTP,
+Steps 1 and 2 are locally verified; steps 3-12 remain planned. Tests establish HTTP,
 configuration and diagnostic behavior, not travel interpretation or model quality.
 Each ends with something runnable, a focused behavior
 check and a short explanation from actual input/output. Use synthetic providers
@@ -268,7 +268,8 @@ local simulation never substitutes for final real-service acceptance.
 
 2. **Minimal local lab for the new core.** Review and reuse only the necessary parts
    of the existing uncommitted launcher/UI/key controls. Attach the new app, stage
-   inputs/outputs and fixture scenarios; keep Java simulated. Loopback-only launch,
+   inputs/outputs and technical diagnostic modes. Java stays unavailable until the
+   handoff simulator is introduced in step 8. Loopback-only launch,
    personal key controls, opt-in private payload inspection, redaction and bounded
    capture are part of this slice. INFO/WARNING/ERROR must distinguish normal work,
    recoverable conditions and failed stages. Do not copy the dirty tree wholesale.
@@ -401,7 +402,7 @@ Installed pgvector or an Exa image result does not deliver ranking or photo righ
 Workspace branch: `refactor/agent-v2`. It starts from the reviewed baseline plus
 documentation in [PR #94](https://github.com/uksus148/trego./pull/94). The original
 runtime remains intact; step 1 adds the isolated `v2/` foundation. Provider switch,
-lab migration and a functional replacement agent are not implemented yet.
+the new lab exposes that foundation only; a functional replacement agent is not implemented yet.
 
 Merge order: review/merge #94 first. After its squash merge, rebase this branch's
 own commits onto current main, excluding the old docs commit; check the resulting
@@ -453,8 +454,26 @@ coverage gate were added. No live providers, Java, Aiven or production acceptanc
 Rename checks also confirmed unchanged dependency versions, mechanical-only shared
 consumer updates, a clean `trego-agent` wheel without the old import namespace,
 and a restarted `trego_agent.v2` app answering real loopback HTTP on port 8011.
-Next is step 2, minimal lab UI integration. Paid model
-calls follow in step 3. Update this checkpoint instead of opening another plan file.
+Step 2 files: `start_agent_lab.py` prepares/reopens the local process;
+`devtools/agent_lab/app.py` composes the real v2 factory and authenticated local API;
+`records.py` captures task-scoped safe core logs and opt-in redacted data;
+`credentials.py` reuses the old Windows adapter with an isolated namespace;
+HTML/CSS/JS display capabilities, requests, responses and events without browser
+storage. Three technical modes select a supplied service, never geographic logic.
+No code from the legacy chat/discovery/session controller was migrated.
+Verification: 653 agent/lab tests passed, 8 real-Valkey checks skipped; the final
+focused run passed 34 foundation/lab/launcher checks. JavaScript syntax,
+compilation and whitespace checks passed. A real Windows launch/reopen was verified;
+authenticated loopback HTTP produced recorded 200/500/504 outcomes and cancellation.
+The public UI shell rendered in the browser; authenticated UI clicks were not
+automated. No external provider, Java, database or personal API key was used.
+Reports are limited to 20 runs, 128 events per run and bounded redacted payloads;
+full data is opt-in, metadata-only is the default. Keys use a separate Windows
+namespace with no plaintext fallback; loopback host/origin/token checks protect
+the private API. Production packaging excludes `devtools` and the launcher.
+Linux/Windows CI coverage is configured; this is not a claim that CI already ran.
+Next is step 3: a real LLM adapter, with errors shown honestly
+and no automatic fixture fallback. Update this checkpoint instead of opening another plan file.
 
 ## History, not current acceptance
 
