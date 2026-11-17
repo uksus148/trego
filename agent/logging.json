@@ -8,6 +8,7 @@
     "console": {"class": "logging.StreamHandler", "formatter": "standard", "stream": "ext://sys.stderr"}
   },
   "loggers": {
+    "gopstop_agent.v2": {"handlers": ["console"], "level": "INFO", "propagate": false},
     "gopstop_agent.diagnostics": {"handlers": ["console"], "level": "INFO", "propagate": false},
     "uvicorn": {"handlers": ["console"], "level": "INFO", "propagate": false}
   }

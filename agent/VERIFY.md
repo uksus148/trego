@@ -20,6 +20,14 @@ Real-Valkey runtime tests skip unless `TEST_VALKEY_URL` points to a disposable
 instance. Skips are not a pass for that boundary. [Agent CI](../.github/workflows/agent.yml)
 provides Valkey 8.1 and runs the suite without live credentials.
 
+For just the new step-1 boundary, run
+`uv run --frozen --extra test pytest tests/test_v2_foundation.py -q`.
+It checks explicit configuration, the chat contract and limits, private validation
+errors, dependency substitution, deadline cancellation, unexpected/invalid outputs,
+concurrent trace isolation and external cancellation. Network connects are blocked
+inside these tests. Try the [new local factory](README.md#run-the-new-foundation-locally-step-1)
+manually; a fixed fixture reply is not interpretation or conversation acceptance.
+
 Keep meaningful controls for requested-city substitution, advisory descriptive roles,
 empty independent verification, cache promotion/demotion, aliases/translations,
 settlement features, nearby ambiguity, repeated stops, language switches, incomplete
@@ -91,9 +99,10 @@ and `quota_wait` consume the parent deadline. Cache hit/miss/invalid and
 promoted/demoted events distinguish warm behavior from fresh requests.
 `routing_cache` times the Java POST; it does not prove a cache hit.
 
-Current stage errors log WARNING, normal progress/cancellation INFO. Explicit
-ERROR levels and full payload/state inspection belong to the separate lab work;
-do not assume they already exist in main. Never enable public prompt/body/HTTP DEBUG
+The original agent logs stage errors as WARNING and normal progress/cancellation
+as INFO. The v2 foundation already logs failed stages as ERROR, invalid requests
+as WARNING and normal progress/cancellation as INFO. Full payload/state inspection
+still belongs to separate lab work. Never enable public prompt/body/HTTP DEBUG
 logging or print keys, raw session IDs or private exception payloads.
 
 Discovery reasons: `no_sources`, `insufficient_evidence`, `no_geocoding_candidates`,

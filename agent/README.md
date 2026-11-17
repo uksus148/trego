@@ -19,6 +19,34 @@ The [availability core](AVAILABILITY.md) is implemented internally but disconnec
 from chat/startup. Older agent guide paths are short compatibility links; their
 superseded reports remain in Git history. Do not add another report for each task.
 
+## Run the new foundation locally (step 1)
+
+The old agent stays in place while `src/gopstop_agent/v2/` is built and compared.
+It remains the production entrypoint; do not delete it or switch deployment yet.
+The new foundation is an independent development factory using explicit settings,
+the existing chat envelope and a labelled deterministic response. It has no LLM,
+research, Java, session storage or dotenv access. It cannot calculate a route.
+
+From `agent/`, after `uv sync --frozen --extra test`:
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn gopstop_agent.v2.main:create_fixture_app --factory --host 127.0.0.1 --port 8011 --log-config logging.json --no-access-log
+```
+
+Open http://127.0.0.1:8011/docs and try `POST /api/chat` with
+`{"sessionId":"learning","message":"Walk from Bratislava to Vienna."}`.
+Expect a `[LOCAL FIXTURE]` reply, empty places and no routeId; nothing is stored.
+Use Ctrl+C to stop it. This is the HTTP foundation, not the full Agent Lab UI;
+the old lab remains separate on port 8010 until step 2.
+
+`create_app(settings, service)` accepts the chat implementation explicitly.
+`X-Trace-Id` links the HTTP response to safe stage logs. Invalid input returns a
+sanitized 422, the configured chat deadline 504, and unexpected/invalid-response
+failures 500. Cancellation propagates. Messages, raw session IDs, unknown-field
+names and exception payloads are not logged or echoed in validation errors.
+This development slice has no session lease or persistence, so it is not ready
+to replace the production handler. Those protections precede real activation.
+
 ## Install and run the existing service
 
 Python 3.11+ is required; CI uses 3.12. From `agent/`:
@@ -53,8 +81,8 @@ Do not publish keys or point experiments at team storage by accident.
 
 Follow [verification](VERIFY.md) before enabling real chat. Startup validates
 configuration, not provider access, API migrations or route correctness.
-The local Agent Lab exists in separate, uncommitted development work; its launcher
-and payload inspector are not included in this documentation-only change.
+The full local Agent Lab exists in separate, uncommitted development work; its
+launcher and payload inspector are not yet included in this branch.
 
 ## Stable boundary
 

@@ -27,8 +27,10 @@ including failures; it does not mean infallible language understanding.
 Covered together: product responsibilities, the broad pipeline, provider roles and
 the accepted request/handoff boundary. The owner now wants implementation-led
 learning: build, inspect and explain one working increment at a time.
-Current task: step 1 of the implementation plan below, the isolated core foundation.
-No new core code is implemented yet. Update this position after a step is checked;
+Step 1 is locally verified. New `v2/` code implements
+the explicit app factory, request/result validation, deterministic fixture and safe
+trace/stage logs; no interpretation, providers or conversation state are connected.
+Next: step 2, attach this foundation to the minimal lab UI. Update this position after a step is checked;
 do not mark a topic understood or a capability delivered merely because it was described.
 
 ### Requirements for the replacement
@@ -188,7 +190,8 @@ is a behavioral reference, not the structure to copy. Reuse verified provider cl
 identity checks, Java handoff and storage protection when suitable; rework them only
 with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-All steps below are planned. Each ends with something runnable, a focused behavior
+Step 1 is locally verified; steps 2-12 remain planned.
+Each ends with something runnable, a focused behavior
 check and a short explanation from actual input/output. Use synthetic providers
 first; own-key checks are deliberate and optional when quota is available. Missing
 team services must not block core development. Run tests relevant to each change;
@@ -333,10 +336,10 @@ Installed pgvector or an Exa image result does not deliver ranking or photo righ
 
 ## V2 branch: starting checkpoint
 
-Workspace branch: `refactor/agent-v2`. It starts from current main plus the
-documentation in [PR #94](https://github.com/uksus148/trego./pull/94). Main's runtime
-remains intact; a new core, provider switch and lab migration are not implemented
-here yet. Do not treat branch creation as evidence of a working replacement.
+Workspace branch: `refactor/agent-v2`. It starts from the reviewed baseline plus
+documentation in [PR #94](https://github.com/uksus148/trego./pull/94). The original
+runtime remains intact; step 1 adds the isolated `v2/` foundation. Provider switch,
+lab migration and a functional replacement agent are not implemented yet.
 
 Merge order: review/merge #94 first. After its squash merge, rebase this branch's
 own commits onto current main, excluding the old docs commit; check the resulting
@@ -366,9 +369,20 @@ names when responsibilities become executable; do not create empty layers upfron
 The development lab stays outside the production package. This is one service's
 replacement core, not a second deployed service or a new agent framework.
 
-Next executable slice: step 1, an isolated app with explicit configuration, a thin
-chat boundary, basic safe stage logs and a deterministic fixture. No LLM keys or
-Java are needed to demonstrate it. The minimal lab UI follows in step 2; paid model
+Step 1 files: `v2/main.py` assembles the app and delegates chat; `config.py` accepts
+explicit settings without loading environment; `models.py` preserves chat data;
+`chat.py` defines the operation and labelled fixture; `diagnostics.py` records safe
+metadata. The shared pure `ApiPlace` model is reused; the old application is not imported.
+Use [the local run command](README.md#run-the-new-foundation-locally-step-1).
+Local verification: 634 tests passed, 8 real-Valkey tests skipped (no disposable
+server configured); 15 tests specifically cover the new foundation. Wheel/sdist
+build, compilation, frozen lock and whitespace checks passed. Actual loopback HTTP
+returned labelled 200, private 422 and trace headers; the server binds only 127.0.0.1.
+Two unchanged legacy TTL tests reproduced a short-sleep timing failure; a bounded
+expiry-wait fixture fixes their timing without changing production cache behavior.
+No type/lint/coverage tools are configured in this project; no new tools or arbitrary
+coverage gate were added. No live providers, Java, Aiven or production acceptance.
+Next is step 2, minimal lab UI integration. Paid model
 calls follow in step 3. Update this checkpoint instead of opening another plan file.
 
 ## History, not current acceptance
