@@ -14,7 +14,7 @@ from test_resolution_cache import PLACE, SOURCES
 from test_resolver import tool
 
 
-async def test_geocoding_rejection_is_short_lived_and_a_later_run_can_recover_without_flush():
+async def test_geocoding_rejection_is_short_lived_and_a_later_run_can_recover_without_flush(expire_cache_key):
     calls, generation = [], [0]
     providers = provider_fixture({"start": "Skok", "end": "Skok"}, {"Skok": ("Skok", [{**row(1, "Skok", 49, 20), "type": "waterfall"}])}, calls)
 
@@ -37,9 +37,7 @@ async def test_geocoding_rejection_is_short_lived_and_a_later_run_can_recover_wi
         assert not (await discovery.discover("Skok", [])).ready_for_handoff
         assert generation[0] == 1  # No paid retry, even after downstream failure.
         # Simulate natural TTL expiry for this one key, never flush the shared cache.
-        await cache.pexpire(key, 1)
-        import asyncio
-        await asyncio.sleep(.01)
+        await expire_cache_key(cache, key)
         assert (await discovery.discover("Skok", [])).ready_for_handoff
         assert generation[0] == 2 and 300 < await cache.ttl(key) <= 86400
         assert ResolutionEntry.model_validate_json(await cache.get(key)).accepted

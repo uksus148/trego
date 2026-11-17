@@ -128,13 +128,12 @@ async def test_corrupt_or_out_of_range_cached_results_refresh_once(cache, provid
     assert 0 < await cache.ttl(key) <= 300
 
 
-async def test_expired_resolution_requires_new_provider_work(cache, provider):
+async def test_expired_resolution_requires_new_provider_work(cache, provider, expire_cache_key):
     client, calls = provider
     resolver = CachedPlaceResolver(ClaudePlaceResolver(client, "fixture", "model"), cache)
     await resolver.resolve("Skok", SOURCES)
     key, = await cache.keys(PREFIX + "*")
-    await cache.pexpire(key, 1)
-    await asyncio.sleep(0.01)
+    await expire_cache_key(cache, key)
     assert not await cache.exists(key)
     await resolver.resolve("Skok", SOURCES)
     assert len(calls) == 2
