@@ -42,10 +42,10 @@ each topic. Historical PR discussions and tests remain evidence, not current tas
 | Daniil — nnatthebest | React, maps, frontend state, browser integration and product presentation |
 
 Route AI-only parsing, agent internals and frontend presentation to their owners.
-Murat's assistant reviews within Murat's scope. Murat's ignored ARCHITECTURE.local.md
-supplements this agreement for backend work; read it when resuming backend work or
-making architecture/integration decisions. Keep important shared decisions in reviewed
-team documents rather than only in private notes.
+Murat's assistant reviews within Murat's scope. His ignored ARCHITECTURE.local.md
+contains personal working notes and learning checkpoints only. It cannot impose
+shared rules on developers who do not have that file. Any binding architecture,
+contract or team decision belongs in a reviewed, version-controlled team document.
 
 ## Architecture
 

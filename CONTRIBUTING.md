@@ -35,6 +35,9 @@ Name the first file to open and changes to the API, database schema, or Kafka ev
 
 ### How to test
 Provide commands or steps, inputs, and actual results.
+
+### Review
+Name affected owners and the boundary each should review; request an independent reviewer.
 ```
 
 Agree shared API changes with the affected developers before implementation, and record the decision in the authoritative contract linked from `CLAUDE.md` and the PR. Include an example request or response in the PR. Find accepted contracts and explicitly deferred proposals in the [documentation index](docs/README.md).

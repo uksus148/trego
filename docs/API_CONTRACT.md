@@ -128,10 +128,16 @@ nonblank and at most 4000 characters. Invalid writes/storage return 503; expiry/
 returns 504. These guards do not fence an already issued Java POST after suspension.
 
 Requested identities must be verified independently of model descriptive classification.
-Unbound places clarify without partial ingestion. The [agent guide](../agent/README.md)
+Unbound places clarify without partial ingestion. The [agent architecture notebook](../agent/ARCHITECTURE.md)
 owns the current follow-up, nearby-name, popular-sight, cache and identity algorithms.
 Groq supports the three explicit configured profiles. Its bounded 429 replay exception
 does not authorize repeating route/chat POSTs or other uncertain side effects.
+
+Implementation status: #89/#90 merged the follow-up, nearby-name and popular-tour
+behavior. The preceding CLAUDE.md still labelled these policies "proposed, owner
+review pending". This consolidation describes implemented behavior; it does not
+silently convert that historical policy status into new shared agreement or certify
+live acceptance. Any remaining policy decision needs explicit affected-owner review.
 
 ## Routing cache
 
