@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>trego. · New Agent Lab</title>
+  <link rel="stylesheet" href="/assets/lab.css"><script defer src="/assets/lab.js"></script>
+</head>
+<body>
+<header><div><div class="eyebrow">TREGO. / AGENT V2 <span>LOCAL ONLY</span></div>
+  <h1>Inspect the new agent.</h1><p>Send a request, inspect its data, and follow the actual stages.</p></div>
+  <button id="stop" class="secondary">Stop lab</button></header>
+<div class="boundary"><b>Foundation only.</b> The current reply is a labelled diagnostic.
+  LLM, place search, Java routes and conversation storage are not connected. No external calls are made.</div>
+<main>
+  <aside>
+    <h2>What is connected</h2><div id="capabilities"></div>
+    <details class="keys-panel"><summary>Personal keys <span class="muted">· next steps</span></summary>
+      <p class="hint">You can prepare your own keys. This diagnostic does not use them. Values are never returned to the browser.</p>
+      <div id="keys"></div><p id="vault" class="hint"></p>
+    </details>
+    <p class="hint">Reports stay in this process: the last 20 runs. Reset clears reports; stopping clears all process-only data.</p>
+  </aside>
+  <section class="workspace">
+    <div id="notice" role="status">Open with Start-Agent-Lab.cmd to connect.</div>
+    <section class="panel">
+      <div class="section-title"><h2><span class="number">01</span> Input</h2><button id="reset" class="secondary">Reset</button></div>
+      <div class="row"><label>Session label<input id="session" maxlength="128" autocomplete="off"></label>
+        <label>Time limit, seconds<input id="timeout" type="number" min="0.1" max="60" step="0.1" value="10"></label></div>
+      <label>Technical check<select id="mode"><option value="foundation">Normal foundation response</option>
+        <option value="failure">Deliberate handler failure</option><option value="wait">Wait · test timeout or cancel</option></select></label>
+      <label>Message<textarea id="message" rows="4" maxlength="4000" placeholder="Write any message. This step checks request handling only."></textarea></label>
+      <label class="check"><input id="inspect" type="checkbox">Show input/output values for this run</label>
+      <p class="hint">Opt-in capture can contain personal text and locations. Known keys are redacted. Review reports before sharing.</p>
+      <div class="actions"><button id="run">Run request</button><button id="cancel" class="secondary" disabled>Cancel</button><span id="busy" aria-live="polite"></span></div>
+    </section>
+    <section class="panel">
+      <div class="section-title"><h2><span class="number">02</span> Response &amp; data</h2><span id="resultStatus" class="badge">NO RUN YET</span></div>
+      <label>Recorded run<select id="selectedRun"></select></label><p id="runInfo" class="hint"></p>
+      <div class="data-grid"><div><h3>Input sent to the core</h3><pre id="inputData">No run selected.</pre></div>
+        <div><h3>Core HTTP response</h3><pre id="outputData">No run selected.</pre></div></div>
+      <button id="export" class="secondary" disabled>Export reviewed JSON</button>
+    </section>
+    <section class="panel">
+      <div class="section-title"><h2><span class="number">03</span> Stage log</h2><select id="level" aria-label="Log level">
+        <option value="ALL">All levels</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></div>
+      <div id="events"><p class="hint">Run a request to see events from the real v2 boundary.</p></div>
+    </section>
+  </section>
+</main>
+<footer>trego. / development lab · bound to this computer · no production services · no messages or keys in browser storage</footer>
+</body></html>

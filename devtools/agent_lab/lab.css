@@ -1,0 +1,52 @@
+:root { font: 15px/1.55 system-ui,sans-serif; color: #203d36; background: #f2f4ef; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { padding: 32px 4vw; display: flex; justify-content: space-between; align-items: start; background: #fff; border-bottom: 1px solid #d7dfd6; }
+.eyebrow { font-size: 12px; font-weight: 750; letter-spacing: .12em; }
+.eyebrow span { margin-left: 12px; padding: 4px 7px; border: 1px solid #bdd1c2; border-radius: 4px; letter-spacing: .04em; }
+h1 { margin: 14px 0 8px; font-size: 34px; font-weight: 650; line-height: 1.2; }
+header p { margin: 0; color: #5b7066; }
+.boundary { padding: 14px 4vw; background: #edf1df; color: #485b32; border-bottom: 1px solid #d5dfc0; }
+main { max-width: 1500px; margin: auto; padding: 26px 4vw; display: grid; grid-template-columns: 265px minmax(0,1fr); gap: 28px; }
+aside { align-self: start; }
+h2 { font-size: 17px; margin: 0 0 14px; }
+h3 { font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+.workspace { min-width: 0; }
+.panel { margin-top: 18px; padding: 24px; background: #fff; border: 1px solid #d6ded3; border-radius: 8px; }
+.section-title, .actions, .capability { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.section-title { justify-content: space-between; }
+.section-title h2 { margin: 0; }
+.number { display: inline-block; color: #81968a; font-size: 12px; margin-right: 8px; }
+.row, .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+label { display: block; margin: 14px 0; font-size: 13px; font-weight: 600; }
+input, select, textarea { display: block; width: 100%; margin-top: 6px; padding: 10px; border: 1px solid #aebfb1; border-radius: 4px; font: inherit; color: inherit; background: #fff; }
+textarea { resize: vertical; font-size: 15px; }
+button { padding: 9px 15px; color: #fff; background: #275f48; border: 1px solid #275f48; border-radius: 4px; font: 600 13px/1.5 system-ui,sans-serif; cursor: pointer; }
+button.secondary { background: transparent; color: #38604c; }
+button:disabled { opacity: .45; cursor: default; }
+button:hover:not(:disabled) { filter: brightness(.92); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #d0a458; outline-offset: 2px; }
+.check { display: flex; align-items: center; gap: 9px; }
+.check input { width: auto; margin: 0; }
+.hint, .muted, #busy, footer { color: #6c7c70; font-size: 12px; }
+.capability { justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #d7dfd6; font-size: 13px; }
+.badge { display: inline-block; padding: 3px 7px; border-radius: 4px; background: #edf1e9; color: #5c6d5c; font-size: 10px; font-weight: 700; letter-spacing: .03em; }
+.badge.ready { background: #dceade; color: #2c6448; }
+.badge.failed { background: #f8e5df; color: #9b3b2d; }
+.keys-panel { margin-top: 24px; }
+summary { cursor: pointer; }
+.connection { padding: 12px 0; border-bottom: 1px solid #d7dfd6; }
+.keyrow { display: flex; gap: 8px; }
+.keyrow button { padding: 5px 10px; }
+#notice { padding: 12px 16px; background: #dfeadf; border-left: 3px solid #567b56; font-size: 13px; }
+#notice.error { background: #f8e5df; border-color: #a74b37; }
+.data-grid > div { min-width: 0; }
+pre { overflow: auto; max-height: 340px; min-height: 80px; padding: 12px; border: 1px solid #e0e5db; border-radius: 4px; background: #f7f8f4; color: #3d5040; font: 12px/1.6 Consolas,monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.event { padding: 10px 0; border-bottom: 1px solid #e0e5db; }
+.event summary { font: 12px/1.6 Consolas,monospace; overflow-wrap: anywhere; }
+.event.WARNING summary { color: #896719; }
+.event.ERROR summary { color: #ab422e; }
+.section-title select { width: auto; margin: 0; }
+footer { padding: 22px 4vw; border-top: 1px solid #d7dfd6; }
+@media (max-width: 850px) { main { grid-template-columns: 1fr; } header { gap: 20px; } h1 { font-size: 27px; } }
+@media (max-width: 550px) { .row, .data-grid { grid-template-columns: 1fr; gap: 0; } .panel { padding: 16px; } header { display: block; } header button { margin-top: 18px; } }
