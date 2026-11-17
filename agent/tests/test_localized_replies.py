@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from gopstop_agent.chat import ChatService
-from gopstop_agent.localized_replies import FactualReplyWriter, LanguageSelector, LANGUAGE_QUESTION, CATALOG
-from gopstop_agent.llm import ToolModel, ProviderError
+from trego_agent.chat import ChatService
+from trego_agent.localized_replies import FactualReplyWriter, LanguageSelector, LANGUAGE_QUESTION, CATALOG
+from trego_agent.llm import ToolModel, ProviderError
 from test_groq import completion
 from test_handoff import discovery
 

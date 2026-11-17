@@ -5,7 +5,7 @@ import pytest
 
 from pydantic import ValidationError
 
-from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError, RouteIntent
+from trego_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired, ProviderError, RouteIntent
 
 
 @pytest.mark.parametrize("role", ["stop:1", "stop:2", "historical sights", "start"])

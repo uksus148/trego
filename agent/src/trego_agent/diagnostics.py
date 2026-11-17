@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from uuid import uuid4
 
-from gopstop_agent.provider_errors import ProviderError
+from trego_agent.provider_errors import ProviderError
 
 log = logging.getLogger(__name__)
 current = ContextVar("chat_trace", default=None)
@@ -65,7 +65,7 @@ def cache_event(cache: str, result: str):
 
 
 def finding_event(reason: str, sources: int, selection=None):
-    from gopstop_agent.geocoding_candidates import SelectionReason
+    from trego_agent.geocoding_candidates import SelectionReason
     from typing import get_args
     allowed = {*get_args(SelectionReason), "not_attempted", "no_sources", "insufficient_evidence"}
     if current.get() is not None:

@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from gopstop_agent.discovery import PlaceDiscovery
-from gopstop_agent.diagnostics import trace
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result, CandidateSelection
-from gopstop_agent.intent import RouteIntent, ProviderError
-from gopstop_agent.localized_replies import FactualReplyWriter
-from gopstop_agent.resolver import SourceResolution
+from trego_agent.discovery import PlaceDiscovery
+from trego_agent.diagnostics import trace
+from trego_agent.exa import ResearchSource
+from trego_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result, CandidateSelection
+from trego_agent.intent import RouteIntent, ProviderError
+from trego_agent.localized_replies import FactualReplyWriter
+from trego_agent.resolver import SourceResolution
 from test_geocoding_candidates import SKOK, WESTERN_SKOK, RYSY
 
 
@@ -38,7 +38,7 @@ async def test_discovery_gates_stop_at_the_reported_step_without_hiding_provider
     geo.geocode_result.return_value = CandidateSelection(reason="name_mismatch", candidateCount=2)
     if mode == "failure":
         resolver.resolve.side_effect = ProviderError("Safe fixture error")
-    caplog.set_level(logging.INFO, logger="gopstop_agent.diagnostics")
+    caplog.set_level(logging.INFO, logger="trego_agent.diagnostics")
     with trace("LEAK"):
         if mode == "failure":
             with pytest.raises(ProviderError):

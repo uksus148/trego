@@ -10,14 +10,14 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 from redis.asyncio import Redis
 
-from gopstop_agent.diagnostics import cache_event
-from gopstop_agent.intent import ProviderError, ProviderTimeout
-from gopstop_agent.provider_errors import http_failure
-from gopstop_agent.geocoding_candidates import (
+from trego_agent.diagnostics import cache_event
+from trego_agent.intent import ProviderError, ProviderTimeout
+from trego_agent.provider_errors import http_failure
+from trego_agent.geocoding_candidates import (
     CONTEXT_RADIUS_KM, CandidateMatch, CandidateSelection, FEATURE_ATTRIBUTES, FEATURE_TYPES, GeocodingCandidate,
     addressed_in_anchor, distance_km, is_infrastructure, matches_feature, merge_same_wikidata, matches_requested_name, select_candidate_result, words,
 )
-from gopstop_agent.geocoding_models import GeocodedPlace
+from trego_agent.geocoding_models import GeocodedPlace
 
 
 OSM_ATTRIBUTION = "© OpenStreetMap contributors — https://www.openstreetmap.org/copyright"

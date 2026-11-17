@@ -21,7 +21,7 @@ superseded reports remain in Git history. Do not add another report for each tas
 
 ## Run the new foundation locally (step 1)
 
-The old agent stays in place while `src/gopstop_agent/v2/` is built and compared.
+The old agent stays in place while `src/trego_agent/v2/` is built and compared.
 It remains the production entrypoint; do not delete it or switch deployment yet.
 The new foundation is an independent development factory using explicit settings,
 the existing chat envelope and a labelled deterministic response. It has no LLM,
@@ -30,7 +30,7 @@ research, Java, session storage or dotenv access. It cannot calculate a route.
 From `agent/`, after `uv sync --frozen --extra test`:
 
 ```powershell
-.venv\Scripts\python.exe -m uvicorn gopstop_agent.v2.main:create_fixture_app --factory --host 127.0.0.1 --port 8011 --log-config logging.json --no-access-log
+.venv\Scripts\python.exe -m uvicorn trego_agent.v2.main:create_fixture_app --factory --host 127.0.0.1 --port 8011 --log-config logging.json --no-access-log
 ```
 
 Open http://127.0.0.1:8011/docs and try `POST /api/chat` with
@@ -53,7 +53,7 @@ Python 3.11+ is required; CI uses 3.12. From `agent/`:
 
 ```powershell
 uv sync --frozen --extra test
-uv run --frozen uvicorn gopstop_agent.main:app --app-dir src --host 127.0.0.1 --port 8000 --log-config logging.json
+uv run --frozen uvicorn trego_agent.main:app --app-dir src --host 127.0.0.1 --port 8000 --log-config logging.json
 ```
 
 Without uv, use `python -m venv .venv`, then
@@ -61,7 +61,7 @@ Without uv, use `python -m venv .venv`, then
 through that environment's Python. Prefer uv's frozen lock for reproducibility.
 
 Settings read the private repository-root `.env` and process environment. See
-[.env.example](../.env.example) and [config.py](src/gopstop_agent/config.py).
+[.env.example](../.env.example) and [config.py](src/trego_agent/config.py).
 Do not publish keys or point experiments at team storage by accident.
 
 - `AGENT_CHAT_ENABLED=false` is the default: it saves an exchange and returns a

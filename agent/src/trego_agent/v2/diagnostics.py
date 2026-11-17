@@ -9,7 +9,7 @@ from time import perf_counter
 from uuid import uuid4
 
 
-log = logging.getLogger("gopstop_agent.v2")
+log = logging.getLogger("trego_agent.v2")
 trace_id: ContextVar[str | None] = ContextVar("v2_trace", default=None)
 
 

@@ -7,7 +7,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
-from gopstop_agent.llm import ProviderError, ProviderTimeout, ToolModel
+from trego_agent.llm import ProviderError, ProviderTimeout, ToolModel
 
 
 MAX_STOPS = 5

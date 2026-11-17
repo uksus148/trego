@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from gopstop_agent.llm import ToolModel, ProviderError
+from trego_agent.llm import ToolModel, ProviderError
 
 
 class LanguageSelection(BaseModel):

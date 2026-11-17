@@ -5,8 +5,8 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.geocoding import NominatimGeocoder
-from gopstop_agent.intent import ProviderError
+from trego_agent.geocoding import NominatimGeocoder
+from trego_agent.intent import ProviderError
 
 
 ROW = {"osm_type": "node", "osm_id": 123, "display_name": "Skok waterfall",

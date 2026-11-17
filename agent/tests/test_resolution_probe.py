@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.probe_resolution import main, run_probe
+from trego_agent.config import Settings
+from trego_agent.probe_resolution import main, run_probe
 from test_groq import completion
 from test_resolution_cache import PLACE
 
@@ -40,7 +40,7 @@ async def test_probe_is_uncached_read_only_and_reports_redacted_failure(caplog, 
 
     settings = Settings(_env_file=None, llm_provider="groq", groq_api_key=secret, exa_api_key=secret,
                         discovery_timeout_seconds=.02 if outcome == "deadline" else 5)
-    caplog.set_level(logging.INFO, logger="gopstop_agent.diagnostics")
+    caplog.set_level(logging.INFO, logger="trego_agent.diagnostics")
     async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
         # Repeated probes still make fresh Exa + model calls. Nothing populates a shared cache.
         reports = [await run_probe(settings, client, secret) for _ in range(2)]
@@ -62,7 +62,7 @@ async def test_probe_is_uncached_read_only_and_reports_redacted_failure(caplog, 
 @pytest.mark.parametrize("status,exit_code", [("resolved", 0), ("unresolved", 0), ("failed", 1)])
 def test_probe_cli_exit_status_and_json(monkeypatch, capsys, status, exit_code):
     monkeypatch.setattr("sys.argv", ["probe", "--query", "LEAK"])
-    monkeypatch.setattr("gopstop_agent.probe_resolution._main", AsyncMock(return_value={"status": status}))
+    monkeypatch.setattr("trego_agent.probe_resolution._main", AsyncMock(return_value={"status": status}))
     with pytest.raises(SystemExit) as caught:
         main()
     assert caught.value.code == exit_code
@@ -71,7 +71,7 @@ def test_probe_cli_exit_status_and_json(monkeypatch, capsys, status, exit_code):
 
 def test_probe_cli_does_not_print_configuration_validation_secrets(monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["probe", "--query", "LEAK"])
-    monkeypatch.setattr("gopstop_agent.probe_resolution._main", AsyncMock(side_effect=ValueError("LEAK")))
+    monkeypatch.setattr("trego_agent.probe_resolution._main", AsyncMock(side_effect=ValueError("LEAK")))
     with pytest.raises(SystemExit) as caught:
         main()
     assert caught.value.code == 1

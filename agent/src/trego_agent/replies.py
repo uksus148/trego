@@ -5,8 +5,8 @@ import json
 import httpx
 from pydantic import ValidationError, BaseModel, ConfigDict, Field
 
-from gopstop_agent.intent import Message, ProviderError
-from gopstop_agent.llm import ToolModel
+from trego_agent.intent import Message, ProviderError
+from trego_agent.llm import ToolModel
 
 
 class Reply(BaseModel):

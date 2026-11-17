@@ -4,9 +4,9 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.geocoding import GeocodedPlace, NominatimGeocoder
-from gopstop_agent.geocoding_candidates import GeocodingCandidate, select_candidate
-from gopstop_agent.intent import ProviderError
+from trego_agent.geocoding import GeocodedPlace, NominatimGeocoder
+from trego_agent.geocoding_candidates import GeocodingCandidate, select_candidate
+from trego_agent.intent import ProviderError
 
 
 # Reduced public Nominatim responses observed on November 14; OSM attribution

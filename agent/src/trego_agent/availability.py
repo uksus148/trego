@@ -9,13 +9,13 @@ import httpx
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from gopstop_agent.availability_models import (
+from trego_agent.availability_models import (
     Assessment, AvailabilityEvidence, AvailabilityRequest, AvailabilityResult, ResearchPolicy,
 )
-from gopstop_agent.config import Settings
-from gopstop_agent.exa import MAX_SOURCE_TEXT, ExaSearch, ResearchSource
-from gopstop_agent.llm import ProviderError, ToolModel, create_tool_model
-from gopstop_agent.planning_dates import PlanningWindow, extract_planning_dates
+from trego_agent.config import Settings
+from trego_agent.exa import MAX_SOURCE_TEXT, ExaSearch, ResearchSource
+from trego_agent.llm import ProviderError, ToolModel, create_tool_model
+from trego_agent.planning_dates import PlanningWindow, extract_planning_dates
 
 
 def normalized(text: str) -> str:

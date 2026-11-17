@@ -6,8 +6,8 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.geocoding import NominatimGeocoder
-from gopstop_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result
+from trego_agent.geocoding import NominatimGeocoder
+from trego_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result
 from test_geocoding_candidates import LAKE, RESORT, MUNICIPALITY, SKOK, WESTERN_SKOK
 
 
@@ -93,9 +93,9 @@ def test_null_extra_tags_are_a_valid_empty_osm_attribute_set():
 @pytest.mark.parametrize("provider", ["groq", "anthropic"])
 async def test_observed_landmarks_reach_source_bound_handoff_through_actual_factories(provider):
     import json
-    from gopstop_agent.config import Settings
-    from gopstop_agent.discovery import create_discovery
-    from gopstop_agent.handoff import create_handoff
+    from trego_agent.config import Settings
+    from trego_agent.discovery import create_discovery
+    from trego_agent.handoff import create_handoff
     from test_discovery import tool
     from test_groq import completion
     from test_handoff import ApiFixture

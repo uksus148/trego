@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import AliasChoices, Field, HttpUrl, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from gopstop_agent.structured_output import GROQ_STRUCTURED_MODELS
+from trego_agent.structured_output import GROQ_STRUCTURED_MODELS
 
 
 class Settings(BaseSettings):

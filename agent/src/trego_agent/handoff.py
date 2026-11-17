@@ -5,11 +5,11 @@ import asyncio
 import httpx
 from pydantic import BaseModel
 
-from gopstop_agent.api_models import ApiPlace, ApiRoute
-from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import stage
-from gopstop_agent.discovery import DiscoveryResult
-from gopstop_agent.trails_api import HandoffError, TrailsApi
+from trego_agent.api_models import ApiPlace, ApiRoute
+from trego_agent.config import Settings
+from trego_agent.diagnostics import stage
+from trego_agent.discovery import DiscoveryResult
+from trego_agent.trails_api import HandoffError, TrailsApi
 
 
 class HandoffResult(BaseModel):

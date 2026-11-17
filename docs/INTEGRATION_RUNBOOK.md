@@ -95,7 +95,7 @@ fixture tests and a real Python handoff -> Spring/local data services smoke with
 This does not activate live chat or complete E5.
 
 Follow [the Groq live test guide](../agent/LIVE_TEST.md): reviewed code/V3 -> explicit
-`python -m gopstop_agent.smoke` preflight -> enable/restart chat -> `smoke --chat` -> browser.
+`python -m trego_agent.smoke` preflight -> enable/restart chat -> `smoke --chat` -> browser.
 The preflight validates three tool tasks, a real Exa cache miss, Nominatim, sessions and
 read-only API access. The HTTP route check verifies CORS, sourced Places, saved GET and
 stored exchange. These are opt-in live operations; CI exercises fixtures without credentials.
@@ -362,7 +362,7 @@ mvn spring-boot:run
 ```sh
 cd agent
 uv sync --frozen --extra test
-uv run --frozen uvicorn gopstop_agent.main:app --app-dir src --host 127.0.0.1 --port 8000 --log-config logging.json
+uv run --frozen uvicorn trego_agent.main:app --app-dir src --host 127.0.0.1 --port 8000 --log-config logging.json
 ```
 
 ```sh

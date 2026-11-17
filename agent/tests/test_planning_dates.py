@@ -4,9 +4,9 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from gopstop_agent.availability_models import AvailabilityRequest, ResearchPolicy
-from gopstop_agent.api_models import ApiPlace
-from gopstop_agent.planning_dates import extract_planning_dates
+from trego_agent.availability_models import AvailabilityRequest, ResearchPolicy
+from trego_agent.api_models import ApiPlace
+from trego_agent.planning_dates import extract_planning_dates
 from test_trails_api import place
 
 

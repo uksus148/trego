@@ -5,10 +5,10 @@ import httpx
 import pytest
 from redis.exceptions import ConnectionError
 
-from gopstop_agent.config import Settings
-from gopstop_agent.discovery import create_discovery
-from gopstop_agent.resolution_cache import CachedPlaceResolver, ResolutionEntry
-from gopstop_agent.resolver import ClaudePlaceResolver
+from trego_agent.config import Settings
+from trego_agent.discovery import create_discovery
+from trego_agent.resolution_cache import CachedPlaceResolver, ResolutionEntry
+from trego_agent.resolver import ClaudePlaceResolver
 from test_discovery import provider_fixture, row
 from test_resolution_cache import PLACE, SOURCES
 from test_resolver import tool
@@ -50,7 +50,7 @@ async def test_geocoding_rejection_is_short_lived_and_a_later_run_can_recover_wi
 async def test_selection_feedback_is_atomic_does_not_refresh_hits_or_touch_a_different_result():
     async with fakeredis.aioredis.FakeRedis(decode_responses=True) as cache:
         resolver = CachedPlaceResolver(ClaudePlaceResolver(None, "fixture", "model"), cache)
-        from gopstop_agent.resolver import SourceResolution
+        from trego_agent.resolver import SourceResolution
         place = SourceResolution.model_validate(PLACE)
         key = resolver._key("Skok", SOURCES)
         await cache.set(key, ResolutionEntry(place=place).model_dump_json(), ex=100)
@@ -98,7 +98,7 @@ async def test_feedback_storage_failure_propagates_without_replaying_paid_work(m
     from unittest.mock import AsyncMock
     cache = AsyncMock()
     cache.eval.side_effect = ConnectionError("private")
-    from gopstop_agent.resolver import SourceResolution
+    from trego_agent.resolver import SourceResolution
     resolver = CachedPlaceResolver(ClaudePlaceResolver(None, "fixture", "model"), cache)
     with pytest.raises(ConnectionError):
         await resolver.record_selection("Skok", SOURCES, SourceResolution.model_validate(PLACE), accepted=True)

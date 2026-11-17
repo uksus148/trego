@@ -13,13 +13,13 @@ from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
 from redis.exceptions import RedisError
 
-from gopstop_agent.chat import ChatResponse, ChatService, create_chat
-from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import stage, trace
-from gopstop_agent.intent import ProviderError, ProviderTimeout
-from gopstop_agent.sessions import SessionBusy, SessionStore, ValkeySessionStore
-from gopstop_agent.trails_api import HandoffError
-from gopstop_agent.valkey import from_url
+from trego_agent.chat import ChatResponse, ChatService, create_chat
+from trego_agent.config import Settings
+from trego_agent.diagnostics import stage, trace
+from trego_agent.intent import ProviderError, ProviderTimeout
+from trego_agent.sessions import SessionBusy, SessionStore, ValkeySessionStore
+from trego_agent.trails_api import HandoffError
+from trego_agent.valkey import from_url
 
 
 class ChatRequest(BaseModel):

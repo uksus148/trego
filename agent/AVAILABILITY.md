@@ -74,8 +74,8 @@ errors; caller cancellation propagates.
 ## Internal use
 
 ```python
-from gopstop_agent.availability import create_availability_research
-from gopstop_agent.availability_models import AvailabilityRequest, ResearchPolicy
+from trego_agent.availability import create_availability_research
+from trego_agent.availability_models import AvailabilityRequest, ResearchPolicy
 
 # canonical_places are the actual ApiPlace objects used in the failed request.
 research = create_availability_research(

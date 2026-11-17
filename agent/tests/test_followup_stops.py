@@ -6,11 +6,11 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.discovery import create_discovery
-from gopstop_agent.geocoding import NominatimGeocoder
-from gopstop_agent.geocoding_models import GeocodedPlace
-from gopstop_agent.intent import ClaudeIntentExtractor, RouteIntent, drop_stale_stops
+from trego_agent.config import Settings
+from trego_agent.discovery import create_discovery
+from trego_agent.geocoding import NominatimGeocoder
+from trego_agent.geocoding_models import GeocodedPlace
+from trego_agent.intent import ClaudeIntentExtractor, RouteIntent, drop_stale_stops
 
 DEMO = "Plan a summer hike in July from Štrbské Pleso to Popradské pleso via the Skok waterfall. I love wild scenery."
 READY = "Your route is ready: Štrbské Pleso → Skok Waterfall → Popradské pleso. Distance 15.2 km; ascent 746 m; duration 5 h 02 min."

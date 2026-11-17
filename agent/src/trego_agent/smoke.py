@@ -13,17 +13,17 @@ from redis.asyncio import from_url
 from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
 
-from gopstop_agent.chat import ChatResponse
-from gopstop_agent.api_models import ApiPlace
-from gopstop_agent.config import Settings
-from gopstop_agent.exa import ExaSearch
-from gopstop_agent.geocoding import NominatimGeocoder
-from gopstop_agent.intent import ClaudeIntentExtractor
-from gopstop_agent.llm import ProviderError, create_tool_model
-from gopstop_agent.localized_replies import LanguageSelector
-from gopstop_agent.resolver import ClaudePlaceResolver
-from gopstop_agent.sessions import ValkeySessionStore
-from gopstop_agent.trails_api import HandoffError, TrailsApi, url_adapter
+from trego_agent.chat import ChatResponse
+from trego_agent.api_models import ApiPlace
+from trego_agent.config import Settings
+from trego_agent.exa import ExaSearch
+from trego_agent.geocoding import NominatimGeocoder
+from trego_agent.intent import ClaudeIntentExtractor
+from trego_agent.llm import ProviderError, create_tool_model
+from trego_agent.localized_replies import LanguageSelector
+from trego_agent.resolver import ClaudePlaceResolver
+from trego_agent.sessions import ValkeySessionStore
+from trego_agent.trails_api import HandoffError, TrailsApi, url_adapter
 
 
 MESSAGE = "Hike from Štrbské Pleso railway station to Popradské Pleso railway station in Slovakia."

@@ -8,12 +8,12 @@ import time
 
 import httpx
 
-from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import stage, trace
-from gopstop_agent.exa import ExaSearch
-from gopstop_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired
-from gopstop_agent.llm import ProviderError, create_tool_model
-from gopstop_agent.resolver import ClaudePlaceResolver
+from trego_agent.config import Settings
+from trego_agent.diagnostics import stage, trace
+from trego_agent.exa import ExaSearch
+from trego_agent.intent import ClaudeIntentExtractor, IntentClarificationRequired
+from trego_agent.llm import ProviderError, create_tool_model
+from trego_agent.resolver import ClaudePlaceResolver
 
 
 async def run_probe(settings: Settings, client: httpx.AsyncClient, query: str, *, intent_only: bool = False) -> dict:
@@ -69,7 +69,7 @@ def main() -> None:
     parser.add_argument("--intent-only", action="store_true", help="Interpret --query as a user message; call only the model.")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    logging.getLogger("gopstop_agent.diagnostics").setLevel(logging.INFO)
+    logging.getLogger("trego_agent.diagnostics").setLevel(logging.INFO)
     try:
         report = asyncio.run(_main(args.query, args.intent_only))
     except ValueError:

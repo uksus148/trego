@@ -11,8 +11,8 @@ from redis.asyncio import Redis
 from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
 
-from gopstop_agent.config import Settings
-from gopstop_agent.geocoding import NominatimGeocoder
+from trego_agent.config import Settings
+from trego_agent.geocoding import NominatimGeocoder
 
 
 async def run(args):

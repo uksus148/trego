@@ -5,9 +5,9 @@ import json
 import httpx
 from pydantic import ValidationError, BaseModel, ConfigDict, Field, field_validator
 
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.intent import Name, ProviderError
-from gopstop_agent.llm import ToolModel
+from trego_agent.exa import ResearchSource
+from trego_agent.intent import Name, ProviderError
+from trego_agent.llm import ToolModel
 
 
 class SourceResolution(BaseModel):

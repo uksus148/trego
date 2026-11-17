@@ -5,13 +5,13 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent import smoke
-from gopstop_agent.config import Settings
-from gopstop_agent.exa import ExaSearch
-from gopstop_agent.llm import ProviderError
-from gopstop_agent.provider_errors import http_failure
-from gopstop_agent.sessions import ValkeySessionStore
-from gopstop_agent.trails_api import HandoffError
+from trego_agent import smoke
+from trego_agent.config import Settings
+from trego_agent.exa import ExaSearch
+from trego_agent.llm import ProviderError
+from trego_agent.provider_errors import http_failure
+from trego_agent.sessions import ValkeySessionStore
+from trego_agent.trails_api import HandoffError
 from test_discovery import row
 from test_groq import completion
 from test_resolution_cache import PLACE

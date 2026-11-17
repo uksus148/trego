@@ -6,12 +6,12 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.chat import ChatService
-from gopstop_agent.discovery import DiscoveryResult, PlaceDiscovery, create_discovery
-from gopstop_agent.intent import IntentClarificationRequired, ProviderError, RouteIntent
-from gopstop_agent.localized_replies import FactualReplyWriter
-from gopstop_agent.resolution_cache import ResolutionEntry
+from trego_agent.config import Settings
+from trego_agent.chat import ChatService
+from trego_agent.discovery import DiscoveryResult, PlaceDiscovery, create_discovery
+from trego_agent.intent import IntentClarificationRequired, ProviderError, RouteIntent
+from trego_agent.localized_replies import FactualReplyWriter
+from trego_agent.resolution_cache import ResolutionEntry
 
 
 def settings(**overrides):

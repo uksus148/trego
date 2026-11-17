@@ -8,10 +8,10 @@ import time
 import httpx
 from jsonschema import Draft202012Validator, SchemaError, ValidationError as SchemaValidationError
 
-from gopstop_agent.config import Settings
-from gopstop_agent.structured_output import StructuredRequest
-from gopstop_agent.diagnostics import stage
-from gopstop_agent.provider_errors import ProviderError, ProviderTimeout, http_failure
+from trego_agent.config import Settings
+from trego_agent.structured_output import StructuredRequest
+from trego_agent.diagnostics import stage
+from trego_agent.provider_errors import ProviderError, ProviderTimeout, http_failure
 
 
 RATE_LIMIT_REPLAYS = 2

@@ -12,10 +12,10 @@ from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
 from redis.exceptions import AuthenticationError
 
-from gopstop_agent.chat import ChatResponse
-from gopstop_agent.config import Settings
-from gopstop_agent.main import create_app
-from gopstop_agent.valkey import HealthyConnectionPool, from_url
+from trego_agent.chat import ChatResponse
+from trego_agent.config import Settings
+from trego_agent.main import create_app
+from trego_agent.valkey import HealthyConnectionPool, from_url
 
 
 def resp(value):

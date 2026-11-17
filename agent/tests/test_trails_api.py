@@ -4,8 +4,8 @@ import json
 import httpx
 import pytest
 
-from gopstop_agent.discovery import DiscoveredPlace
-from gopstop_agent.trails_api import HandoffError, NoHikingRoute, TrailsApi, WaypointNotRoutable
+from trego_agent.discovery import DiscoveredPlace
+from trego_agent.trails_api import HandoffError, NoHikingRoute, TrailsApi, WaypointNotRoutable
 
 
 def identifier(index):
@@ -88,7 +88,7 @@ async def test_invalid_or_manual_place_response_fails_closed(overrides):
     (502, problem("waypoint_not_routable"), HandoffError),
 ])
 async def test_only_verified_route_problem_is_a_normal_no_route_result(status, body, expected):
-    from gopstop_agent.api_models import ApiPlace
+    from trego_agent.api_models import ApiPlace
     saved = ApiPlace.model_validate_json(json.dumps(place()))
     calls = []
 

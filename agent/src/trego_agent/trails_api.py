@@ -5,8 +5,8 @@ from urllib.parse import quote
 import httpx
 from pydantic import HttpUrl, TypeAdapter, ValidationError
 
-from gopstop_agent.api_models import ApiPlace, ApiProblem, ApiRoute
-from gopstop_agent.discovery import DiscoveredPlace
+from trego_agent.api_models import ApiPlace, ApiProblem, ApiRoute
+from trego_agent.discovery import DiscoveredPlace
 
 
 class HandoffError(Exception):

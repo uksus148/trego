@@ -9,10 +9,10 @@ import pytest
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from gopstop_agent.chat import ChatResponse
-from gopstop_agent.config import Settings
-from gopstop_agent.main import create_app
-from gopstop_agent.sessions import SessionBusy, ValkeySessionStore
+from trego_agent.chat import ChatResponse
+from trego_agent.config import Settings
+from trego_agent.main import create_app
+from trego_agent.sessions import SessionBusy, ValkeySessionStore
 
 
 class PausedService:

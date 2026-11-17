@@ -6,9 +6,9 @@ import json
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 from redis.asyncio import Redis
 
-from gopstop_agent.diagnostics import cache_event
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.resolver import ClaudePlaceResolver, SourceResolution
+from trego_agent.diagnostics import cache_event
+from trego_agent.exa import ResearchSource
+from trego_agent.resolver import ClaudePlaceResolver, SourceResolution
 
 
 CACHE_TTL_SECONDS = 86400

@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from gopstop_agent.api_models import ApiPlace, ApiRoute
-from gopstop_agent.trails_api import TrailsApi, HandoffError
+from trego_agent.api_models import ApiPlace, ApiRoute
+from trego_agent.trails_api import TrailsApi, HandoffError
 
 
 def test_shared_baseline_corpus_and_negative_controls():

@@ -3,12 +3,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from gopstop_agent.discovery import PlaceDiscovery
-from gopstop_agent.geocoding_candidates import CandidateSelection
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.geocoding import GeocodedPlace
-from gopstop_agent.intent import ProviderError, RouteIntent
-from gopstop_agent.resolver import SourceResolution
+from trego_agent.discovery import PlaceDiscovery
+from trego_agent.geocoding_candidates import CandidateSelection
+from trego_agent.exa import ResearchSource
+from trego_agent.geocoding import GeocodedPlace
+from trego_agent.intent import ProviderError, RouteIntent
+from trego_agent.resolver import SourceResolution
 
 
 @pytest.mark.parametrize("failure", [False, True])

@@ -5,8 +5,8 @@ on:
     paths:
       - 'api/**'
       - 'docs/contracts/route-editing.examples.json'
-      - 'agent/src/gopstop_agent/config.py'
-      - 'agent/src/gopstop_agent/geocoding*.py'
+      - 'agent/src/trego_agent/config.py'
+      - 'agent/src/trego_agent/geocoding*.py'
       - 'agent/pyproject.toml'
       - 'agent/uv.lock'
       - 'infra/postgres/**'

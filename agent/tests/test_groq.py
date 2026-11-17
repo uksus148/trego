@@ -6,11 +6,11 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.llm import ProviderError, ProviderTimeout, ToolModel
-from gopstop_agent.structured_output import strict_schema
-from gopstop_agent.resolution_cache import CachedPlaceResolver
-from gopstop_agent.resolver import ClaudePlaceResolver
+from trego_agent.config import Settings
+from trego_agent.llm import ProviderError, ProviderTimeout, ToolModel
+from trego_agent.structured_output import strict_schema
+from trego_agent.resolution_cache import CachedPlaceResolver
+from trego_agent.resolver import ClaudePlaceResolver
 from test_resolution_cache import PLACE, SOURCES
 
 
@@ -156,7 +156,7 @@ async def test_groq_header_wait_is_serialized_and_cancellable(monkeypatch, cance
                     await model.call(request_body())
             assert len(calls) == 1
         else:
-            monkeypatch.setattr("gopstop_agent.llm.asyncio.sleep", fake_sleep)
+            monkeypatch.setattr("trego_agent.llm.asyncio.sleep", fake_sleep)
             await model.call(request_body())
             assert len(calls) == 2 and waits[0] == pytest.approx(80, abs=1)
 
@@ -193,8 +193,8 @@ def test_groq_environment_selects_only_its_key_and_masks_secrets(monkeypatch):
 @pytest.mark.parametrize("headers, attempts", [({"retry-after": "0"}, 3), ({}, 1), ({"retry-after": "600"}, 1),
                                                  ({"retry-after": "soon"}, 1)])
 async def test_rate_limit_is_replayed_only_with_a_short_retry_after(headers, attempts):
-    from gopstop_agent.intent import ClaudeIntentExtractor, ProviderError
-    from gopstop_agent.llm import ToolModel
+    from trego_agent.intent import ClaudeIntentExtractor, ProviderError
+    from trego_agent.llm import ToolModel
     calls = []
 
     def handle(request):
@@ -209,8 +209,8 @@ async def test_rate_limit_is_replayed_only_with_a_short_retry_after(headers, att
 
 
 async def test_rate_limited_request_succeeds_after_the_stated_wait():
-    from gopstop_agent.intent import ClaudeIntentExtractor
-    from gopstop_agent.llm import ToolModel
+    from trego_agent.intent import ClaudeIntentExtractor
+    from trego_agent.llm import ToolModel
     intent = {"start": "A", "end": "B", "mustSee": [], "preferences": [], "descriptiveTargets": []}
     replies = [httpx.Response(429, headers={"retry-after": "0"}, json={"error": {"code": "rate_limit_exceeded"}}),
                httpx.Response(200, json={"choices": [{"finish_reason": "stop", "message": {"content": json.dumps(intent)}}]})]

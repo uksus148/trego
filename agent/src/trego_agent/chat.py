@@ -5,15 +5,15 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from gopstop_agent.api_models import ApiPlace
-from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import stage
-from gopstop_agent.discovery import PlaceDiscovery, create_discovery
-from gopstop_agent.handoff import RouteHandoff, create_handoff
-from gopstop_agent.intent import IntentClarificationRequired, Message
-from gopstop_agent.llm import create_tool_model
-from gopstop_agent.localized_replies import FactualReplyWriter, LanguageSelector, LANGUAGE_QUESTION
-from gopstop_agent.trails_api import HandoffError, NoHikingRoute, WaypointNotRoutable
+from trego_agent.api_models import ApiPlace
+from trego_agent.config import Settings
+from trego_agent.diagnostics import stage
+from trego_agent.discovery import PlaceDiscovery, create_discovery
+from trego_agent.handoff import RouteHandoff, create_handoff
+from trego_agent.intent import IntentClarificationRequired, Message
+from trego_agent.llm import create_tool_model
+from trego_agent.localized_replies import FactualReplyWriter, LanguageSelector, LANGUAGE_QUESTION
+from trego_agent.trails_api import HandoffError, NoHikingRoute, WaypointNotRoutable
 
 
 class ChatResponse(BaseModel):

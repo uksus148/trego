@@ -61,13 +61,13 @@ From `agent/`, model-only interpretation (the existing configuration gate also
 requires a nonblank Exa key, but this mode does not call Exa):
 
 ```powershell
-uv run --frozen python -m gopstop_agent.probe_resolution --intent-only --query "I would like to see a waterfall."
+uv run --frozen python -m trego_agent.probe_resolution --intent-only --query "I would like to see a waterfall."
 ```
 
 This validates structure and missing endpoints, not coordinates. Resolution-only:
 
 ```powershell
-uv run --frozen python -m gopstop_agent.probe_resolution --query "Find hiking place: Sandberg near Bratislava. Route context: Devin Castle to Sandberg near Bratislava."
+uv run --frozen python -m trego_agent.probe_resolution --query "Find hiking place: Sandberg near Bratislava. Route context: Devin Castle to Sandberg near Bratislava."
 ```
 
 It makes fresh Exa/model calls without Valkey, Nominatim, Java or session writes.
@@ -76,7 +76,7 @@ Unresolved is a valid outcome; neither probe certifies route completion.
 Full discovery, requiring configured Valkey but no Java/ORS/frontend:
 
 ```powershell
-uv run --frozen python -m gopstop_agent.probe_discovery --cold --message "Plan a walk from Bratislava Castle to St. Martin's Cathedral in Bratislava, Slovakia."
+uv run --frozen python -m trego_agent.probe_discovery --cold --message "Plan a walk from Bratislava Castle to St. Martin's Cathedral in Bratislava, Slovakia."
 ```
 
 Default research uses a unique temporary namespace. `--cold` also isolates Nominatim
@@ -141,7 +141,7 @@ discovery and integrated acceptance are different evidence; record which was use
 
 Coordinate access under [infrastructure rules](../infra/README.md#local-development-resource-rules).
 Use reviewed API/V3, local configuration and [the integration runbook](../docs/INTEGRATION_RUNBOOK.md).
-First run `uv run --frozen python -m gopstop_agent.smoke` from `agent/`: this spends
+First run `uv run --frozen python -m trego_agent.smoke` from `agent/`: this spends
 provider quota, writes/reads temporary session/cache data and reads the API; it is
 not a route-write test, migration proof or browser acceptance.
 
@@ -149,7 +149,7 @@ After preflight and explicit activation with `AGENT_CHAT_ENABLED=true`, run the
 [README server command](README.md#install-and-run-the-existing-service), then:
 
 ```powershell
-uv run --frozen python -m gopstop_agent.smoke --chat
+uv run --frozen python -m trego_agent.smoke --chat
 ```
 
 This creates real places/routes and retains evidence, validates saved GET and reads

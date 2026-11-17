@@ -3,8 +3,8 @@ import json
 import httpx
 import pytest
 
-from gopstop_agent.intent import ProviderError, ProviderTimeout
-from gopstop_agent.replies import ClaudeReplyWriter
+from trego_agent.intent import ProviderError, ProviderTimeout
+from trego_agent.replies import ClaudeReplyWriter
 from test_discovery import tool
 
 

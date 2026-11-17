@@ -7,14 +7,14 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.chat import ChatService
-from gopstop_agent.config import Settings
-from gopstop_agent.discovery import create_discovery
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.geocoding import NominatimGeocoder
-from gopstop_agent.localized_replies import FactualReplyWriter
-from gopstop_agent.resolution_cache import ResolutionEntry
-from gopstop_agent.resolver import SourceResolution
+from trego_agent.chat import ChatService
+from trego_agent.config import Settings
+from trego_agent.discovery import create_discovery
+from trego_agent.exa import ResearchSource
+from trego_agent.geocoding import NominatimGeocoder
+from trego_agent.localized_replies import FactualReplyWriter
+from trego_agent.resolution_cache import ResolutionEntry
+from trego_agent.resolver import SourceResolution
 from test_discovery import tool
 from test_groq import completion
 from test_osm_feature_evidence import CASTLE
@@ -151,7 +151,7 @@ async def test_explicit_requested_feature_binds_translated_name_to_the_same_osm_
 
 
 async def test_verification_provider_failure_remains_an_error_without_retry():
-    from gopstop_agent.intent import ProviderError
+    from trego_agent.intent import ProviderError
     calls = []
     def handle(request):
         calls.append(request)

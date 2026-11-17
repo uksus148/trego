@@ -4,11 +4,11 @@ import json
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.discovery import DiscoveryResult, PlaceFinding
-from gopstop_agent.handoff import RouteHandoff, create_handoff
-from gopstop_agent.intent import RouteIntent
-from gopstop_agent.trails_api import HandoffError, NoHikingRoute, TrailsApi
+from trego_agent.config import Settings
+from trego_agent.discovery import DiscoveryResult, PlaceFinding
+from trego_agent.handoff import RouteHandoff, create_handoff
+from trego_agent.intent import RouteIntent
+from trego_agent.trails_api import HandoffError, NoHikingRoute, TrailsApi
 from test_trails_api import candidate, identifier, place, problem, route
 
 

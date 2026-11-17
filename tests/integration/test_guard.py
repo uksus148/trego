@@ -14,7 +14,7 @@ def load_fixture(monkeypatch):
     monkeypatch.setenv("E2E_VALKEY_URL", "redis://127.0.0.1:1/0")
     monkeypatch.setenv("E2E_FRONTEND_URL", "http://127.0.0.1:1")
     monkeypatch.syspath_prepend(str(Path(__file__).parent))
-    from gopstop_agent.config import Settings
+    from trego_agent.config import Settings
     monkeypatch.setitem(Settings.model_config, "env_file", None)
     module = importlib.import_module("fixture_agent")
     module.CALLS.clear()
@@ -37,7 +37,7 @@ async def test_unknown_hosts_and_local_api_ports_never_fall_through(monkeypatch)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("incomplete", [False, True])
 async def test_current_discovery_factory_accepts_fixture_protocol_without_live_requests(monkeypatch, incomplete):
-    from gopstop_agent.discovery import create_discovery
+    from trego_agent.discovery import create_discovery
 
     module = load_fixture(monkeypatch)
     try:

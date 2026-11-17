@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from gopstop_agent.config import Settings
+from trego_agent.config import Settings
 
 
 @pytest.fixture

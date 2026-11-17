@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from gopstop_agent.geocoding_models import GeocodedPlace
+from trego_agent.geocoding_models import GeocodedPlace
 
 
 class GeocodingCandidate(GeocodedPlace):

@@ -6,8 +6,8 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.discovery import create_discovery
-from gopstop_agent.handoff import create_handoff
+from trego_agent.discovery import create_discovery
+from trego_agent.handoff import create_handoff
 from test_discovery import settings, tool, row
 from test_handoff import ApiFixture
 from test_osm_feature_evidence import CASTLE

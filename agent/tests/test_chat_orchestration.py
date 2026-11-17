@@ -9,12 +9,12 @@ import pytest
 from fastapi.testclient import TestClient
 from redis.exceptions import RedisError
 
-from gopstop_agent.chat import ChatService
-from gopstop_agent.config import Settings
-from gopstop_agent.handoff import HandoffResult
-from gopstop_agent.intent import IntentClarificationRequired, ProviderError, ProviderTimeout
-from gopstop_agent.main import create_app
-from gopstop_agent.trails_api import HandoffError, NoHikingRoute, WaypointNotRoutable
+from trego_agent.chat import ChatService
+from trego_agent.config import Settings
+from trego_agent.handoff import HandoffResult
+from trego_agent.intent import IntentClarificationRequired, ProviderError, ProviderTimeout
+from trego_agent.main import create_app
+from trego_agent.trails_api import HandoffError, NoHikingRoute, WaypointNotRoutable
 from test_discovery import provider_fixture, row, tool
 from test_handoff import ApiFixture, discovery
 from test_groq import completion
@@ -73,7 +73,7 @@ async def test_http_factories_preserve_sources_history_and_saved_route_with_safe
 
     app, cache, http = build_app(handle, llm_provider=provider, groq_api_key="fixture-groq-secret",
                                  anthropic_api_key="" if provider == "groq" else "fixture-claude-secret")
-    with caplog.at_level(logging.INFO, logger="gopstop_agent.diagnostics"), TestClient(app) as client:
+    with caplog.at_level(logging.INFO, logger="trego_agent.diagnostics"), TestClient(app) as client:
         for message in ("Хочу маршрут через Skok", "Оставь тот же водопад"):
             response = client.post("/api/chat", headers={"Origin": "http://localhost:5173"},
                                    json={"sessionId": "private-session", "message": message})
@@ -139,7 +139,7 @@ async def test_groq_reported_resolution_failures_never_ingest_or_save_success(bu
 
     app, cache, _ = build_app(handle, llm_provider="groq", groq_api_key="fixture-groq-secret",
                                anthropic_api_key="")
-    with caplog.at_level(logging.INFO, logger="gopstop_agent.diagnostics"), TestClient(app) as client:
+    with caplog.at_level(logging.INFO, logger="trego_agent.diagnostics"), TestClient(app) as client:
         response = client.post("/api/chat", json={"sessionId": "invalid-resolution", "message": "Find Skok"})
     assert response.status_code == 502 and "private" not in response.text
     assert len(resolution_calls) == 1  # No retry or repair from failed_generation.
@@ -400,7 +400,7 @@ async def test_corrupt_history_stops_before_paid_work(build_app, value):
                                               ("groq", "groq_api_key", "groq_model")])
 @pytest.mark.parametrize("missing", ["key", "exa", "model"])
 def test_enabled_production_factory_rejects_missing_keys_before_resources(monkeypatch, provider, key, model, missing):
-    import gopstop_agent.main as main
+    import trego_agent.main as main
     factory = Mock()
     monkeypatch.setattr(main, "from_url", factory)
     values = {"llm_provider": provider, key: "fixture", "exa_api_key": "fixture", model: "model",
@@ -413,7 +413,7 @@ def test_enabled_production_factory_rejects_missing_keys_before_resources(monkey
 
 @pytest.mark.parametrize("startup_failure", [False, True])
 async def test_disabled_mode_has_no_provider_calls_and_owned_resources_close(build_app, monkeypatch, startup_failure):
-    import gopstop_agent.main as main
+    import trego_agent.main as main
     app, _, injected = build_app(chat_enabled=False)
     with TestClient(app) as client:
         assert client.post("/api/chat", json={"sessionId": "s", "message": "Hi"}).json()["places"] == []

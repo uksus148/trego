@@ -6,11 +6,11 @@ from pathlib import Path
 
 import httpx
 
-from gopstop_agent.config import Settings
+from trego_agent.config import Settings
 
 # main creates a default app on import; prevent even that unused app from reading .env.
 Settings.model_config["env_file"] = None
-from gopstop_agent.main import create_app  # noqa: E402
+from trego_agent.main import create_app  # noqa: E402
 
 CORPUS = json.loads((Path(__file__).parents[2] / "docs/contracts/baseline.examples.json").read_text())
 CALLS = []

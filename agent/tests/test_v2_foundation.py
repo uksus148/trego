@@ -7,9 +7,9 @@ import socket
 import httpx
 import pytest
 
-from gopstop_agent.v2.config import AppSettings
-from gopstop_agent.v2.main import create_app, create_fixture_app
-from gopstop_agent.v2.models import ChatResponse
+from trego_agent.v2.config import AppSettings
+from trego_agent.v2.main import create_app, create_fixture_app
+from trego_agent.v2.models import ChatResponse
 
 
 @pytest.fixture(autouse=True)
@@ -22,11 +22,13 @@ async def no_network(monkeypatch):
 
 
 async def post(app, payload=None, **kwargs):
+    if payload is None:
+        payload = {"sessionId": "private-session", "message": "private-message"}
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app), base_url="http://fixture"
     ) as client:
         return await client.post(
-            "/api/chat", json=payload or {"sessionId": "private-session", "message": "private-message"},
+            "/api/chat", json=payload,
             **kwargs,
         )
 
@@ -37,7 +39,7 @@ async def test_fixture_starts_without_environment_or_services(monkeypatch, tmp_p
     monkeypatch.setenv("AGENT_CHAT_TIMEOUT_SECONDS", "invalid")
     monkeypatch.setenv("AGENT_CHAT_ENABLED", "true")
     app = create_fixture_app()
-    with caplog.at_level(logging.INFO, logger="gopstop_agent.v2"):
+    with caplog.at_level(logging.INFO, logger="trego_agent.v2"):
         async with app.router.lifespan_context(app):
             response = await post(app, headers={"X-Trace-Id": "private-client-trace"})
     assert response.status_code == 200
@@ -70,6 +72,12 @@ async def test_invalid_input_never_calls_core_or_echoes_payload(changes, caplog)
     assert isinstance(response.json()["detail"], str)
     assert "private-" not in response.text + caplog.text
     assert "stage=validation" in caplog.text
+
+
+@pytest.mark.parametrize("payload", [{}, {"sessionId": "s"}, {"message": "m"}])
+async def test_missing_fields_are_rejected_instead_of_replaced_by_fixture_input(payload):
+    response = await post(create_fixture_app(), payload)
+    assert response.status_code == 422
 
 
 async def test_malformed_json_does_not_echo_input():
@@ -139,7 +147,7 @@ async def test_external_cancellation_propagates(caplog):
             finally:
                 cancelled.set()
 
-    with caplog.at_level(logging.INFO, logger="gopstop_agent.v2"):
+    with caplog.at_level(logging.INFO, logger="trego_agent.v2"):
         task = asyncio.create_task(post(create_app(AppSettings(), Blocked())))
         await asyncio.wait_for(started.wait(), 1)
         task.cancel()
@@ -151,7 +159,7 @@ async def test_external_cancellation_propagates(caplog):
 
 async def test_concurrent_requests_have_independent_traces(caplog):
     app = create_fixture_app()
-    with caplog.at_level(logging.INFO, logger="gopstop_agent.v2"):
+    with caplog.at_level(logging.INFO, logger="trego_agent.v2"):
         responses = await asyncio.gather(post(app), post(app))
     traces = {r.headers["X-Trace-Id"] for r in responses}
     assert len(traces) == 2

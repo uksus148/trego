@@ -8,12 +8,12 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.chat import ChatService
-from gopstop_agent.discovery import DiscoveryResult, PlaceFinding
-from gopstop_agent.geocoding import NominatimGeocoder, SEARCH_OPTIONS
-from gopstop_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result
-from gopstop_agent.intent import RouteIntent
-from gopstop_agent.localized_replies import FactualReplyWriter
+from trego_agent.chat import ChatService
+from trego_agent.discovery import DiscoveryResult, PlaceFinding
+from trego_agent.geocoding import NominatimGeocoder, SEARCH_OPTIONS
+from trego_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result
+from trego_agent.intent import RouteIntent
+from trego_agent.localized_replies import FactualReplyWriter
 
 
 # https://www.openstreetmap.org/copyright — Data © OpenStreetMap contributors.
@@ -106,9 +106,9 @@ async def test_repeated_unresolved_stops_keep_their_positions_without_echoing_sy
 
 @pytest.mark.parametrize("provider,model", [("groq", "openai/gpt-oss-20b"), ("groq", "openai/gpt-oss-120b"), ("anthropic", "fixture")])
 async def test_city_endpoints_reach_complete_discovery_without_relaxing_source_binding(provider, model):
-    from gopstop_agent.config import Settings
-    from gopstop_agent.discovery import create_discovery
-    from gopstop_agent.resolution_cache import ResolutionEntry
+    from trego_agent.config import Settings
+    from trego_agent.discovery import create_discovery
+    from trego_agent.resolution_cache import ResolutionEntry
     from test_discovery import tool
     from test_groq import completion
 

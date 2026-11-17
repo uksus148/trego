@@ -12,7 +12,7 @@ from uuid import uuid4
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from gopstop_agent.intent import Message
+from trego_agent.intent import Message
 
 
 class SessionBusy(Exception):

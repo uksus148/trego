@@ -3,9 +3,9 @@ import json
 import httpx
 import pytest
 
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.intent import ProviderError
-from gopstop_agent.resolver import ClaudePlaceResolver
+from trego_agent.exa import ResearchSource
+from trego_agent.intent import ProviderError
+from trego_agent.resolver import ClaudePlaceResolver
 
 
 def tool(place):

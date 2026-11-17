@@ -6,9 +6,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
-from gopstop_agent.api_models import ApiPlace
-from gopstop_agent.intent import Name
-from gopstop_agent.planning_dates import PlanningWindow
+from trego_agent.api_models import ApiPlace
+from trego_agent.intent import Name
+from trego_agent.planning_dates import PlanningWindow
 
 
 RoutingFailure = Literal["no_hiking_route", "waypoint_not_routable"]

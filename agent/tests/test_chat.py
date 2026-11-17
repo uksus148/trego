@@ -5,9 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 from redis.exceptions import RedisError, TimeoutError
 
-from gopstop_agent.config import Settings
-from gopstop_agent.main import create_app
-from gopstop_agent.sessions import ValkeySessionStore
+from trego_agent.config import Settings
+from trego_agent.main import create_app
+from trego_agent.sessions import ValkeySessionStore
 
 
 @pytest.fixture
@@ -142,7 +142,7 @@ def test_cors_uses_configured_origins(fake_redis):
 
 
 def test_production_client_has_bounded_timeouts(monkeypatch):
-    import gopstop_agent.main as main
+    import trego_agent.main as main
 
     seen = {}
 

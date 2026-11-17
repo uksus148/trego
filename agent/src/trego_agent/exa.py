@@ -7,9 +7,9 @@ import httpx
 from pydantic import BaseModel, Field, HttpUrl, TypeAdapter, ValidationError
 from redis.asyncio import Redis
 
-from gopstop_agent.diagnostics import cache_event
-from gopstop_agent.intent import ProviderError, ProviderTimeout
-from gopstop_agent.provider_errors import http_failure
+from trego_agent.diagnostics import cache_event
+from trego_agent.intent import ProviderError, ProviderTimeout
+from trego_agent.provider_errors import http_failure
 
 
 CACHE_TTL_SECONDS = 86400

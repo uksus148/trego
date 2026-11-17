@@ -6,8 +6,8 @@ import httpx
 import pytest
 from redis.exceptions import ConnectionError
 
-from gopstop_agent.exa import ExaSearch
-from gopstop_agent.intent import ProviderError
+from trego_agent.exa import ExaSearch
+from trego_agent.intent import ProviderError
 
 
 @pytest.fixture

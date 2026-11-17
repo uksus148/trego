@@ -64,123 +64,180 @@ expected action, retained state and whether any Java write is allowed before cod
 Record fixture/live mode; fixed numeric performance/cost targets need measurements.
 Preferences are user wishes, not evidence that today's router optimizes scenery.
 
+## What actually exists in v2
+
+**Implemented:** the HTTP foundation. **Temporary fixture:** a fixed diagnostic
+reply. **Not implemented:** LLM interpretation, draft state, research, discovery,
+Java handoff or the new lab UI. Passing the foundation tests proves none of those.
+The Python import package is `trego_agent`; its distribution is `trego-agent`.
+Persisted `gopstop:` Valkey keys stay compatible with Java and existing data; their
+migration is separate from renaming Python imports. No old-package alias is provided;
+repository consumers and commands are updated together.
+
+- [main.py](src/trego_agent/v2/main.py): `create_app(settings, service)` assembles
+  FastAPI without constructing providers. Lifespan logs start/stop. Middleware
+  assigns a fresh trace, times HTTP work and returns a safe 500 for unexpected
+  failures. Validation/deadline handlers return safe 422/504. The thin `chat`
+  function validates the HTTP envelope, times the operation and awaits the supplied
+  service inside `asyncio.timeout`. `create_fixture_app` explicitly selects the
+  demonstration service; importing the module opens no network/storage connections.
+- [config.py](src/trego_agent/v2/config.py): `AppSettings` is an explicitly supplied
+  Pydantic value, not an environment reader. Strict types, no unknown fields, frozen
+  values and finite numbers catch bad configuration. The only current setting is
+  the bounded chat timeout, default 180 seconds. Future tunable provider/model,
+  call/concurrency budgets belong here when used, loaded once at the composition
+  boundary. Public payload limits and identity rules are compatibility constraints.
+  Legacy geographic selection thresholds become named, validated policy settings
+  when integrated; changing their defaults/meaning is a separate reviewed decision.
+- [models.py](src/trego_agent/v2/models.py): `Nonblank` rejects whitespace-only text;
+  `ChatRequest` enforces the existing session/message fields and bounds without
+  rewriting user text. `ChatResponse` validates the reply, canonical place records
+  and optional routeId. `default_factory=list` creates a separate list per response;
+  absent routeId is omitted by the handler. Only the existing pure `ApiPlace` schema
+  is reused, not the old controller. Future domain/state types stay separate from HTTP.
+- [chat.py](src/trego_agent/v2/chat.py): `ChatService` is a Protocol describing one
+  async `respond(request)` operation. Any conforming implementation can be supplied.
+  `FixtureChatService` currently ignores message meaning and always returns the
+  same `[LOCAL FIXTURE]` diagnostic. That is deliberately fixed test data, not an
+  intelligent answer or evidence of routing. It is selected only by the explicit
+  fixture factory. Move development fixtures outside production behavior as the
+  lab/real coordinator arrives; never use one as an outage fallback.
+- [diagnostics.py](src/trego_agent/v2/diagnostics.py): `request_trace` uses UUIDs and
+  a ContextVar to isolate concurrent request traces, restoring context in `finally`.
+  `stage` measures elapsed time and records success, cancellation or failure, then
+  propagates exceptions. INFO/WARNING/ERROR carry metadata only; no user text,
+  raw session IDs, credentials or exception bodies. Detailed private inspection
+  is an opt-in lab collector to be built in step 2, not current behavior.
+- [__init__.py](src/trego_agent/v2/__init__.py): marks the package and documents its
+  development status. It has no configuration, client construction or startup work.
+
+### Chosen design and alternatives
+
+Use a small explicit async workflow: the model proposes interpreted data; code
+validates it and controls actions. A single giant endpoint is shorter initially
+but couples HTTP, providers, state and write decisions. A model freely choosing
+arbitrary tools would give it too much authority over identity and writes. A new
+orchestration framework is not needed for this bounded workflow. Reconsider only
+when an actual requirement justifies its complexity.
+
+App factories make dependency selection and tests explicit; a global configured
+app would be simpler to start but could read private dotenv or open clients during
+import. One Protocol is enough now; do not create a generic plugin platform or
+empty service/repository layers. Pydantic handles structural validation; business
+correctness remains in application code, not in the JSON schema.
+
+## Target workflow and responsibilities (planned)
+
+1. HTTP boundary in `main.py` validates the unchanged request and establishes trace
+   and deadline. The composed application owns client lifetimes and configuration.
+2. The chat coordinator obtains session ownership and loads explicit state. Early
+   lab slices use memory; real activation requires the reviewed Valkey protections.
+3. An interpretation task calls the selected LLM with current text and bounded
+   relevant state. It returns a validated proposed action, never trusted coordinates
+   or permission to execute arbitrary tools. Original wording and qualifiers remain
+   alongside normalized names; assistant prose is not a state database.
+4. Conversation logic applies a new request, edit or clarification to a draft.
+   Check requirements for the task: a named route needs endpoints, while an area tour
+   can begin with its area and derive suggested visits. Missing/ambiguous intent
+   produces a specific question. A new unrelated plan clears
+   stale pending targets while preserving previous saved-route facts appropriately.
+5. Discovery resolves required targets using geographic context. A direct, uniquely
+   evidenced map lookup need not incur a web search and second model call. Use
+   research when recommendations, descriptive requests or missing evidence require it;
+   retain source binding and the accepted no-write clarification for unbound descriptions.
+   These are explicit application policies, not free-form model instructions.
+6. Independent validation binds candidates to the requested entity, source, OSM
+   identity and coordinates. Multiple distinct valid candidates remain ambiguous.
+   Only complete verified required targets permit Java place/route writes.
+7. Handoff ingests places, uses canonical returned records, creates once and reads
+   back the saved route. A failure may follow committed data; never replay uncertain
+   POSTs or run old/new pipelines together with real writes.
+8. Render only known outcome facts in the user's supported language, then persist
+   the complete exchange and corresponding state atomically before HTTP 200.
+   No model invents route metrics or directions after route creation.
+
+Clarification branches return an actual question with no routeId; incomplete
+geography causes no partial Java writes. Dependency failures remain errors, not
+claims that a place does not exist. Verified routing failures remain separate
+normal outcomes, and may follow successful place ingestion. Cache writes are
+separate from place/route writes and must not turn failed verification into acceptance.
+
+Introduce files when used: `domain.py` for original targets, draft/saved plans and
+verified findings; `conversation.py` for state transitions; `discovery.py` for lookup
+coordination and independent selection; adapters for model/research/geocoding,
+Java and storage. `chat.py` becomes the thin coordinator. Provider response formats
+must not leak into these domain values. The development lab stays in `devtools/`,
+composes the same core, and exposes only stages that are genuinely implemented.
+
+### Development and evidence policy
+
+- Implement the actual available logic at each step; substitute only external
+  dependencies or explicit diagnostic behavior. A fixture is not a completed feature.
+- Never branch production behavior on a demo city, literal prompt, known OSM ID or
+  test flag to force success. Sources/model/page contents are untrusted data.
+- Fixed protocol fields/units, error categories and validated limits are not a
+  geographic shortcut. Tunable provider/model/time/call settings have one explicit
+configuration boundary, not scattered constants or hidden environment reads.
+- Tests assert rules: all required identities verified before writes, source binding,
+  preserved visit order/repetition, state isolation, truthful failures and no write
+  replay. Vary names, countries, languages, ordering and provider outputs; include
+  negative and multi-turn cases. Do not make tests pass by weakening these rules.
+- Use synthetic/renamed entities and transformations where meaningful: consistently
+  changing supplied names should preserve the same identity-checking rule; changing
+  only the candidate to another entity must not gain acceptance. Real aliases still
+  require evidence. Fixtures cannot measure actual model interpretation quality.
+- Compare fresh user-chosen requests not used for tuning, real provider outputs and
+  error cases when own-key quota permits. Record failures as well as successes,
+  model/configuration, cache mode, source/identity outcomes, calls, time and available
+  usage. Set performance/cost targets from measurements, not a single warm demo.
+- Lab mode is explicit per dependency; no live error silently switches to fixtures.
+  Warn which calls are real and which data is simulated. Paid work is bounded and
+  cancellable. Capture private inputs/structured outputs only with opt-in redaction,
+  bounded retention and no private model reasoning; production logs stay metadata.
+- Every increment ends with an inspectable run, focused checks and owner explanation.
+  Test count alone never establishes product acceptance; there is no guarantee of
+  perfect understanding of arbitrary language. Uncertainty must have a useful outcome.
+
 ## Implemented request flow
 
-Start in [main.py](src/gopstop_agent/main.py), `create_app` and its `/api/chat` handler:
-
-1. Validate `ChatRequest`; acquire a per-session Valkey lease inside the total
-   deadline. Read the last six complete exchanges from `ValkeySessionStore.history`.
-2. [ChatService.respond](src/gopstop_agent/chat.py) selects EN/RU/SK/FI using
-   `LanguageSelector`. Unsupported/uncertain language asks for a choice before discovery.
-3. [ClaudeIntentExtractor.extract](src/gopstop_agent/intent.py) reads message/history
-   into `RouteIntent`: start/end, up to five intermediate `mustSee` stops, up to
-   twelve preferences, and advisory `descriptiveTargets` roles. Missing endpoints
-   remain null; excessive ordinary-route intent clarifies rather than truncates.
-4. [PlaceDiscovery.discover](src/gopstop_agent/discovery.py) handles ordinary routes
-   or eligible city tours. For each ordinary target: `ExaSearch.search` returns
-   title/URL/text evidence; `ClaudePlaceResolver.resolve` chooses a source-backed
-   name, query, type tags and source index. No LLM supplies trusted coordinates.
-5. [NominatimGeocoder](src/gopstop_agent/geocoding.py) obtains OSM candidates;
-   [candidate selection](src/gopstop_agent/geocoding_candidates.py) checks names,
-   features, context and identity. `DiscoveryResult` retains start/stops/end,
-   evidence and reasons. Incomplete ordinary intent stops before place research;
-   tour detection may still perform a model call.
-6. Only `ready_for_handoff` permits [RouteHandoff.persist](src/gopstop_agent/handoff.py).
-   Ingest verified places, use Java's returned records, create the route once and
-   fetch it by ID. [TrailsApi](src/gopstop_agent/trails_api.py) validates HTTP results.
-7. `FactualReplyWriter` renders authoritative outcome facts locally. There is no
-   final reply-generation LLM call. Store the complete exchange before HTTP 200;
-   a later failure may leave already committed Java data.
-
-For Bratislava -> Devín Castle -> Vienna, discovery must retain those three roles
-and sources. Handoff sends canonical endpoint coordinates and only the intermediate
-castle UUID in `placeIds`. Java computes the walking track. A city-to-city result
-does not imply cycling support, even if the user mentioned a bicycle.
-
-Data types live in `intent.py` (`RouteIntent`), `discovery.py` (`PlaceFinding`,
-`DiscoveredPlace`, `DiscoveryResult`), `geocoding_models.py` (`GeocodedPlace`) and
-`api_models.py` (Java records). History stores text, not a structured saved/draft plan.
-`drop_stale_stops` partly infers previous built routes from assistant arrow text;
-this fragile dependency is a candidate for replacement, not a reliable state model.
+This is the **legacy baseline**, not the current v2 capability: HTTP/session lease
+and six recent exchanges -> language selection -> intent -> discovery -> Java
+handoff/readback -> factual reply -> owner-checked exchange save. It currently
+uses text history and stale-stop inference from assistant arrow text, not explicit
+structured draft state. Its implemented city tour selects evidenced sights, keeps
+at most seven visits and orders west to east, not by shortest path. The airport
+clarification report came from separate uncommitted lab work; reproduce on a pinned
+version before claiming any new state representation fixes its cause.
 
 ## Identity and write rules to preserve
 
-The user's wording, extracted target, researched name, OSM type/ID and Java UUID
-are different values. Trace them separately. Strict JSON validates shape, not truth.
-Groq uses strict JSON Schema plus local validation; Anthropic uses tool output.
-Historical `Claude*` names do not mean that Anthropic is always selected.
-
-Every ordinary target passes its requested name to verification. `descriptiveTargets`
-cannot authorize a city-to-landmark substitution or positive cache promotion.
-An unbound description asks for an explicit name before writes. Source index must
-refer to supplied evidence; a model's confident answer is insufficient.
-
-Names/aliases and supported feature constraints apply together. Exact OSM attributes
-such as `historic=castle` or `building=cathedral` can supplement primary categories;
-generic attraction text cannot. St./Saint normalization is limited to church/cathedral
-names. City boundaries need explicit settlement labels, not admin level alone.
-Several distinct valid identities remain ambiguous; never select the first/nearest
-to force success. Narrow evidenced same-Wikidata/linked-settlement rules can merge
-representations of one entity; historical OSM IDs are fixtures, not runtime overrides.
-
-The nearby-name path (#89) can resolve one exact OSM object within 25 km of independent
-route anchors when web resolution is inadequate. It excludes infrastructure and
-retains ambiguity; address containment can distinguish local matches. Requested-identity,
-conflict and outside-context rejections remain final. The OSM URL supplies evidence
-when no research source exists. This is bounded lookup, not unrestricted fallback.
-
-Java deduplicates by `(osmType, osmId)`, not by name/coordinates. First write wins;
-use its authoritative UUID, source and coordinates. Preserve repeated visits and
-intermediate-stop order; deduplicate only display records. WGS84 objects use lat/lon;
-GeoJSON is `[lon, lat]`; metrics are km, metres and minutes. Validate route creation
-and saved GET before publishing the ID. Never retry an uncertain Java POST or
-substitute a straight line. There is no cross-service rollback or durable request idempotency.
-
-## Conversation and city-tour limits
-
-Implemented: recent text history, model follow-up interpretation, stale-stop filtering,
-session ownership and owner-checked exchange append. A lease prevents overlapping
-turns but does not fence an already running Java write or undo a saved route.
-
-Implemented city tours (#90): eligible incomplete/same-city/over-limit requests
-can research up to ten suggestions and retain up to seven distinct located sights.
-Tour visits are ordered west to east; this is not shortest-tour optimization.
-Explicitly named sights must all resolve; optional suggestions may be skipped.
-Selection can make one additional generation when the suggestion list is short.
-
-Open finding from uncommitted local lab work: an airport-to-city-centre request
-followed by a named destination lost the airport qualifier and remained unresolved.
-This is not reproduced evidence against the exact main revision. First capture
-intent/history/evidence on a pinned version. Proposed structured state must retain
-an unfinished request as well as the last successful route; do not assume that
-remembering only a successful route fixes clarification.
+Original wording, interpreted target, researched name, OSM type/ID and Java UUID
+are separate values. `descriptiveTargets` cannot waive requested-name verification.
+Keep evidenced aliases/features and settlement labels, joint type constraints,
+narrow same-entity rules and final identity/conflict/context rejection. Never pick
+first/nearest to conceal ambiguity; no production city-ID/coordinate overrides.
+Bounded nearby lookup may use the unique exact OSM match and its URL as evidence;
+retain the current 25 km anchor constraint, infrastructure exclusion and ambiguity.
+Java owns OSM deduplication and first-write canonical records. Preserve repeated
+visits; route placeIds contains intermediate UUIDs, not endpoints. WGS84 objects
+use lat/lon, GeoJSON [lon, lat]; units are km/metres/minutes. Public fields and
+Java-owned routing do not change without affected-owner agreement.
 
 ## Budgets, caches and diagnostics
 
-Source defaults: provider/API call 20 s, discovery/handoff 60 s, total chat 180 s.
-The root example overrides discovery to 90 s. At most three ordinary unique target
-chains run concurrently; unfinished siblings are cancelled/joined on failure.
-Groq serializes calls per worker and waits on advisory quota headers inside the
-deadline. Current main permits up to two replays only for HTTP 429 with a numeric
-Retry-After of 0-60 s. Other errors and Java POSTs are not automatically replayed.
-Per-worker coordination does not coordinate separate processes or daily quotas.
-
-- Exa: successful/empty results 24 h; full-request hash; corrupt entries refreshed.
-- Resolution v3: new/null results provisional for five minutes; exact final accepted
-  selections promoted to 24 h; rejected entries demoted. Hits/feedback do not refresh
-  lifetimes; compare-and-update protects concurrent replacements. No single-flight guarantee.
-- Nominatim candidate v3: nonempty 24 h, empty five minutes, at most eight candidates.
-  A shared host gate and cooldown space requests. Empty search can use one narrower
-  name/country query; HTTP errors/ambiguity do not trigger that fallback.
-- Sessions: default retention 200 messages, TTL 24 h; only six exchanges sent onward.
-  Managed Valkey checks idle connections before use; application writes have no replay.
-
-Missing/ambiguous findings are normal clarification. Provider/invalid-response failures
-are 502; cache/storage failures 503; deadlines 504; same-session contention 409.
-Verified `no_hiking_route` and `waypoint_not_routable` are distinct normal outcomes.
-Neither proves a closure, season restriction or danger. Production diagnostics log
-safe trace/timing/reason/count metadata; payload inspection remains local development work.
-See [VERIFY.md](VERIFY.md) for commands and evidence limits.
+Legacy source defaults are provider/API 20 s, discovery/handoff 60 s, chat 180 s;
+the root example uses discovery 90 s. Three ordinary unique-target chains run
+concurrently. Current Groq allows at most two 429 replays with numeric Retry-After
+0-60 s; waits count toward deadlines. This is not account-wide coordination.
+Exa caches success/empty results 24 h. Nominatim candidate v3 uses 24 h nonempty,
+five-minute empty, at most eight candidates and a shared host gate/cooldown.
+Resolution v3 starts at five minutes; accepted selection promotes the exact value
+to 24 h, rejection demotes it, hits/feedback do not extend lifetime. No single flight.
+Sessions default to 200 messages/24 h; six exchanges sent to interpretation.
+Do not flush shared keys or rename the cross-language rate gate incidentally.
+Legacy contention/dependency/storage/deadline statuses are 409/502/503/504;
+verified no-path/unmatched-waypoint outcomes do not prove closure or danger.
+See [VERIFY.md](VERIFY.md) for runnable commands and limits of the evidence.
 
 ## Replacement direction and sequence
 
@@ -190,14 +247,15 @@ is a behavioral reference, not the structure to copy. Reuse verified provider cl
 identity checks, Java handoff and storage protection when suitable; rework them only
 with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-Step 1 is locally verified; steps 2-12 remain planned.
+Step 1 is locally verified; steps 2-12 remain planned. Its tests establish HTTP,
+configuration and diagnostic behavior, not travel interpretation or model quality.
 Each ends with something runnable, a focused behavior
 check and a short explanation from actual input/output. Use synthetic providers
 first; own-key checks are deliberate and optional when quota is available. Missing
 team services must not block core development. Run tests relevant to each change;
 local simulation never substitutes for final real-service acceptance.
 
-1. **Foundation and main entrypoint.** Start the new internal `gopstop_agent/v2/`
+1. **Foundation and main entrypoint.** Start the new internal `trego_agent/v2/`
    package alongside the old implementation. Add only the request/result data and
    executable behavior needed now. `main.py` assembles a FastAPI app and dependencies;
    settings arrive explicitly; a thin handler delegates to the core. Define safe
@@ -214,6 +272,9 @@ local simulation never substitutes for final real-service acceptance.
    personal key controls, opt-in private payload inspection, redaction and bounded
    capture are part of this slice. INFO/WARNING/ERROR must distinguish normal work,
    recoverable conditions and failed stages. Do not copy the dirty tree wholesale.
+   The lab composes the actual core; recorded provider responses cannot select a
+   different business algorithm. Mark unavailable stages as not implemented rather
+   than pretending a generic fixed reply demonstrates those capabilities.
    Learn: how to reproduce a run and find the first wrong value.
    Check: one launcher opens the lab; fixture success, clarification and failure
    are distinguishable; reset/shutdown and unexpected-network blocking work.
@@ -234,6 +295,7 @@ local simulation never substitutes for final real-service acceptance.
    Retain original wording/qualifiers alongside normalized names; unknown values
    stay unknown. Model suggestions cannot authorize writes or identity changes.
    Start with a named walk and missing endpoint, adding action types only as used.
+   Keep ordinary route, area-tour and unsupported-task requirements distinct.
    Learn: a user's intention versus a verified geographic fact.
    Check: named route, incomplete request and excessive/invalid output have explicit
    results, with no coordinates invented and no Java writes.
@@ -366,6 +428,8 @@ code starts in its internal `v2/` namespace so old imports keep working during
 development. `v2/main.py` composes the app; task/data/state/orchestration modules
 belong beside it, provider/storage clients behind adapters. Choose further file
 names when responsibilities become executable; do not create empty layers upfront.
+The `v2` name is a temporary parallel-development boundary, not a permanent second
+product. Retire the versioned namespace only when the old core is replaced safely.
 The development lab stays outside the production package. This is one service's
 replacement core, not a second deployed service or a new agent framework.
 
@@ -375,13 +439,20 @@ explicit settings without loading environment; `models.py` preserves chat data;
 metadata. The shared pure `ApiPlace` model is reused; the old application is not imported.
 Use [the local run command](README.md#run-the-new-foundation-locally-step-1).
 Local verification: 634 tests passed, 8 real-Valkey tests skipped (no disposable
-server configured); 15 tests specifically cover the new foundation. Wheel/sdist
+server configured). After the package rename, the full suite again passed 634
+tests with those 8 skips; the expanded focused run passed 18 foundation checks
+and 3 integration-transport guard checks. A test-helper audit fixed empty JSON
+being silently replaced by default input and added missing-field regressions.
+That improves HTTP verification, not model/geographic acceptance. Wheel/sdist
 build, compilation, frozen lock and whitespace checks passed. Actual loopback HTTP
 returned labelled 200, private 422 and trace headers; the server binds only 127.0.0.1.
 Two unchanged legacy TTL tests reproduced a short-sleep timing failure; a bounded
 expiry-wait fixture fixes their timing without changing production cache behavior.
 No type/lint/coverage tools are configured in this project; no new tools or arbitrary
 coverage gate were added. No live providers, Java, Aiven or production acceptance.
+Rename checks also confirmed unchanged dependency versions, mechanical-only shared
+consumer updates, a clean `trego-agent` wheel without the old import namespace,
+and a restarted `trego_agent.v2` app answering real loopback HTTP on port 8011.
 Next is step 2, minimal lab UI integration. Paid model
 calls follow in step 3. Update this checkpoint instead of opening another plan file.
 

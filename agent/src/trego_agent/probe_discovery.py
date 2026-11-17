@@ -12,11 +12,11 @@ from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
 from redis.exceptions import RedisError
 
-from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import stage, trace
-from gopstop_agent.discovery import create_discovery
-from gopstop_agent.intent import IntentClarificationRequired, ProviderError
-from gopstop_agent.valkey import from_url
+from trego_agent.config import Settings
+from trego_agent.diagnostics import stage, trace
+from trego_agent.discovery import create_discovery
+from trego_agent.intent import IntentClarificationRequired, ProviderError
+from trego_agent.valkey import from_url
 
 
 async def run_probe(settings, client, cache, message: str, *, cold: bool = False, shared_research: bool = False,
@@ -94,7 +94,7 @@ def main():
     parser.add_argument("--include-identity", action="store_true", help="Include private intent targets and resolution names/queries in local JSON only.")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    logging.getLogger("gopstop_agent.diagnostics").setLevel(logging.INFO)
+    logging.getLogger("trego_agent.diagnostics").setLevel(logging.INFO)
     try:
         report = asyncio.run(_main(args.message, args.cold, args.shared_research, args.include_identity))
     except ValueError:

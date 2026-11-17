@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from gopstop_agent.api_models import ApiPlace
+from trego_agent.api_models import ApiPlace
 
 
 Nonblank = Annotated[str, StringConstraints(min_length=1, pattern=r"\S")]

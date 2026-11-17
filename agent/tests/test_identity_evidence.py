@@ -6,11 +6,11 @@ import pytest
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
-from gopstop_agent.geocoding import preserve_query_name
-from gopstop_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result
-from gopstop_agent.intent import RouteIntent
-from gopstop_agent.provider_errors import ProviderError
-from gopstop_agent.structured_output import strict_schema
+from trego_agent.geocoding import preserve_query_name
+from trego_agent.geocoding_candidates import GeocodingCandidate, select_candidate_result
+from trego_agent.intent import RouteIntent
+from trego_agent.provider_errors import ProviderError
+from trego_agent.structured_output import strict_schema
 
 
 # Reduced Nominatim observations, 2026-11-15, q=Stupava, Slovakia.

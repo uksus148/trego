@@ -4,8 +4,8 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.probe_discovery import run_probe
+from trego_agent.config import Settings
+from trego_agent.probe_discovery import run_probe
 from test_discovery import tool
 from test_groq import completion
 from test_geocoding_candidates import SKOK, WESTERN_SKOK
@@ -116,8 +116,8 @@ async def test_warm_probe_reuses_only_nominatim_candidates_and_keeps_shared_gate
 
 
 async def test_shared_research_probe_reproduces_chat_cache_while_isolated_probe_can_differ():
-    from gopstop_agent.discovery import create_discovery
-    from gopstop_agent.resolution_cache import ResolutionEntry
+    from trego_agent.discovery import create_discovery
+    from trego_agent.resolution_cache import ResolutionEntry
     generations = []
 
     def handle(request):

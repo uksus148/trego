@@ -6,8 +6,8 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.config import Settings
-from gopstop_agent.discovery import create_discovery
+from trego_agent.config import Settings
+from trego_agent.discovery import create_discovery
 
 SIGHTS = {  # name: (osm id, lat, lon)
     "Helsinki Cathedral": (11, 60.1704, 24.9522), "Temppeliaukio Church": (12, 60.1730, 24.9252),
@@ -141,22 +141,22 @@ async def test_a_named_sight_that_cannot_be_found_is_asked_about_instead_of_drop
 
 
 async def test_more_named_sights_than_a_tour_holds_still_asks_to_reduce_them(cache):
-    from gopstop_agent.intent import IntentClarificationRequired
+    from trego_agent.intent import IntentClarificationRequired
     named = [f"Sight {index}" for index in range(8)]
     with pytest.raises(IntentClarificationRequired):
         await discover(cache, [], "Helsinki: " + ", ".join(named), intent={"mustSee": named})
 
 
 async def test_too_many_stops_without_a_tour_still_asks_to_reduce_them(cache):
-    from gopstop_agent.intent import IntentClarificationRequired
+    from trego_agent.intent import IntentClarificationRequired
     many = {"start": "Helsinki", "end": "Turku", "mustSee": [f"Sight {index}" for index in range(8)]}
     with pytest.raises(IntentClarificationRequired):
         await discover(cache, [], "From Helsinki to Turku via eight sights", intent=many, area=None)
 
 
 async def test_selector_drops_malformed_suggestions_and_asks_again_after_an_empty_list():
-    from gopstop_agent.exa import ResearchSource
-    from gopstop_agent.popular import PopularPlaceSelector
+    from trego_agent.exa import ResearchSource
+    from trego_agent.popular import PopularPlaceSelector
     replies = [{"places": []}, {"places": [{"name": "The Louvre", "sourceIndex": 0}, {"name": "", "sourceIndex": 0},
                                            {"name": "Bad index", "sourceIndex": 7}, "junk", {"name": "Louvre", "sourceIndex": 0}]}]
 
@@ -181,7 +181,7 @@ async def test_same_start_and_end_city_is_checked_as_a_tour(cache):
 @pytest.mark.parametrize("suggestions", [[], ["Helsinki Cathedral"]])
 async def test_tour_with_too_few_sights_asks_for_the_destination_over_http_without_writes(intent, suggestions):
     from fastapi.testclient import TestClient
-    from gopstop_agent.main import create_app
+    from trego_agent.main import create_app
     calls = []
     settings = Settings(_env_file=None, chat_enabled=True, anthropic_api_key="fixture", exa_api_key="fixture",
                         nominatim_user_agent="Trails/1.0", api_base_url="https://api.example")

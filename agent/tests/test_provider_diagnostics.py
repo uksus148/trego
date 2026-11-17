@@ -6,11 +6,11 @@ import fakeredis.aioredis
 import httpx
 import pytest
 
-from gopstop_agent.diagnostics import stage, trace
-from gopstop_agent.exa import ExaSearch
-from gopstop_agent.llm import ProviderError, ProviderTimeout, ToolModel
-from gopstop_agent.resolution_cache import CachedPlaceResolver
-from gopstop_agent.resolver import ClaudePlaceResolver
+from trego_agent.diagnostics import stage, trace
+from trego_agent.exa import ExaSearch
+from trego_agent.llm import ProviderError, ProviderTimeout, ToolModel
+from trego_agent.resolution_cache import CachedPlaceResolver
+from trego_agent.resolver import ClaudePlaceResolver
 from test_groq import completion, request_body
 from test_resolution_cache import PLACE, SOURCES
 
@@ -62,7 +62,7 @@ async def test_resolution_preserves_safe_cause_without_retry_or_caching(caplog, 
             message["content"] = json.dumps({"place": {**PLACE, "sourceIndex": 1}})
         return httpx.Response(200, json=body)
 
-    caplog.set_level(logging.INFO, logger="gopstop_agent.diagnostics")
+    caplog.set_level(logging.INFO, logger="trego_agent.diagnostics")
     async with fakeredis.aioredis.FakeRedis() as cache:
         async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
             resolver = CachedPlaceResolver(ClaudePlaceResolver(
@@ -110,7 +110,7 @@ async def test_non_groq_http_errors_parse_only_bounded_allowlisted_envelopes(pro
 
 
 async def test_queue_deadline_is_cancellation_not_provider_http_failure(caplog):
-    caplog.set_level(logging.INFO, logger="gopstop_agent.diagnostics")
+    caplog.set_level(logging.INFO, logger="trego_agent.diagnostics")
     model = ToolModel(None, "LEAK", "groq")
     await model._lock.acquire()
     try:
@@ -141,7 +141,7 @@ async def test_invalid_quota_headers_cannot_hide_the_primary_http_failure(status
 
 def test_rate_limit_diagnostic_keeps_only_a_numeric_retry_after():
     import httpx
-    from gopstop_agent.provider_errors import http_failure
+    from trego_agent.provider_errors import http_failure
     response = httpx.Response(429, headers={"retry-after": "17"}, json={"error": {"code": "rate_limit_exceeded", "message": "org_secret"}})
     diagnostic = http_failure(response, provider="groq", operation="select_explore_area").diagnostic
     assert diagnostic["retry_after_s"] == 17 and diagnostic["operation"] == "select_explore_area"

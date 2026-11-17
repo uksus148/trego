@@ -7,17 +7,17 @@ import httpx
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
-from gopstop_agent.config import Settings
-from gopstop_agent.diagnostics import candidate_scope, stage, finding_event
-from gopstop_agent.exa import ExaSearch, ResearchSource
-from gopstop_agent.geocoding_candidates import CandidateSelection
-from gopstop_agent.geocoding import GeocodedPlace, NominatimGeocoder, OSM_ATTRIBUTION
-from gopstop_agent.intent import (ClaudeIntentExtractor, IntentClarificationRequired, Message, ProviderTimeout,
+from trego_agent.config import Settings
+from trego_agent.diagnostics import candidate_scope, stage, finding_event
+from trego_agent.exa import ExaSearch, ResearchSource
+from trego_agent.geocoding_candidates import CandidateSelection
+from trego_agent.geocoding import GeocodedPlace, NominatimGeocoder, OSM_ATTRIBUTION
+from trego_agent.intent import (ClaudeIntentExtractor, IntentClarificationRequired, Message, ProviderTimeout,
                                   RouteIntent, named_in_message)
-from gopstop_agent.llm import ToolModel, create_tool_model
-from gopstop_agent.popular import PopularPlaceSelector
-from gopstop_agent.resolution_cache import CachedPlaceResolver
-from gopstop_agent.resolver import ClaudePlaceResolver, SourceResolution
+from trego_agent.llm import ToolModel, create_tool_model
+from trego_agent.popular import PopularPlaceSelector
+from trego_agent.resolution_cache import CachedPlaceResolver
+from trego_agent.resolver import ClaudePlaceResolver, SourceResolution
 
 
 # Identity guards (requested_identity_mismatch, conflicting_identity, outside_context) are final.

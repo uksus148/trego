@@ -10,10 +10,10 @@ from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from gopstop_agent.v2.chat import ChatService, FixtureChatService
-from gopstop_agent.v2.config import AppSettings
-from gopstop_agent.v2.diagnostics import log, request_trace, stage, trace_id
-from gopstop_agent.v2.models import ChatRequest, ChatResponse
+from trego_agent.v2.chat import ChatService, FixtureChatService
+from trego_agent.v2.config import AppSettings
+from trego_agent.v2.diagnostics import log, request_trace, stage, trace_id
+from trego_agent.v2.models import ChatRequest, ChatResponse
 
 
 def create_app(settings: AppSettings, service: ChatService) -> FastAPI:

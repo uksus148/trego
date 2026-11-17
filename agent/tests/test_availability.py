@@ -6,11 +6,11 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from gopstop_agent.api_models import ApiPlace
-from gopstop_agent.availability import AvailabilityResearch, create_availability_research
-from gopstop_agent.availability_models import AvailabilityRequest, ResearchPolicy
-from gopstop_agent.config import Settings
-from gopstop_agent.exa import ResearchSource
+from trego_agent.api_models import ApiPlace
+from trego_agent.availability import AvailabilityResearch, create_availability_research
+from trego_agent.availability_models import AvailabilityRequest, ResearchPolicy
+from trego_agent.config import Settings
+from trego_agent.exa import ResearchSource
 from test_groq import completion
 from test_trails_api import place
 

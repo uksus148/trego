@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from gopstop_agent.v2.models import ChatRequest, ChatResponse
+from trego_agent.v2.models import ChatRequest, ChatResponse
 
 
 class ChatService(Protocol):

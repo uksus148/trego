@@ -5,9 +5,9 @@ import re
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from gopstop_agent.exa import ResearchSource
-from gopstop_agent.intent import Name, ProviderError
-from gopstop_agent.llm import ToolModel
+from trego_agent.exa import ResearchSource
+from trego_agent.intent import Name, ProviderError
+from trego_agent.llm import ToolModel
 
 
 MAX_CANDIDATES = 10
