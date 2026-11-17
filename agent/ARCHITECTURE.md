@@ -194,6 +194,57 @@ cycling/transit, Gemini/pgvector ranking, uploads/EXIF/Kafka, photo-rights polic
 candidate confirmation and durable idempotency need separate acceptance/owner decisions.
 Installed pgvector or an Exa image result does not deliver ranking or photo rights.
 
+## V2 branch: starting checkpoint
+
+Workspace branch: `refactor/agent-v2`. It starts from current main plus the
+documentation in [PR #94](https://github.com/uksus148/trego./pull/94). Main's runtime
+remains intact; a new core, provider switch and lab migration are not implemented
+here yet. Do not treat branch creation as evidence of a working replacement.
+
+Merge order: review/merge #94 first. After its squash merge, rebase this branch's
+own commits onto current main, excluding the old docs commit; check the resulting
+diff. Each implementation slice gets its own PR against main, then the workspace
+follows the merged revision. Do not merge the whole experimental branch at once.
+
+### Intended internal boundaries
+
+Proposed responsibilities, not an instruction to create empty scaffolding:
+
+- Data: plain typed intent, draft/saved plan, sourced findings and verified places.
+  Data definitions must not import controllers or HTTP clients.
+- Conversation: apply a new request, correction or clarification to explicit state;
+  retain original qualifiers and distinguish pending targets from confirmed places.
+- Discovery: coordinate research/resolution/geocoding, return typed outcomes;
+  deterministic identity validation stays independent of any selected provider.
+- Adapters: translate LLM, research, geocoding, storage and Java responses into
+  those types. Start with existing services; add a second provider only when needed.
+- Chat: choose the next action, render factual outcomes and use the existing
+  ownership/storage boundary. Route geometry remains Java's responsibility.
+
+Reuse the current package, tests and verified client/identity behavior where useful.
+Choose file names when implementing the first slice. Avoid a second production
+service, speculative frameworks, new dependencies or duplicated routing logic.
+
+### First implementation slice
+
+1. Review the existing local lab diff against this branch. Move only the launcher,
+   development UI/key controls and inspection boundary needed for a reproducible
+   fixture run; review coupled runtime changes separately. Never copy private dotenv,
+   credentials, reports, environments or the entire dirty working tree.
+2. Demonstrate one named-route success, one missing endpoint and one intentional
+   provider/schema failure through the actual Python pipeline with simulated Java.
+   Confirm no unexpected network path, redacted keys, bounded capture and explicit
+   fixture/live labels. Validate shutdown and loopback-only launch.
+3. Inspect one own-key discovery manually, if quota permits. Write the expected
+   target/source/OSM outcome before running; do not invoke real Java.
+4. Reproduce the airport-qualifier/clarification report on a pinned version.
+   Capture the first changed value; a state change is justified only by that evidence.
+
+Done when the owner can launch the lab, select modules/keys, find the first failed
+stage and explain what was simulated. Next slice: the smallest tested draft-state
+correction, including a new unrelated request and unchanged session ownership.
+Update this checkpoint after each slice instead of opening a new planning document.
+
 ## History, not current acceptance
 
 Historical stage reports and sequencing are preserved at
