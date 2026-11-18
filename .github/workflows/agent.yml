@@ -44,17 +44,29 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+      # The repository name ends in a dot, which Windows cannot use in the default workspace path.
+      - name: Check out the PR in a Windows-safe directory
+        shell: pwsh
+        working-directory: ${{ runner.temp }}
+        env:
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $checkout = Join-Path $env:RUNNER_TEMP 'trego-lab-ci'
+          git init --quiet $checkout
+          git -C $checkout fetch --no-tags --depth=1 "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY.git" $env:GITHUB_SHA
+          git -C $checkout checkout --quiet --detach FETCH_HEAD
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - uses: astral-sh/setup-uv@v7
+        with:
+          working-directory: ${{ runner.temp }}/trego-lab-ci
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
       - name: Validate local launcher and inspection without live credentials
+        working-directory: ${{ runner.temp }}/trego-lab-ci
         run: |
           uv run --project agent --frozen --extra test python -m pytest devtools/tests agent/tests/test_v2_foundation.py -q -o asyncio_mode=auto
           node --check devtools/agent_lab/lab.js
