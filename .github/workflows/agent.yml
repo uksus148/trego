@@ -5,6 +5,8 @@ on:
     paths:
       - 'agent/**'
       - 'devtools/**'
+      - 'conftest.py'
+      - 'pytest.ini'
       - 'start_agent_lab.py'
       - 'Start-Agent-Lab.cmd'
       - '.env.example'

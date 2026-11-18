@@ -198,9 +198,10 @@ def walk_reply(**fields):
 async def test_walking_draft_survives_clarification_and_blocks_invented_mutations(groq_lab):
     lab, client, calls, provider = groq_lab
     await client.post("/lab/keys", json={"provider": "groq", "value": "local-personal-key"})
-    airport = {"original": "аэропорта Милана", "name": "аэропорт Милана"}
-    stop = {"original": "площадь Гарибальди", "name": "площадь Гарибальди"}
-    museum = {"original": "Музей науки", "name": "Музей науки"}
+    # Groq incorrectly suggests the city. The qualified user target must survive.
+    airport = {"original": "аэропорта Милана", "proposed_name": "Милан"}
+    stop = {"original": "площадь Гарибальди", "proposed_name": "площадь Гарибальди"}
+    museum = {"original": "Музей науки", "proposed_name": "Музей науки"}
     provider["response"] = walk_reply(start=airport, stops=[stop, stop], language="ru")
     first = await run(lab, client, mode="route_intent", inspect=True, request={
         "sessionId": "walk", "message": "Из аэропорта Милана в центр через площадь Гарибальди, затем снова площадь Гарибальди",
@@ -213,7 +214,7 @@ async def test_walking_draft_survives_clarification_and_blocks_invented_mutation
 
     provider["response"] = walk_reply(kind="clarification", start=museum, end=museum, language="ru")
     second = await run(lab, client, mode="route_intent", request={"sessionId": "walk", "message": "Музей науки"})
-    assert second["httpStatus"] == 502 and lab.drafts["walk"].pending == "end"
+    assert second["httpStatus"] == 502 and lab.drafts.get("walk").pending == "end"
 
     provider["response"] = walk_reply(kind="clarification", end=museum, language="ru")
     isolated = await run(lab, client, mode="route_intent", request={"sessionId": "other", "message": "Музей науки"})
@@ -229,8 +230,50 @@ async def test_walking_draft_survives_clarification_and_blocks_invented_mutation
 
     provider["response"] = walk_reply(start=airport)
     invented = await run(lab, client, mode="route_intent", request={"sessionId": "walk", "message": "Somewhere else"})
-    assert invented["httpStatus"] == 502 and lab.drafts["walk"].start.original == airport["original"]
-    assert (await client.post("/lab/reset", json={})).status_code == 200 and not lab.drafts
+    assert invented["httpStatus"] == 502 and lab.drafts.get("walk").start.original == airport["original"]
+    assert (await client.post("/lab/reset", json={})).status_code == 200
+    assert lab.drafts.get("walk") is None
+
+
+async def test_stop_limit_asks_for_a_shorter_route_without_saving_a_partial_draft(groq_lab):
+    lab, client, _, provider = groq_lab
+    await client.post("/lab/keys", json={"provider": "groq", "value": "local-personal-key"})
+
+    def place(text):
+        return {"original": text, "proposed_name": text}
+
+    def message(text):
+        return {"sessionId": "walk", "message": text}
+
+    start = place("Letiska Košice")
+    provider["response"] = walk_reply(start=start, language="sk")
+    first = await run(lab, client, mode="route_intent", request=message("Pôjdem pešo z Letiska Košice."))
+    assert first["httpStatus"] == 200
+
+    old_draft = lab.drafts.get("walk")
+    names = ["torilla", "puistossa", "kirjastossa", "kirkolla", "museossa", "satamassa"]
+    provider["response"] = walk_reply(
+        start=place("asemalta"), end=place("rantaan"), stops=[place(name) for name in names], language="fi",
+    )
+    turn = await run(lab, client, mode="route_intent", inspect=True, request=message(
+        "Kävellään asemalta rantaan ja käydään torilla, puistossa, kirjastossa, kirkolla, museossa ja satamassa.",
+    ))
+    assert turn["httpStatus"] == 200
+    assert turn["response"] == {
+        "reply": "Kuvaile kävely uudelleen ja valitse enintään 5 välipysähdystä.", "places": [],
+    }
+    assert lab.drafts.get("walk") == old_draft
+    assert not any(event["stage"] == "route_draft" for event in turn["events"])
+    assert any("over_stop_limit" in event["message"] for event in turn["events"])
+
+    provider["response"] = walk_reply(
+        start=place("asemalta"), end=place("rantaan"), stops=[place(name) for name in names[:-1]], language="fi",
+    )
+    shorter = await run(lab, client, mode="route_intent", request=message(
+        "Kävellään asemalta rantaan ja käydään torilla, puistossa, kirjastossa, kirkolla ja museossa.",
+    ))
+    assert shorter["httpStatus"] == 200
+    assert [stop.original for stop in lab.drafts.get("walk").stops] == names[:-1]
 
 
 async def test_host_origin_auth_and_body_limits(lab):

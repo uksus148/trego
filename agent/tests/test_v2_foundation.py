@@ -21,6 +21,11 @@ async def no_network(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect_ex", reject)
 
 
+def test_external_dns_is_blocked():
+    with pytest.raises(pytest.fail.Exception, match="External network access"):
+        socket.getaddrinfo("example.invalid", 443)
+
+
 async def post(app, payload=None, **kwargs):
     if payload is None:
         payload = {"sessionId": "private-session", "message": "private-message"}

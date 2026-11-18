@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import secrets
-from collections import OrderedDict
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from time import perf_counter
@@ -19,13 +18,14 @@ from trego_agent.v2.chat import FixtureChatService
 from trego_agent.v2.config import AppSettings
 from trego_agent.v2.llm import GroqModel
 from trego_agent.v2.main import create_app as create_core
-from trego_agent.v2.route_intent import WalkDraft, WalkIntentExtractor
+from trego_agent.v2.route_intent import WalkIntentExtractor
+from trego_agent.v2.walk_chat import WalkChatService, WalkDraft
 
 from .config import APPLICATION, PORT
 from .credentials import Vault
+from .drafts import MemoryDrafts
 from .model_probe import GROQ_MODEL, ModelProbe, groq_hooks
 from .records import CaptureHandler, Records
-from .route_probe import RouteProbe
 
 Provider = Literal["groq", "anthropic", "exa"]
 LIVE_MODES = {"groq", "route_intent"}
@@ -64,7 +64,7 @@ class Lab:
         self.groq_transport = groq_transport
         self.groq_client: httpx.AsyncClient | None = None
         self.groq_model: GroqModel | None = None
-        self.drafts: OrderedDict[str, WalkDraft] = OrderedDict()
+        self.drafts = MemoryDrafts()
         self.vault_error = False
         for provider in ("groq", "anthropic", "exa"):
             try:
@@ -131,7 +131,13 @@ class Lab:
         emit({"level": "INFO", "stage": "lab", "message": f"Live Groq diagnostic using {GROQ_MODEL}."})
         model = self.get_groq_model()
         if payload.mode == "route_intent":
-            return RouteProbe(WalkIntentExtractor(model, GROQ_MODEL), self.drafts, emit, payload.inspect)
+            def show_draft(draft: WalkDraft) -> None:
+                event = {"stage": "route_draft", "message": "Walking draft updated.", "pending": draft.pending}
+                if payload.inspect:
+                    event["data"] = draft.model_dump(mode="json")
+                emit(event)
+
+            return WalkChatService(WalkIntentExtractor(model, GROQ_MODEL), self.drafts, show_draft)
         return ModelProbe(model, emit)
 
     def get_groq_model(self) -> GroqModel:
