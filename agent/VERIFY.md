@@ -146,7 +146,9 @@ uv run --frozen python -m gopstop_agent.smoke --chat
 This creates real places/routes and retains evidence, validates saved GET and reads
 the session exchange. Failures may follow committed writes: never automatically
 replay. A warm ORS cache does not validate a new ORS key. With frontend mocks off,
-check track, markers, sources, units, language, follow-ups and empty-route clearing.
+check track, markers, sources, units, language and follow-ups. On clarification,
+keep the committed track and metadata visible as the previous route; never present
+it as a newly built result.
 For idle acceptance, test first requests after 25 minutes without process restart.
 Use [fixture integration](../tests/integration/README.md) in CI for actual-service
 contract checks without live keys; it still does not certify real providers.
