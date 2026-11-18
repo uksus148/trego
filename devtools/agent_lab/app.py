@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import secrets
+from collections import OrderedDict
 from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from time import perf_counter
@@ -18,20 +19,24 @@ from trego_agent.v2.chat import FixtureChatService
 from trego_agent.v2.config import AppSettings
 from trego_agent.v2.llm import GroqModel
 from trego_agent.v2.main import create_app as create_core
+from trego_agent.v2.route_intent import WalkDraft, WalkIntentExtractor
 
 from .config import APPLICATION, PORT
 from .credentials import Vault
 from .model_probe import GROQ_MODEL, ModelProbe, groq_hooks
 from .records import CaptureHandler, Records
+from .route_probe import RouteProbe
 
 Provider = Literal["groq", "anthropic", "exa"]
+LIVE_MODES = {"groq", "route_intent"}
+MAX_RUN_SECONDS = 60
 
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
     request: dict
-    mode: Literal["foundation", "failure", "wait", "groq"] = "foundation"
-    timeout_seconds: float = Field(default=10, gt=0, le=60)
+    mode: Literal["foundation", "failure", "wait", "groq", "route_intent"] = "foundation"
+    timeout_seconds: float = Field(default=10, gt=0, le=MAX_RUN_SECONDS)
     inspect: bool = False
 
 
@@ -57,6 +62,9 @@ class Lab:
     def __init__(self, token, vault, groq_transport):
         self.vault, self.keys, self.saved = vault, {}, set()
         self.groq_transport = groq_transport
+        self.groq_client: httpx.AsyncClient | None = None
+        self.groq_model: GroqModel | None = None
+        self.drafts: OrderedDict[str, WalkDraft] = OrderedDict()
         self.vault_error = False
         for provider in ("groq", "anthropic", "exa"):
             try:
@@ -92,7 +100,7 @@ class Lab:
         with self.records.capture(record):
             try:
                 async with AsyncExitStack() as stack:
-                    service = await self.build_service(stack, payload, record)
+                    service = self.build_service(payload, record)
                     core = create_core(AppSettings(chat_timeout_seconds=payload.timeout_seconds), service)
                     await stack.enter_async_context(core.router.lifespan_context(core))
                     client = await stack.enter_async_context(httpx.AsyncClient(
@@ -112,20 +120,39 @@ class Lab:
             finally:
                 record["elapsedMs"] = round((perf_counter() - started) * 1000, 1)
 
-    async def build_service(self, stack, payload, record):
+    def build_service(self, payload, record):
         def emit(event):
             self.records.event(record, event)
 
-        if payload.mode != "groq":
+        if payload.mode not in LIVE_MODES:
             emit({"level": "WARNING", "stage": "lab", "message": "Local diagnostic without external calls."})
             return FixtureChatService() if payload.mode == "foundation" else DiagnosticService(payload.mode)
 
         emit({"level": "INFO", "stage": "lab", "message": f"Live Groq diagnostic using {GROQ_MODEL}."})
-        client = await stack.enter_async_context(httpx.AsyncClient(
-            trust_env=False, follow_redirects=False, transport=self.groq_transport,
-            event_hooks=groq_hooks(emit, payload.inspect),
-        ))
-        return ModelProbe(GroqModel(client, self.keys["groq"], payload.timeout_seconds), emit)
+        model = self.get_groq_model()
+        if payload.mode == "route_intent":
+            return RouteProbe(WalkIntentExtractor(model, GROQ_MODEL), self.drafts, emit, payload.inspect)
+        return ModelProbe(model, emit)
+
+    def get_groq_model(self) -> GroqModel:
+        if self.groq_client is None:
+            self.groq_client = httpx.AsyncClient(
+                trust_env=False, follow_redirects=False, transport=self.groq_transport,
+                event_hooks=groq_hooks(self.record_groq_event, self.inspect_groq),
+            )
+        if self.groq_model is None:
+            # Each chat deadline can further limit the entire operation, including quota wait.
+            self.groq_model = GroqModel(self.groq_client, self.keys["groq"], MAX_RUN_SECONDS)
+        return self.groq_model
+
+    def record_groq_event(self, event: dict) -> None:
+        record = self.records.active_record()
+        if record is not None:
+            self.records.event(record, event)
+
+    def inspect_groq(self) -> bool:
+        record = self.records.active_record()
+        return record is not None and record["options"]["inspect"]
 
 
 def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
@@ -143,6 +170,10 @@ def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTranspo
             yield
         finally:
             await lab.cancel()
+            if lab.groq_client is not None:
+                await lab.groq_client.aclose()
+            lab.groq_model = None
+            lab.drafts.clear()
             lab.keys.clear()
             lab.records.runs.clear()
             logger.removeHandler(handler)
@@ -204,7 +235,7 @@ def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTranspo
             "keys": {p: {"present": p in lab.keys, "saved": p in lab.saved} for p in ("groq", "anthropic", "exa")},
             "vaultAvailable": bool(lab.vault.api), "vaultError": lab.vault_error,
             "groqModel": GROQ_MODEL,
-            "capabilities": [{"id": name, "available": name in {"http", "events", "llm"}}
+            "capabilities": [{"id": name, "available": name in {"http", "events", "llm", "sessions"}}
                              for name in ("http", "events", "llm", "research", "geocoding", "java", "sessions")],
             "runs": [{"mode": r["options"]["mode"], **{k: r[k] for k in ("id", "created", "status", "httpStatus", "elapsedMs")}}
                      for r in lab.records.runs]}
@@ -227,7 +258,7 @@ def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTranspo
     @app.post("/lab/run", status_code=202)
     async def run(payload: RunRequest):
         lab.idle()
-        if payload.mode == "groq":
+        if payload.mode in LIVE_MODES:
             if not lab.keys.get("groq"):
                 raise HTTPException(400, "Save your Groq key under Personal keys before running.")
             message = payload.request.get("message")
@@ -246,6 +277,7 @@ def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTranspo
     async def reset():
         lab.idle()
         lab.records.runs.clear()
+        lab.drafts.clear()
         return {"cleared": True}
 
     @app.post("/lab/keys")
@@ -261,6 +293,8 @@ def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTranspo
                 lab.vault.delete(payload.provider)
         except OSError:
             raise HTTPException(503, "Windows key storage is unavailable. No key was changed.") from None
+        if payload.provider == "groq" and lab.keys.get("groq") != value:
+            lab.groq_model = None
         lab.keys[payload.provider] = value
         lab.saved.add(payload.provider) if payload.remember else lab.saved.discard(payload.provider)
         return {"saved": payload.remember}
@@ -273,6 +307,8 @@ def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTranspo
         except OSError:
             raise HTTPException(503, "Windows key storage could not delete the key.") from None
         lab.keys.pop(provider, None)
+        if provider == "groq":
+            lab.groq_model = None
         lab.saved.discard(provider)
         return {"deleted": True}
 

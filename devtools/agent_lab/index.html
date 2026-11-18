@@ -9,13 +9,13 @@
 <header><div><div class="eyebrow">TREGO. / AGENT V2 <span>LOCAL ONLY</span></div>
   <h1>Inspect the new agent.</h1><p>Send a request, inspect its data, and follow the actual stages.</p></div>
   <button id="stop" class="secondary">Stop lab</button></header>
-<div class="boundary"><b>Step 3 · Groq connection.</b> The live check summarizes your input and validates the result.
-  Place search, routes and conversation state are planned for later steps.</div>
+<div class="boundary"><b>Walking request.</b> Extract a start, destination and stops from your text.
+  Keep the same session label when answering a question. The draft stays in lab memory.</div>
 <main>
   <aside>
     <h2>What is connected</h2><div id="capabilities"></div>
     <details class="keys-panel" open><summary>Personal keys</summary>
-      <p class="hint">Save your Groq key to run the live check. Anthropic and Exa keys are for later steps.</p>
+      <p class="hint">Save your Groq key to run the live checks.</p>
       <div id="keys"></div><p id="vault" class="hint"></p>
     </details>
     <p class="hint">Reports stay in this process: the last 20 runs. Reset clears reports; stopping clears all process-only data.</p>
@@ -27,6 +27,7 @@
       <div class="row"><label>Session label<input id="session" maxlength="128" autocomplete="off"></label>
         <label>Time limit, seconds<input id="timeout" type="number" min="0.1" max="60" step="0.1" value="20"></label></div>
       <label>Technical check<select id="mode"><option value="foundation">Normal foundation response</option>
+        <option value="route_intent">Groq live · understand a walking request</option>
         <option value="groq">Groq live · summarize text</option><option value="failure">Deliberate handler failure</option>
         <option value="wait">Wait · test timeout or cancel</option></select></label>
       <p id="modeHint" class="hint"></p>

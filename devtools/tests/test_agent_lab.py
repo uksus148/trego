@@ -165,6 +165,74 @@ async def test_cancelling_live_probe_cancels_provider_call(groq_lab):
     assert lab.records.runs[-1]["status"] == "cancelled"
 
 
+async def test_groq_quota_wait_survives_runs_and_resets_when_key_changes(groq_lab):
+    lab, client, calls, provider = groq_lab
+    key = "local-personal-key"
+    await client.post("/lab/keys", json={"provider": "groq", "value": key})
+    provider["response"].headers.update({
+        "x-ratelimit-remaining-tokens": "0", "x-ratelimit-reset-tokens": "20s",
+    })
+    first = await run(lab, client, mode="groq", inspect=True)
+    assert first["httpStatus"] == 200 and len(calls) == 1
+    assert any(e["stage"] == "model_queue" for e in first["events"])
+
+    second = await run(lab, client, mode="groq", timeout_seconds=0.05)
+    assert second["httpStatus"] == 504 and len(calls) == 1
+    assert any(e["stage"] == "quota_wait" for e in second["events"])
+    assert not any("data" in e for e in second["events"])
+
+    await client.post("/lab/keys", json={"provider": "groq", "value": "different-personal-key"})
+    third = await run(lab, client, mode="groq")
+    assert third["httpStatus"] == 200 and len(calls) == 2
+    assert calls[-1].headers["Authorization"] == "Bearer different-personal-key"
+    assert not any("data" in e for e in third["events"])
+
+
+def walk_reply(**fields):
+    content = {"kind": "new_route", "language": "en", "start": None, "end": None, "stops": [], **fields}
+    return httpx.Response(200, json={"choices": [{
+        "finish_reason": "stop", "message": {"content": json.dumps(content)},
+    }]})
+
+
+async def test_walking_draft_survives_clarification_and_blocks_invented_mutations(groq_lab):
+    lab, client, calls, provider = groq_lab
+    await client.post("/lab/keys", json={"provider": "groq", "value": "local-personal-key"})
+    airport = {"original": "аэропорта Милана", "name": "аэропорт Милана"}
+    stop = {"original": "площадь Гарибальди", "name": "площадь Гарибальди"}
+    museum = {"original": "Музей науки", "name": "Музей науки"}
+    provider["response"] = walk_reply(start=airport, stops=[stop, stop], language="ru")
+    first = await run(lab, client, mode="route_intent", inspect=True, request={
+        "sessionId": "walk", "message": "Из аэропорта Милана в центр через площадь Гарибальди, затем снова площадь Гарибальди",
+    })
+    assert first["httpStatus"] == 200 and first["response"]["reply"] == "Где хочешь закончить прогулку?"
+    schema = json.loads(calls[-1].content)["response_format"]["json_schema"]["schema"]
+    assert schema["properties"]["kind"]["enum"] == ["new_route", "clarification", "unsupported"]
+    assert {"start", "end", "stops"} <= set(schema["required"])
+    assert first["response"]["places"] == [] and "routeId" not in first["response"]
+
+    provider["response"] = walk_reply(kind="clarification", start=museum, end=museum, language="ru")
+    second = await run(lab, client, mode="route_intent", request={"sessionId": "walk", "message": "Музей науки"})
+    assert second["httpStatus"] == 502 and lab.drafts["walk"].pending == "end"
+
+    provider["response"] = walk_reply(kind="clarification", end=museum, language="ru")
+    isolated = await run(lab, client, mode="route_intent", request={"sessionId": "other", "message": "Музей науки"})
+    assert isolated["httpStatus"] == 502
+    completed = await run(lab, client, mode="route_intent", inspect=True, request={
+        "sessionId": "walk", "message": "Музей науки",
+    })
+    assert completed["httpStatus"] == 200 and "routeId" not in completed["response"]
+    draft = next(e["data"] for e in completed["events"] if e["stage"] == "route_draft")
+    assert draft == {"start": airport, "end": museum, "stops": [stop, stop]}
+    data = json.loads(json.loads(calls[-1].content)["messages"][-1]["content"])
+    assert data == {"pending_endpoint": "end", "text": "Музей науки"}
+
+    provider["response"] = walk_reply(start=airport)
+    invented = await run(lab, client, mode="route_intent", request={"sessionId": "walk", "message": "Somewhere else"})
+    assert invented["httpStatus"] == 502 and lab.drafts["walk"].start.original == airport["original"]
+    assert (await client.post("/lab/reset", json={})).status_code == 200 and not lab.drafts
+
+
 async def test_host_origin_auth_and_body_limits(lab):
     _, client = lab
     assert (await client.get("/lab/status", headers={"X-Lab-Token": "bad"})).status_code == 403

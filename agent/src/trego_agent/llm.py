@@ -4,6 +4,8 @@ import asyncio
 import json
 import re
 import time
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 
 import httpx
 from jsonschema import Draft202012Validator, SchemaError, ValidationError as SchemaValidationError
@@ -31,11 +33,13 @@ def retry_after_seconds(response: httpx.Response) -> float | None:
 
 class StructuredModel:
     def __init__(self, client: httpx.AsyncClient, key: str, provider: str = "anthropic",
-                 timeout_seconds: float = 20) -> None:
+                 timeout_seconds: float = 20, *,
+                 stage_context: Callable[[str], AbstractContextManager[None]] = stage) -> None:
         if provider not in ("anthropic", "groq"):
             raise ValueError("Unknown LLM provider.")
         self.provider, self._client, self._key = provider, client, key
         self._timeout = httpx.Timeout(timeout_seconds)
+        self._stage = stage_context
         self._lock = asyncio.Lock()
         self._remaining, self._reset = None, 0.0
 
@@ -52,7 +56,7 @@ class StructuredModel:
             self._remaining, self._reset = None, 0.0
 
     async def call(self, body: dict) -> dict:
-        with stage("model"):
+        with self._stage("model"):
             return await self._call(body)
 
     def prepare(self, body: dict) -> dict:
@@ -74,13 +78,13 @@ class StructuredModel:
                 # Shared by intent/resolution/reply in one worker. Outer chat/discovery
                 # deadlines include waiting. A rejected 429 generated nothing, so it is replayed
                 # only when the provider states a short Retry-After; other failures never are.
-                with stage("model_queue"):
+                with self._stage("model_queue"):
                     await self._lock.acquire()
                 try:
                     encoded = json.dumps(payload, ensure_ascii=False)
                     estimate = max(len(encoded) // 2, len(encoded.encode()) // 3) + payload["max_completion_tokens"]
                     if self._remaining is not None and self._remaining < estimate:
-                        with stage("quota_wait"):
+                        with self._stage("quota_wait"):
                             await asyncio.sleep(max(0, self._reset - time.monotonic()))
                     for replay in range(RATE_LIMIT_REPLAYS + 1):
                         response = await self._client.post(
@@ -92,7 +96,7 @@ class StructuredModel:
                         wait = retry_after_seconds(response)
                         if wait is None or replay == RATE_LIMIT_REPLAYS:
                             break
-                        with stage("quota_wait"):
+                        with self._stage("quota_wait"):
                             await asyncio.sleep(wait)
                     if response.is_error or response.is_redirect:
                         raise http_failure(response, **diagnostic)

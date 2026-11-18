@@ -91,6 +91,10 @@ class Records:
         finally:
             ACTIVE.reset(token)
 
+    def active_record(self):
+        active = ACTIVE.get()
+        return active[1] if active is not None and active[0] is self else None
+
 
 class CaptureHandler(logging.Handler):
     def __init__(self, records):

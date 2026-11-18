@@ -4,7 +4,7 @@ const token = location.hash.slice(1);
 history.replaceState(null, '', location.pathname);
 let selected = '', detail = null, polling = false, connected = false, acting = false, refreshing = null;
 let groqModel = '', lastEventsView = '';
-const labels = {http:'HTTP foundation', events:'Stage log', llm:'Language model', research:'Web research', geocoding:'Place lookup', java:'Java routes', sessions:'Conversation state'};
+const labels = {http:'HTTP foundation', events:'Stage log', llm:'Language model', research:'Web research', geocoding:'Place lookup', java:'Java routes', sessions:'Route drafts in memory'};
 function node(tag, value, cls) { const el = document.createElement(tag); el.textContent = value; if (cls) el.className = cls; return el; }
 function notice(value, error = false) { $('notice').textContent = value; $('notice').className = error ? 'error' : ''; }
 async function api(path, method = 'GET', data) {
@@ -84,7 +84,7 @@ async function loadState() {
   $('selectedRun').value = selected; detail = selected ? await api('runs/' + selected) : null; showRecord();
 }
 function showModeHint() {
-  $('modeHint').textContent = $('mode').value === 'groq'
+  $('modeHint').textContent = ['groq', 'route_intent'].includes($('mode').value)
     ? `Sends this message to Groq${groqModel ? ` (${groqModel})` : ''} and uses your quota.`
     : 'Runs locally without external calls.';
 }
@@ -95,7 +95,7 @@ $('run').addEventListener('click', () => action(async () => {
   selected = result.runId; notice('Request started. Only the new core is being called.');
 }));
 $('cancel').addEventListener('click', () => action(async () => { await api('cancel','POST',{}); notice('Cancellation requested.'); }));
-$('reset').addEventListener('click', () => action(async () => { await api('reset','POST',{}); selected = ''; detail = null; $('message').value = ''; $('session').value = crypto.randomUUID(); notice('Local reports cleared. Stored keys are unchanged.'); }));
+$('reset').addEventListener('click', () => action(async () => { await api('reset','POST',{}); selected = ''; detail = null; $('message').value = ''; $('session').value = crypto.randomUUID(); notice('Local reports and route drafts cleared.'); }));
 $('selectedRun').addEventListener('change', () => { const value = $('selectedRun').value; action(async () => { selected = value; }); });
 $('level').addEventListener('change', renderEvents);
 $('export').addEventListener('click', () => action(async () => {

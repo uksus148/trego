@@ -38,7 +38,8 @@ Prefer a regression reproducing the actual failure over many implementation-shap
 
 Use [the launcher](README.md#open-the-new-local-lab-step-2). The new UI exposes
 the v2 foundation, technical failure and timeout checks, bounded private inspection,
-and a live structured Groq summary. Java and conversation state are later steps.
+and live Groq checks for summaries and walking requests. Drafts for endpoint
+clarification live in the lab process. Java and full conversation state are later steps.
 The older full-pipeline lab remains separate.
 
 From the repository root, after dependencies are prepared:
@@ -60,6 +61,10 @@ provider timeout and cancellation. Check **Stage log** for the precise reason.
 The provider status (such as `401` or `429`) appears in the diagnostic fields.
 The lab's chat boundary reports upstream failures as `502` and timeouts as `504`.
 A personal-key run is the separate check for live access and available quota.
+For walking requests, try a missing destination followed by a named place under
+the same session label. Inspect `route_draft` to confirm the start phrase survived.
+The lab suite checks the wire schema, state isolation, invalid changes and quota
+wait with substituted Groq responses.
 The existing agent workflow now includes Linux checks and a Windows lab job;
 configured CI jobs are not evidence of a completed CI run.
 Review exports for private free text even after known-secret redaction.

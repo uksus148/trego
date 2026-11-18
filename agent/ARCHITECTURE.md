@@ -27,10 +27,10 @@ including failures; it does not mean infallible language understanding.
 Covered together: product responsibilities, the broad pipeline, provider roles and
 the accepted request/handoff boundary. The owner now wants implementation-led
 learning: build, inspect and explain one working increment at a time.
-Steps 1 and 2 are locally verified. Step 3 adds a Groq connection for the lab's
-structured summary, with HTTP fixtures covering the provider boundary.
-Next is step 4, route intent extraction. Live Groq access is checked with a personal
-key in the lab. Update this position after a step is checked;
+The v2 lab now supports a structured summary and the first walking request flow.
+A draft remembers the pending endpoint per lab session and keeps the original
+wording next to the proposed name. Next is fuller conversation state in step 5.
+Live Groq access is checked with a personal key in the lab. Update this position after a step is checked;
 do not mark a topic understood or a capability delivered merely because it was described.
 
 ### Requirements for the replacement
@@ -66,9 +66,9 @@ Preferences are user wishes, not evidence that today's router optimizes scenery.
 
 ## What actually exists in v2
 
-**Implemented:** the HTTP foundation, local lab and structured Groq summary probe.
-The fixed response remains available in the local foundation check. Route intent,
-draft state, research, discovery and Java handoff are later steps.
+**Implemented:** the HTTP foundation, local lab, Groq summary and walking request
+exploration. The lab keeps a temporary draft for endpoint clarification. The
+remaining conversation actions, research, discovery and Java handoff are later steps.
 The Python import package is `trego_agent`; its distribution is `trego-agent`.
 Persisted `gopstop:` Valkey keys stay compatible with Java and existing data; their
 migration is separate from renaming Python imports. No old-package alias is provided;
@@ -247,7 +247,7 @@ is a behavioral reference, not the structure to copy. Reuse verified provider cl
 identity checks, Java handoff and storage protection when suitable; rework them only
 with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-Steps 1-3 are implemented; steps 4-12 remain planned. Tests establish HTTP,
+Steps 1-4 are implemented; steps 5-12 remain planned. Tests establish HTTP,
 configuration and diagnostic behavior, not travel interpretation or model quality.
 Each ends with something runnable, a focused behavior
 check and a short explanation from actual input/output. Use synthetic providers
@@ -400,9 +400,9 @@ Installed pgvector or an Exa image result does not deliver ranking or photo righ
 ## V2 branch: starting checkpoint
 
 Workspace branch: `refactor/agent-v2`. It starts from the reviewed baseline plus
-documentation in [PR #94](https://github.com/uksus148/trego./pull/94). The original
-runtime remains intact. Steps 1-3 add the isolated `v2/` foundation, local lab
-and model connection. The replacement travel workflow begins with step 4.
+documentation in [PR #94](https://github.com/uksus148/trego./pull/94).
+Steps 1-4 add the isolated `v2/` foundation, local lab, model connection, and
+walking request extraction with a temporary draft for clarification.
 
 Merge order: review/merge #94 first. After its squash merge, rebase this branch's
 own commits onto current main, excluding the old docs commit; check the resulting
@@ -496,8 +496,22 @@ Linux/Windows CI coverage is configured; this is not a claim that CI already ran
   A live personal-key request remains the check for external access and quota.
   See [VERIFY.md](VERIFY.md) and [Groq's structured output guide](https://console.groq.com/docs/structured-outputs).
 
-Next is step 4. Use the same structured interface to extract route roles from a
-message and keep missing fields explicit. Record the results here.
+Step 4 uses one strict response object with `kind`, `language`, nullable `start`
+and `end`, and ordered `stops`. Pydantic's tagged unions generate schema keywords
+that the current converter rejects. Python checks verbatim place phrases and
+action rules. A reply to a pending question can fill only the asked-for endpoint.
+The lab holds up to 20 drafts in memory and shows the draft in the `route_draft`
+event when inspection is enabled. A suspected place remains a user mention until
+the discovery stage verifies it. Tests cover partial, invalid and completed intent.
+
+The HTTP boundary checks the returned data within `chat` and uses the actual
+expiry of its deadline to classify a local timeout. The Groq client retains
+advisory quota data for the current key across runs. The shared journal shows
+queue and quota wait, including when a wait begins. The HTTP client's ceiling is
+60 seconds, with the selected chat deadline covering the whole run.
+
+Next is step 5. Extend the conversation beyond endpoint clarification to edits,
+abandoned plans and the boundary for saved routes.
 
 ## History, not current acceptance
 

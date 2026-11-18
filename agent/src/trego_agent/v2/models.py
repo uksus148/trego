@@ -18,7 +18,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid", strict=True, revalidate_instances="always")
 
     reply: Nonblank = Field(max_length=4000)
     places: list[ApiPlace] = Field(default_factory=list)

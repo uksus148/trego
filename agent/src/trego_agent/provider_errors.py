@@ -6,10 +6,11 @@ from pydantic import ValidationError
 
 PROVIDERS = {"anthropic", "groq", "exa", "nominatim"}
 OPERATIONS = {"select_reply_language", "extract_route_intent", "resolve_place", "write_chat_reply", "assess_availability", "search", "geocode",
-              "select_explore_area", "select_popular_places", "summarize_input"}
+              "select_explore_area", "select_popular_places", "summarize_input", "extract_walk_intent"}
 REASONS = {"http_status", "transport", "timeout", "request_schema", "response_json",
            "incomplete_generation", "unexpected_tool", "tool_arguments", "schema_validation",
-           "invalid_source_index", "no_usable_sources", "discovery_deadline", "model_refusal", "structured_content"}
+           "invalid_source_index", "invalid_intent_action", "no_usable_sources", "discovery_deadline",
+           "model_refusal", "structured_content"}
 CODES = {"tool_use_failed", "rate_limit_exceeded", "insufficient_quota", "invalid_api_key",
          "model_not_found", "model_decommissioned", "context_length_exceeded",
          "invalid_request_error", "authentication_error", "permission_error", "rate_limit_error",
@@ -20,7 +21,7 @@ VALIDATION_TYPES = {"missing", "extra_forbidden", "string_type", "string_too_sho
                     "int_type", "list_type", "model_type", "dict_type", "less_than_equal",
                     "greater_than_equal", "too_long", "value_error", "literal_error", "invalid_target_reference"}
 VALIDATION_FIELDS = {"start", "end", "mustSee", "preferences", "descriptiveTargets", "place",
-                     "name", "geocodeQuery", "sourceIndex", "tags", "summary"}
+                     "name", "geocodeQuery", "sourceIndex", "tags", "summary", "kind", "stops"}
 
 
 def allowed(value, choices):

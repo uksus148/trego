@@ -121,19 +121,39 @@ async def test_deadline_cancels_core_and_returns_safe_504(caplog):
     assert any(record.levelno == logging.ERROR for record in caplog.records)
 
 
-@pytest.mark.parametrize("invalid_response", [False, True])
-async def test_unexpected_failure_and_invalid_response_are_sanitized(invalid_response, caplog):
+async def test_reply_after_ignoring_deadline_cancellation_is_not_success():
+    class Late:
+        async def respond(self, request):
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                return ChatResponse(reply="Late response")
+
+    response = await post(create_app(AppSettings(chat_timeout_seconds=0.01), Late()))
+    assert response.status_code == 504
+
+
+@pytest.mark.parametrize("case", ["exception", "invalid_response", "mutated_response", "immediate_timeout"])
+async def test_unexpected_failure_and_invalid_response_are_sanitized(case, caplog):
     class Broken:
         async def respond(self, request):
-            if invalid_response:
+            if case == "invalid_response":
                 return {"reply": "private-response", "places": "private-invalid"}
+            if case == "mutated_response":
+                response = ChatResponse(reply="private-response")
+                response.reply = ""
+                return response
+            if case == "immediate_timeout":
+                raise TimeoutError("private-timeout")
             raise RuntimeError("private-exception")
 
-    response = await post(create_app(AppSettings(), Broken()))
+    with caplog.at_level(logging.INFO, logger="trego_agent.v2"):
+        response = await post(create_app(AppSettings(), Broken()))
     assert response.status_code == 500
     assert response.json() == {"detail": "Unexpected agent failure."}
     assert "private-" not in response.text + caplog.text
-    assert any(record.levelno == logging.ERROR for record in caplog.records)
+    assert "stage=chat outcome=failed" in caplog.text
+    assert "stage=chat outcome=ok" not in caplog.text
 
 
 async def test_external_cancellation_propagates(caplog):

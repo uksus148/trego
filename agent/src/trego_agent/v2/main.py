@@ -17,6 +17,10 @@ from trego_agent.v2.diagnostics import log, request_trace, stage, trace_id
 from trego_agent.v2.models import ChatRequest, ChatResponse
 
 
+class ChatDeadlineExceeded(Exception):
+    """The local deadline for this request expired."""
+
+
 def create_app(settings: AppSettings, service: ChatService) -> FastAPI:
     """The caller owns supplied dependencies; this factory opens no connections."""
     @asynccontextmanager
@@ -59,8 +63,8 @@ def create_app(settings: AppSettings, service: ChatService) -> FastAPI:
             "detail": "Expected nonblank sessionId (1-128) and message (1-4000), with no extra fields.",
         })
 
-    @app.exception_handler(TimeoutError)
-    async def deadline(request: Request, exc: TimeoutError) -> JSONResponse:
+    @app.exception_handler(ChatDeadlineExceeded)
+    async def deadline(request: Request, exc: ChatDeadlineExceeded) -> JSONResponse:
         return JSONResponse(status_code=504, content={"detail": "Chat exceeded its time limit."})
 
     @app.exception_handler(ProviderError)
@@ -72,8 +76,18 @@ def create_app(settings: AppSettings, service: ChatService) -> FastAPI:
     @app.post("/api/chat", response_model=ChatResponse, response_model_exclude_none=True)
     async def chat(payload: ChatRequest) -> ChatResponse:
         with stage("chat"):
-            async with asyncio.timeout(settings.chat_timeout_seconds):
-                return await service.respond(payload)
+            timeout = asyncio.timeout(settings.chat_timeout_seconds)
+            try:
+                async with timeout:
+                    result = await service.respond(payload)
+                    response = ChatResponse.model_validate(result)
+            except TimeoutError:
+                if timeout.expired():
+                    raise ChatDeadlineExceeded() from None
+                raise
+            if timeout.expired():
+                raise ChatDeadlineExceeded()
+            return response
 
     return app
 

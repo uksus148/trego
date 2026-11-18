@@ -31,8 +31,11 @@ The launcher reports an occupied port and leaves its process running.
 To check Groq, open **Personal keys**, enter a personal Groq key and click **Save**.
 The lab selects **Groq live · summarize text**. Enter any short message and select
 **Run request**. The text goes to Groq `openai/gpt-oss-20b` and uses your quota.
-Expect a short summary in the input language. This diagnostic checks the model
-connection and output format. Route interpretation and place lookup are later steps.
+Expect a short summary in the input language. Select **Groq live · understand a
+walking request** to extract a start, destination and stops. Supply details in a
+second message with the same session label when asked. Open the `route_draft`
+event to see the combined draft with input/output inspection enabled. Place lookup
+and routing are later steps.
 Use **Normal foundation response**, **Deliberate handler failure** or **Wait** for
 local checks without external calls. All modes use the v2 HTTP app.
 
@@ -52,7 +55,7 @@ namespace; the old lab's keys are never imported or overwritten. Values are not
 returned to the browser, browser storage or `.lab/`. An unavailable vault has no
 plaintext fallback. Delete/replace keys through the same card.
 
-**Reset** clears reports, not saved keys. **Stop lab** cancels active work and stops
+**Reset** clears reports and drafts. **Stop lab** cancels active work and stops
 only this server; process-only data disappears. After Python code changes, stop
 and relaunch to load the new version. Inspect `.lab/server.log` for safe startup
 metadata. The earlier lab in the separate `source` copy remains on port 8010.
@@ -120,7 +123,8 @@ Do not publish keys or point experiments at team storage by accident.
 Follow [verification](VERIFY.md) before enabling real chat. Startup validates
 configuration, not provider access, API migrations or route correctness.
 The earlier full-pipeline lab exists in the separate uncommitted working copy.
-The new v2 lab in this branch exposes the HTTP foundation and Groq connection check.
+The new v2 lab in this branch exposes the HTTP foundation, Groq connection check
+and walking request interpretation.
 
 ## Stable boundary
 

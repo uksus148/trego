@@ -42,7 +42,7 @@ class ModelProbe:
             messages=[{"role": "user", "content": request.message}],
             schema=Summary.model_json_schema(), max_tokens=2048,
         )
-        with stage("model"):
+        with stage("summary"):
             try:
                 raw = await self.model.complete(task)
                 try:
@@ -58,10 +58,10 @@ class ModelProbe:
         return ChatResponse(reply=result.summary)
 
 
-def groq_hooks(emit: Callable[[dict], None], inspect: bool) -> dict:
+def groq_hooks(emit: Callable[[dict], None], inspect: Callable[[], bool]) -> dict:
     async def request_sent(request: httpx.Request) -> None:
         event = {"stage": "model_request", "message": f"Sending request to Groq ({GROQ_MODEL})."}
-        if inspect:
+        if inspect():
             event["data"] = json.loads(request.content)
         emit(event)
 
@@ -72,7 +72,7 @@ def groq_hooks(emit: Callable[[dict], None], inspect: bool) -> dict:
             event.update(level="WARNING", message="Groq reported a rate limit.")
         elif not response.is_success:
             event["level"] = "ERROR"
-        elif inspect:
+        elif inspect():
             event.update(await response_preview(response))
         emit(event)
 
