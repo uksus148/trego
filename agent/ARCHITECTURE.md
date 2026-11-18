@@ -27,10 +27,10 @@ including failures; it does not mean infallible language understanding.
 Covered together: product responsibilities, the broad pipeline, provider roles and
 the accepted request/handoff boundary. The owner now wants implementation-led
 learning: build, inspect and explain one working increment at a time.
-Steps 1 and 2 are locally verified. New `v2/` code implements
-the explicit app factory, request/result validation, deterministic fixture and safe
-trace/stage logs; no interpretation, providers or conversation state are connected.
-Next: step 3, the selected LLM connection. Update this position after a step is checked;
+Steps 1 and 2 are locally verified. Step 3 adds a Groq connection for the lab's
+structured summary, with HTTP fixtures covering the provider boundary.
+Next is step 4, route intent extraction. Live Groq access is checked with a personal
+key in the lab. Update this position after a step is checked;
 do not mark a topic understood or a capability delivered merely because it was described.
 
 ### Requirements for the replacement
@@ -66,9 +66,9 @@ Preferences are user wishes, not evidence that today's router optimizes scenery.
 
 ## What actually exists in v2
 
-**Implemented:** the HTTP foundation. **Temporary fixture:** a fixed diagnostic
-reply. **Not implemented:** LLM interpretation, draft state, research, discovery,
-Java handoff. The new local UI inspects the foundation, not a functional travel agent.
+**Implemented:** the HTTP foundation, local lab and structured Groq summary probe.
+The fixed response remains available in the local foundation check. Route intent,
+draft state, research, discovery and Java handoff are later steps.
 The Python import package is `trego_agent`; its distribution is `trego-agent`.
 Persisted `gopstop:` Valkey keys stay compatible with Java and existing data; their
 migration is separate from renaming Python imports. No old-package alias is provided;
@@ -247,7 +247,7 @@ is a behavioral reference, not the structure to copy. Reuse verified provider cl
 identity checks, Java handoff and storage protection when suitable; rework them only
 with a demonstrated reason. Replace the running path incrementally through reviewed PRs.
 
-Steps 1 and 2 are locally verified; steps 3-12 remain planned. Tests establish HTTP,
+Steps 1-3 are implemented; steps 4-12 remain planned. Tests establish HTTP,
 configuration and diagnostic behavior, not travel interpretation or model quality.
 Each ends with something runnable, a focused behavior
 check and a short explanation from actual input/output. Use synthetic providers
@@ -401,8 +401,8 @@ Installed pgvector or an Exa image result does not deliver ranking or photo righ
 
 Workspace branch: `refactor/agent-v2`. It starts from the reviewed baseline plus
 documentation in [PR #94](https://github.com/uksus148/trego./pull/94). The original
-runtime remains intact; step 1 adds the isolated `v2/` foundation. Provider switch,
-the new lab exposes that foundation only; a functional replacement agent is not implemented yet.
+runtime remains intact. Steps 1-3 add the isolated `v2/` foundation, local lab
+and model connection. The replacement travel workflow begins with step 4.
 
 Merge order: review/merge #94 first. After its squash merge, rebase this branch's
 own commits onto current main, excluding the old docs commit; check the resulting
@@ -472,8 +472,32 @@ full data is opt-in, metadata-only is the default. Keys use a separate Windows
 namespace with no plaintext fallback; loopback host/origin/token checks protect
 the private API. Production packaging excludes `devtools` and the launcher.
 Linux/Windows CI coverage is configured; this is not a claim that CI already ran.
-Next is step 3: a real LLM adapter, with errors shown honestly
-and no automatic fixture fallback. Update this checkpoint instead of opening another plan file.
+### Step 3 report
+
+- [`v2/llm.py`](src/trego_agent/v2/llm.py) gives tasks a small `complete(request)`
+  interface. Its Groq adapter reuses the existing HTTP client and strict JSON
+  validation. This preserves the timeout, refusal and bounded `429` retry behavior
+  without introducing another provider SDK or asking the task to format wire JSON.
+- [`model_probe.py`](../devtools/agent_lab/model_probe.py) asks for a summary of
+  the actual text and validates the returned `summary` locally, including the
+  nonblank 240-character limit. A narrow task makes provider or schema errors
+  easy to identify before adding route semantics. The probe uses only the supplied
+  message, keeping the session label and lab data local.
+- The lab uses the Groq key only after a deliberate live run. Its opt-in journal
+  shows the sanitized request body, final answer preview, usage when supplied,
+  and safe error details. Request headers, reasoning fields and upstream error
+  bodies stay outside the report. Local modes continue to run offline. A failed
+  live run reports its error with no automatic switch to a local mode.
+- The focused suite passed 126 checks covering the foundation, Groq request and
+  response shape, missing key, bad JSON, refusal, 401/429, timeout, cancellation
+  and opt-in privacy. The broader run passed 660 checks with 8 real-Valkey skips.
+  The wheel contains the model adapter and excludes the lab. The updated page
+  and authenticated Groq capability were verified on the running loopback server.
+  A live personal-key request remains the check for external access and quota.
+  See [VERIFY.md](VERIFY.md) and [Groq's structured output guide](https://console.groq.com/docs/structured-outputs).
+
+Next is step 4. Use the same structured interface to extract route roles from a
+message and keep missing fields explicit. Record the results here.
 
 ## History, not current acceptance
 

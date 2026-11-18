@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from devtools.agent_lab.app import create_app
+from devtools.agent_lab.model_probe import GROQ_MODEL
 from devtools.agent_lab.records import Records
 
 
@@ -54,6 +55,116 @@ async def run(lab, client, **options):
     return (await client.get("/lab/runs/" + response.json()["runId"])).json()
 
 
+@pytest.fixture
+async def groq_lab():
+    calls = []
+    provider = {"response": httpx.Response(200, json={
+        "choices": [{"finish_reason": "stop", "message": {
+            "content": '{"summary":"Walk to the park."}', "reasoning": "private reasoning",
+        }}],
+        "usage": {"prompt_tokens": 50, "completion_tokens": 10, "total_tokens": 60},
+    })}
+
+    async def reply(request):
+        calls.append(request)
+        result = provider["response"]
+        if callable(result):
+            return await result()
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    app = create_app(TOKEN, MemoryVault(), groq_transport=httpx.MockTransport(reply))
+    async with app.router.lifespan_context(app), httpx.AsyncClient(
+        transport=httpx.ASGITransport(app), base_url="http://127.0.0.1:8012", headers={"X-Lab-Token": TOKEN},
+    ) as client:
+        yield app.state.lab, client, calls, provider
+
+
+async def test_live_probe_uses_explicit_key_and_records_a_private_view(groq_lab):
+    lab, client, calls, _ = groq_lab
+    body = {"mode": "groq", "request": {"sessionId": "private session", "message": "Go to the park."}}
+    assert (await client.post("/lab/run", json=body)).status_code == 400
+    assert not calls
+
+    key = "local-personal-key"
+    assert (await client.post("/lab/keys", json={"provider": "groq", "value": key})).status_code == 200
+    rejected = {**body, "request": {"sessionId": "s", "message": f"Accidental paste: {key}"}}
+    assert (await client.post("/lab/run", json=rejected)).status_code == 400 and not calls
+    record = await run(lab, client, **body, inspect=True)
+    request, = calls
+    assert str(request.url) == "https://api.groq.com/openai/v1/chat/completions"
+    assert request.headers["Authorization"] == f"Bearer {key}"
+    payload = json.loads(request.content)
+    assert payload["model"] == GROQ_MODEL
+    assert payload["response_format"]["json_schema"]["strict"] is True
+    assert payload["messages"][-1]["content"] == body["request"]["message"]
+    assert b"private session" not in request.content
+    assert record["httpStatus"] == 200
+    assert record["response"] == {"reply": "Walk to the park.", "places": []}
+    response_event = next(e for e in record["events"] if e["stage"] == "model_response")
+    assert response_event["data"]["content"] == {"summary": "Walk to the park."}
+    assert response_event["data"]["usage"]["total_tokens"] == 60
+    exported = (await client.get("/lab/export/" + record["id"])).text
+    assert key not in exported and "private reasoning" not in exported and "Authorization" not in exported
+
+
+@pytest.mark.parametrize("upstream,http_status,reason", [
+    (401, 502, "http_status"), (429, 502, "http_status"),
+    ("bad_json", 502, "structured_content"), ("blank_summary", 502, "schema_validation"),
+    ("refused", 502, "model_refusal"), ("timeout", 504, "timeout"),
+])
+async def test_live_probe_reports_errors_without_fallback(groq_lab, upstream, http_status, reason):
+    lab, client, calls, provider = groq_lab
+    await client.post("/lab/keys", json={"provider": "groq", "value": "local-personal-key"})
+    if upstream == "timeout":
+        provider["response"] = httpx.ReadTimeout("private timeout")
+    elif isinstance(upstream, int):
+        provider["response"] = httpx.Response(upstream, json={"error": {"message": "private error"}})
+    elif upstream == "refused":
+        provider["response"] = httpx.Response(200, json={"choices": [{
+            "finish_reason": "stop", "message": {"refusal": "private refusal"},
+        }]})
+    else:
+        content = "invalid JSON" if upstream == "bad_json" else '{"summary":"   "}'
+        provider["response"] = httpx.Response(200, json={"choices": [{
+            "finish_reason": "stop", "message": {"content": content},
+        }]})
+
+    record = await run(lab, client, mode="groq")
+    assert len(calls) == 1 and record["status"] == "failed" and record["httpStatus"] == http_status
+    diagnostic = next(e["diagnostic"] for e in record["events"] if "diagnostic" in e)
+    assert diagnostic["reason"] == reason
+    if isinstance(upstream, int):
+        assert diagnostic["http_status"] == upstream
+    assert record["request"] is None and record["response"] is None
+    assert not any("data" in e for e in record["events"])
+    assert "private " not in json.dumps(record)
+
+
+async def test_cancelling_live_probe_cancels_provider_call(groq_lab):
+    lab, client, calls, provider = groq_lab
+    started, cancelled = asyncio.Event(), asyncio.Event()
+
+    async def blocked():
+        started.set()
+        try:
+            await asyncio.Future()
+        finally:
+            cancelled.set()
+
+    provider["response"] = blocked
+    await client.post("/lab/keys", json={"provider": "groq", "value": "local-personal-key"})
+    response = await client.post("/lab/run", json={
+        "mode": "groq", "request": {"sessionId": "s", "message": "Cancel me"},
+    })
+    assert response.status_code == 202
+    await asyncio.wait_for(started.wait(), timeout=2)
+    assert (await client.post("/lab/cancel")).status_code == 200
+    assert cancelled.is_set() and len(calls) == 1
+    assert lab.records.runs[-1]["status"] == "cancelled"
+
+
 async def test_host_origin_auth_and_body_limits(lab):
     _, client = lab
     assert (await client.get("/lab/status", headers={"X-Lab-Token": "bad"})).status_code == 403
@@ -82,7 +193,7 @@ async def test_real_foundation_is_called_and_payload_capture_is_opt_in(lab):
     assert detailed["response"]["places"] == [] and "routeId" not in detailed["response"]
     status = (await client.get("/lab/status")).json()
     assert status["application"] == "trego-v2-lab"
-    assert not any(c["available"] for c in status["capabilities"] if c["id"] in {"llm", "java", "research"})
+    assert not any(c["available"] for c in status["capabilities"] if c["id"] in {"java", "research"})
 
 
 @pytest.mark.parametrize("body", [{}, {"sessionId": "s", "message": " "}])

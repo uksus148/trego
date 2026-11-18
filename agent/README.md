@@ -26,22 +26,27 @@ working copy). Python must be available as `python`; first launch may download u
 Python 3.12 and frozen dependencies. Later launches reuse the prepared environment.
 The authenticated page opens on http://127.0.0.1:8012. Use the launcher to reopen
 it after a tab refresh; the private launch token is never written to a plaintext file.
-An occupied port belonging to another program is reported, never killed.
+The launcher reports an occupied port and leaves its process running.
 
-Enter any message and choose a **technical** check: foundation response, deliberate
-failure, or waiting for timeout/cancel. These call the actual v2 HTTP factory in
-process, not the old agent. They do not interpret a travel request. LLM, research,
-geocoding, Java and conversation storage are explicitly marked not implemented.
+To check Groq, open **Personal keys**, enter a personal Groq key and click **Save**.
+The lab selects **Groq live · summarize text**. Enter any short message and select
+**Run request**. The text goes to Groq `openai/gpt-oss-20b` and uses your quota.
+Expect a short summary in the input language. This diagnostic checks the model
+connection and output format. Route interpretation and place lookup are later steps.
+Use **Normal foundation response**, **Deliberate handler failure** or **Wait** for
+local checks without external calls. All modes use the v2 HTTP app.
 
-Enable **Show input/output values** before running to inspect data. Otherwise only
-metadata is retained. Review INFO/WARNING/ERROR events, choose an earlier run,
+Enable **Show input/output values** before running to inspect the summary and the
+Groq request and response under **Stage log**. The model response preview includes
+the final content and token counts when available. Without opt-in the lab retains
+only metadata. Review INFO/WARNING/ERROR events, choose an earlier run,
 cancel work, reset local reports or explicitly export reviewed JSON. Capture is
 bounded to 20 runs, 128 events per run and bounded individual payloads; truncation
 is marked without altering inputs to the core. Known keys/auth fields/private
 reasoning are redacted, but free text may still contain personal information.
 
-Personal key cards prepare Groq/Anthropic/Exa keys for later steps; no connection
-test or live call is claimed. Keys stay in process unless **Remember in Windows**
+The Anthropic and Exa cards prepare keys for later steps. Keys stay in process
+unless **Remember in Windows**
 is selected. Remember uses a separate `trego.agent-v2-lab/` Credential Manager
 namespace; the old lab's keys are never imported or overwritten. Values are not
 returned to the browser, browser storage or `.lab/`. An unavailable vault has no
@@ -115,7 +120,7 @@ Do not publish keys or point experiments at team storage by accident.
 Follow [verification](VERIFY.md) before enabling real chat. Startup validates
 configuration, not provider access, API migrations or route correctness.
 The earlier full-pipeline lab exists in the separate uncommitted working copy.
-The new v2 lab is included here and exposes only the implemented foundation.
+The new v2 lab in this branch exposes the HTTP foundation and Groq connection check.
 
 ## Stable boundary
 

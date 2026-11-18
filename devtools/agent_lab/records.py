@@ -46,7 +46,7 @@ class Records:
                 parsed = json.loads(value)
                 if isinstance(parsed, (dict, list)):
                     return self.clean(parsed, depth + 1)
-            except ValueError:
+            except (ValueError, RecursionError):
                 pass
             for secret in self.secrets():
                 if secret:

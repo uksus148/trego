@@ -34,12 +34,12 @@ settlement features, nearby ambiguity, repeated stops, language switches, incomp
 intent, invalid output/source indices, provider errors, cancellation and uncertain writes.
 Prefer a regression reproducing the actual failure over many implementation-shaped tests.
 
-## Local Agent Lab: step 2
+## Local Agent Lab
 
 Use [the launcher](README.md#open-the-new-local-lab-step-2). The new UI exposes
-the actual v2 foundation, technical failure/timeout diagnostics and bounded private
-inspection. Live adapters, Java and conversation state are not implemented; it
-does not invent synthetic routes. The older full-pipeline lab remains separate.
+the v2 foundation, technical failure and timeout checks, bounded private inspection,
+and a live structured Groq summary. Java and conversation state are later steps.
+The older full-pipeline lab remains separate.
 
 From the repository root, after dependencies are prepared:
 
@@ -49,11 +49,17 @@ agent\.venv\Scripts\python.exe -m compileall -q devtools start_agent_lab.py
 node --check devtools\agent_lab\lab.js
 ```
 
-These tests use an in-memory vault and ASGI HTTP, blocking external transport.
+These tests use an in-memory vault and ASGI HTTP. The Groq checks substitute an
+HTTP transport to exercise the actual request, parser, and local validation.
 They cover loopback host/origin/auth, bounded requests, real core validation,
 opt-in/redacted payloads, ERROR/WARNING capture, timeout/cancellation/overlap,
 reset/shutdown, report bounds, write-only keys, vault failure without plaintext,
 launcher reuse/occupied ports/startup cleanup and worktree-isolated setup.
+Groq cases include a missing key, success, malformed output, refusal, HTTP 401/429,
+provider timeout and cancellation. Check **Stage log** for the precise reason.
+The provider status (such as `401` or `429`) appears in the diagnostic fields.
+The lab's chat boundary reports upstream failures as `502` and timeouts as `504`.
+A personal-key run is the separate check for live access and available quota.
 The existing agent workflow now includes Linux checks and a Windows lab job;
 configured CI jobs are not evidence of a completed CI run.
 Review exports for private free text even after known-secret redaction.

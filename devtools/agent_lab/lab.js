@@ -3,6 +3,7 @@ const $ = id => document.getElementById(id);
 const token = location.hash.slice(1);
 history.replaceState(null, '', location.pathname);
 let selected = '', detail = null, polling = false, connected = false, acting = false, refreshing = null;
+let groqModel = '', lastEventsView = '';
 const labels = {http:'HTTP foundation', events:'Stage log', llm:'Language model', research:'Web research', geocoding:'Place lookup', java:'Java routes', sessions:'Conversation state'};
 function node(tag, value, cls) { const el = document.createElement(tag); el.textContent = value; if (cls) el.className = cls; return el; }
 function notice(value, error = false) { $('notice').textContent = value; $('notice').className = error ? 'error' : ''; }
@@ -21,18 +22,31 @@ function buildKeys() {
     const label = node('label', 'Remember in Windows', 'check'); const remember = document.createElement('input'); remember.type = 'checkbox'; label.prepend(remember); card.append(label);
     const row = node('div', '', 'keyrow');
     for (const [caption, callback] of [
-      ['Save', async () => { await api('keys', 'POST', {provider, value:input.value, remember:remember.checked}); input.value = ''; notice('Key accepted. Its value is not returned or used by this diagnostic.'); }],
+      ['Save', async () => {
+        await api('keys', 'POST', {provider, value:input.value, remember:remember.checked});
+        input.value = '';
+        if (provider === 'groq') {
+          $('mode').value = 'groq';
+          notice('Groq key saved. Enter a message and click Run request to test the connection.');
+        } else {
+          notice('Key saved for a later step.');
+        }
+      }],
       ['Remove', async () => { await api('keys/' + provider, 'DELETE'); input.value = ''; notice('Key removed.'); }],
     ]) { const button = node('button', caption, 'secondary'); button.addEventListener('click', () => action(callback)); row.append(button); }
     card.append(row); $('keys').append(card);
   }
 }
 function renderEvents() {
-  $('events').replaceChildren();
   const events = (detail?.events || []).filter(event => $('level').value === 'ALL' || event.level === $('level').value);
+  const view = JSON.stringify([detail?.id, $('level').value, events]);
+  if (view === lastEventsView) return;
+  lastEventsView = view;
+  $('events').replaceChildren();
   if (!events.length) $('events').append(node('p', 'No matching events.', 'hint'));
   for (const event of events) {
     const box = node('details', '', 'event ' + (['INFO','WARNING','ERROR'].includes(event.level) ? event.level : 'INFO'));
+    box.open = Boolean(event.data || event.diagnostic);
     box.append(node('summary', `${event.level || 'INFO'} · ${event.stage || 'lab'} · ${(event.message || 'Event').slice(0,180)}`), node('pre', JSON.stringify(event, null, 2)));
     $('events').append(box);
   }
@@ -52,6 +66,7 @@ function refresh() {
 }
 async function loadState() {
   const state = await api('status'); connected = true;
+  groqModel = state.groqModel;
   $('capabilities').replaceChildren();
   for (const capability of state.capabilities) {
     const row = node('div', '', 'capability'); row.append(node('span', labels[capability.id]), node('span', capability.available ? 'READY' : 'NOT BUILT YET', 'badge' + (capability.available ? ' ready' : ''))); $('capabilities').append(row);
@@ -61,12 +76,19 @@ async function loadState() {
   for (const checkbox of $('keys').querySelectorAll('input[type=checkbox]')) checkbox.disabled = state.busy || !state.vaultAvailable;
   for (const control of $('keys').querySelectorAll('button, input[type=password]')) control.disabled = state.busy;
   $('run').disabled = state.busy; $('reset').disabled = state.busy; $('cancel').disabled = !state.busy;
-  $('busy').textContent = state.busy ? 'Running · no external calls' : 'Ready · diagnostic only';
+  $('busy').textContent = state.busy ? 'Running…' : '';
+  showModeHint();
   $('selectedRun').replaceChildren();
   for (const record of [...state.runs].reverse()) { const option = node('option', `${record.created.slice(11,19)} · ${record.mode} · ${record.status}`); option.value = record.id; $('selectedRun').append(option); }
   if (!state.runs.some(r => r.id === selected)) selected = state.runs.at(-1)?.id || '';
   $('selectedRun').value = selected; detail = selected ? await api('runs/' + selected) : null; showRecord();
 }
+function showModeHint() {
+  $('modeHint').textContent = $('mode').value === 'groq'
+    ? `Sends this message to Groq${groqModel ? ` (${groqModel})` : ''} and uses your quota.`
+    : 'Runs locally without external calls.';
+}
+$('mode').addEventListener('change', showModeHint);
 $('run').addEventListener('click', () => action(async () => {
   const timeout = Number($('timeout').value); if (!(timeout > 0 && timeout <= 60)) throw new Error('Time limit must be above 0 and at most 60 seconds.');
   const result = await api('run', 'POST', {request:{sessionId:$('session').value, message:$('message').value}, mode:$('mode').value, timeout_seconds:timeout, inspect:$('inspect').checked});

@@ -1,9 +1,9 @@
-"""Authenticated local UI around the real v2 app; no live adapters or dotenv."""
+"""Authenticated local UI with explicit diagnostics and an opt-in Groq call."""
 
 import asyncio
 import logging
 import secrets
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from time import perf_counter
 from typing import Literal
@@ -16,10 +16,12 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from trego_agent.v2.chat import FixtureChatService
 from trego_agent.v2.config import AppSettings
+from trego_agent.v2.llm import GroqModel
 from trego_agent.v2.main import create_app as create_core
 
 from .config import APPLICATION, PORT
 from .credentials import Vault
+from .model_probe import GROQ_MODEL, ModelProbe, groq_hooks
 from .records import CaptureHandler, Records
 
 Provider = Literal["groq", "anthropic", "exa"]
@@ -28,7 +30,7 @@ Provider = Literal["groq", "anthropic", "exa"]
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
     request: dict
-    mode: Literal["foundation", "failure", "wait"] = "foundation"
+    mode: Literal["foundation", "failure", "wait", "groq"] = "foundation"
     timeout_seconds: float = Field(default=10, gt=0, le=60)
     inspect: bool = False
 
@@ -52,8 +54,9 @@ class DiagnosticService:
 
 
 class Lab:
-    def __init__(self, token, vault):
+    def __init__(self, token, vault, groq_transport):
         self.vault, self.keys, self.saved = vault, {}, set()
+        self.groq_transport = groq_transport
         self.vault_error = False
         for provider in ("groq", "anthropic", "exa"):
             try:
@@ -84,17 +87,17 @@ class Lab:
 
     async def execute(self, payload, record):
         started = perf_counter()
-        service = FixtureChatService() if payload.mode == "foundation" else DiagnosticService(payload.mode)
-        core = create_core(AppSettings(chat_timeout_seconds=payload.timeout_seconds), service)
         if payload.inspect:
             record["request"] = self.records.bounded(payload.request)
         with self.records.capture(record):
-            self.records.event(record, {"level": "WARNING", "stage": "lab",
-                "message": "Diagnostic mode only. LLM, research, geocoding, Java and storage are not connected."})
             try:
-                async with core.router.lifespan_context(core), httpx.AsyncClient(
-                    transport=httpx.ASGITransport(core), base_url="http://core.invalid", trust_env=False,
-                ) as client:
+                async with AsyncExitStack() as stack:
+                    service = await self.build_service(stack, payload, record)
+                    core = create_core(AppSettings(chat_timeout_seconds=payload.timeout_seconds), service)
+                    await stack.enter_async_context(core.router.lifespan_context(core))
+                    client = await stack.enter_async_context(httpx.AsyncClient(
+                        transport=httpx.ASGITransport(core), base_url="http://core.invalid", trust_env=False,
+                    ))
                     response = await client.post("/api/chat", json=payload.request)
                     record.update(httpStatus=response.status_code, traceId=response.headers.get("X-Trace-Id"),
                                   status="completed" if response.is_success else "failed")
@@ -109,11 +112,26 @@ class Lab:
             finally:
                 record["elapsedMs"] = round((perf_counter() - started) * 1000, 1)
 
+    async def build_service(self, stack, payload, record):
+        def emit(event):
+            self.records.event(record, event)
 
-def create_app(token: str, vault=None) -> FastAPI:
+        if payload.mode != "groq":
+            emit({"level": "WARNING", "stage": "lab", "message": "Local diagnostic without external calls."})
+            return FixtureChatService() if payload.mode == "foundation" else DiagnosticService(payload.mode)
+
+        emit({"level": "INFO", "stage": "lab", "message": f"Live Groq diagnostic using {GROQ_MODEL}."})
+        client = await stack.enter_async_context(httpx.AsyncClient(
+            trust_env=False, follow_redirects=False, transport=self.groq_transport,
+            event_hooks=groq_hooks(emit, payload.inspect),
+        ))
+        return ModelProbe(GroqModel(client, self.keys["groq"], payload.timeout_seconds), emit)
+
+
+def create_app(token: str, vault=None, *, groq_transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
     if len(token) < 32:
         raise ValueError("A private launch token is required.")
-    lab = Lab(token, vault if vault is not None else Vault())
+    lab = Lab(token, vault if vault is not None else Vault(), groq_transport)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -185,7 +203,8 @@ def create_app(token: str, vault=None) -> FastAPI:
         return {"application": APPLICATION, "busy": lab.busy,
             "keys": {p: {"present": p in lab.keys, "saved": p in lab.saved} for p in ("groq", "anthropic", "exa")},
             "vaultAvailable": bool(lab.vault.api), "vaultError": lab.vault_error,
-            "capabilities": [{"id": name, "available": name in {"http", "events"}}
+            "groqModel": GROQ_MODEL,
+            "capabilities": [{"id": name, "available": name in {"http", "events", "llm"}}
                              for name in ("http", "events", "llm", "research", "geocoding", "java", "sessions")],
             "runs": [{"mode": r["options"]["mode"], **{k: r[k] for k in ("id", "created", "status", "httpStatus", "elapsedMs")}}
                      for r in lab.records.runs]}
@@ -208,6 +227,12 @@ def create_app(token: str, vault=None) -> FastAPI:
     @app.post("/lab/run", status_code=202)
     async def run(payload: RunRequest):
         lab.idle()
+        if payload.mode == "groq":
+            if not lab.keys.get("groq"):
+                raise HTTPException(400, "Save your Groq key under Personal keys before running.")
+            message = payload.request.get("message")
+            if isinstance(message, str) and any(secret in message for secret in lab.records.secrets() if secret):
+                raise HTTPException(400, "Remove credentials from the message before sending it to Groq.")
         record = lab.records.start(payload.model_dump(exclude={"request"}))
         lab.task = asyncio.create_task(lab.execute(payload, record))
         return {"runId": record["id"]}

@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from trego_agent.provider_errors import ProviderError, ProviderTimeout
 from trego_agent.v2.chat import ChatService, FixtureChatService
 from trego_agent.v2.config import AppSettings
 from trego_agent.v2.diagnostics import log, request_trace, stage, trace_id
@@ -61,6 +62,12 @@ def create_app(settings: AppSettings, service: ChatService) -> FastAPI:
     @app.exception_handler(TimeoutError)
     async def deadline(request: Request, exc: TimeoutError) -> JSONResponse:
         return JSONResponse(status_code=504, content={"detail": "Chat exceeded its time limit."})
+
+    @app.exception_handler(ProviderError)
+    async def provider_failure(request: Request, exc: ProviderError) -> JSONResponse:
+        if isinstance(exc, ProviderTimeout):
+            return JSONResponse(status_code=504, content={"detail": "Model request timed out."})
+        return JSONResponse(status_code=502, content={"detail": "Model request failed."})
 
     @app.post("/api/chat", response_model=ChatResponse, response_model_exclude_none=True)
     async def chat(payload: ChatRequest) -> ChatResponse:
