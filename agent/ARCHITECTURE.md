@@ -124,12 +124,14 @@ located sights produce a nonblank destination clarification, including same-city
 intents, without Java writes. These rules describe the merged implementation;
 shared policy status and live acceptance remain separate from documentation cleanup.
 
-Open finding from uncommitted local lab work: an airport-to-city-centre request
-followed by a named destination lost the airport qualifier and remained unresolved.
-This is not reproduced evidence against the exact main revision. First capture
-intent/history/evidence on a pinned version. Proposed structured state must retain
-an unfinished request as well as the last successful route; do not assume that
-remembering only a successful route fixes clarification.
+Proposed regression case: request a route from an airport, then supply a named
+destination after clarification. Verify that the airport qualifier survives, or
+that unresolved identity produces a specific question before writes. This is an
+acceptance requirement, not a reproduced defect against the reviewed main revision.
+Capture intent/history/evidence on a pinned version before opening a defect issue.
+Proposed structured state must retain an unfinished request as well as the last
+successful route; remembering only a successful route does not establish that
+clarification works.
 
 ## Budgets, caches and diagnostics
 
