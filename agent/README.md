@@ -8,8 +8,8 @@ owns the map. A model response alone never proves that a place or route is corre
 
 ## Read and work here
 
-1. [ARCHITECTURE.md](ARCHITECTURE.md): responsibilities, data flow, safeguards,
-   open questions and the replacement plan. This is our single working notebook.
+1. [ARCHITECTURE.md](ARCHITECTURE.md): module map, design rules, current state
+   and the next step. This is our single working notebook.
 2. [VERIFY.md](VERIFY.md): checks without team keys, provider probes, diagnostics
    and the limits of each kind of evidence.
 3. [Accepted handoff](../docs/AGENT_API_HANDOFF.md) and [root decisions](../CLAUDE.md):
@@ -29,13 +29,15 @@ it after a tab refresh; the private launch token is never written to a plaintext
 The launcher reports an occupied port and leaves its process running.
 
 To check Groq, open **Personal keys**, enter a personal Groq key and click **Save**.
-The lab selects **Groq live · summarize text**. Enter any short message and select
+Choose **Groq live · summarize text**, enter any short message and select
 **Run request**. The text goes to Groq `openai/gpt-oss-20b` and uses your quota.
 Expect a short summary in the input language. Select **Groq live · understand a
 walking request** to extract a start, destination and stops. Supply details in a
 second message with the same session label when asked. Open the `route_draft`
-event to see the combined draft with input/output inspection enabled. Place lookup
-and routing are later steps.
+event to see the combined draft with input/output inspection enabled. It shows
+the original phrase and the model's proposed name separately. If the model
+reports more than five intermediate stops, the agent asks for a shorter route.
+Place lookup and routing are later steps.
 Use **Normal foundation response**, **Deliberate handler failure** or **Wait** for
 local checks without external calls. All modes use the v2 HTTP app.
 

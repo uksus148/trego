@@ -69,6 +69,7 @@ def create_app(settings: AppSettings, service: ChatService) -> FastAPI:
 
     @app.exception_handler(ProviderError)
     async def provider_failure(request: Request, exc: ProviderError) -> JSONResponse:
+        log.error("trace=%s stage=provider outcome=failed diagnostic=%s", trace_id.get(), exc.diagnostic)
         if isinstance(exc, ProviderTimeout):
             return JSONResponse(status_code=504, content={"detail": "Model request timed out."})
         return JSONResponse(status_code=502, content={"detail": "Model request failed."})

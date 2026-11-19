@@ -6,22 +6,22 @@ not that a live model will produce them. HTTP 200 clarification is not a saved r
 
 ## Offline checks
 
-From `agent/`, with Python 3.11+ and uv installed:
+From the repository root after [installing test dependencies](README.md#install-and-run-the-existing-service):
 
 ```powershell
-uv sync --frozen --extra test
-uv run --frozen --extra test pytest -q
-uv run --frozen python -m compileall -q src tests
-uv lock --check --offline
+uv run --project agent --frozen --extra test pytest -q -r s
+uv run --project agent --frozen python -m compileall -q agent/src agent/tests devtools start_agent_lab.py
+uv lock --project agent --check --offline
 ```
 
-Tests supply fake HTTP/model/cache data; do not run a live probe as a substitute.
-Real-Valkey runtime tests skip unless `TEST_VALKEY_URL` points to a disposable
+The Python test suite blocks external socket connections and DNS lookups.
+Tests exercise application code with substitutions at external boundaries.
+Real-Valkey runtime tests skip unless `TEST_VALKEY_URL` points to a disposable loopback
 instance. Skips are not a pass for that boundary. [Agent CI](../.github/workflows/agent.yml)
 provides Valkey 8.1 and runs the suite without live credentials.
 
 For just the new step-1 boundary, run
-`uv run --frozen --extra test pytest tests/test_v2_foundation.py -q`.
+`uv run --project agent --frozen --extra test pytest agent/tests/test_v2_foundation.py -q`.
 It checks explicit configuration, the chat contract and limits, private validation
 errors, dependency substitution, deadline cancellation, unexpected/invalid outputs,
 concurrent trace isolation and external cancellation. Network connects are blocked
@@ -34,12 +34,28 @@ settlement features, nearby ambiguity, repeated stops, language switches, incomp
 intent, invalid output/source indices, provider errors, cancellation and uncertain writes.
 Prefer a regression reproducing the actual failure over many implementation-shaped tests.
 
+### V2 regressions
+
+- [Walking core](tests/test_v2_walking.py): substitute only the model and draft
+  store. Exercise the real workflow to distinguish malformed output from an
+  invalid clarification. Confirm the draft still carries the airport phrase.
+- [Lab HTTP](../devtools/tests/test_agent_lab.py): substitute the Groq transport
+  and vault. Check explicit live selection at the HTTP boundary, provider errors
+  without fallback, and shared-core clarification, session isolation, stop
+  repeats and the stop limit. After a UI change, save a key with the local mode
+  selected and verify that the selector stays local.
+
+```powershell
+uv run --project agent --frozen --extra test pytest agent/tests/test_v2_walking.py devtools/tests/test_agent_lab.py -q
+```
+
 ## Local Agent Lab
 
 Use [the launcher](README.md#open-the-new-local-lab-step-2). The new UI exposes
 the v2 foundation, technical failure and timeout checks, bounded private inspection,
 and live Groq checks for summaries and walking requests. Drafts for endpoint
-clarification live in the lab process. Java and full conversation state are later steps.
+clarification live in the lab process. The walking handler in the core owns their
+updates and questions. Java and durable conversation state are later steps.
 The older full-pipeline lab remains separate.
 
 From the repository root, after dependencies are prepared:
@@ -63,11 +79,20 @@ The lab's chat boundary reports upstream failures as `502` and timeouts as `504`
 A personal-key run is the separate check for live access and available quota.
 For walking requests, try a missing destination followed by a named place under
 the same session label. Inspect `route_draft` to confirm the start phrase survived.
-The lab suite checks the wire schema, state isolation, invalid changes and quota
-wait with substituted Groq responses.
+The lab suite checks the wire schema, state isolation, endpoint changes, order
+and repeats, the stop limit, and quota wait with substituted Groq responses.
 The existing agent workflow now includes Linux checks and a Windows lab job;
 configured CI jobs are not evidence of a completed CI run.
 Review exports for private free text even after known-secret redaction.
+
+For live understanding checks, explicitly choose **Groq live · understand a
+walking request** and use a personal key. Use fresh requests in more than one
+language, including a qualified origin followed by destination clarification,
+repeated visits, more than five stops and a second session. Compare the original
+phrase to the user's text, the proposed name to the intended entity and the
+question to the missing detail. Record failures as well as successes. In the
+PR record the revision, commands or lab mode, substitutions, real checks and
+skips. Fixture results describe application behavior when given those outputs.
 
 ## Explicit provider probes
 

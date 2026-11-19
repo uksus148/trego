@@ -26,8 +26,7 @@ function buildKeys() {
         await api('keys', 'POST', {provider, value:input.value, remember:remember.checked});
         input.value = '';
         if (provider === 'groq') {
-          $('mode').value = 'groq';
-          notice('Groq key saved. Enter a message and click Run request to test the connection.');
+          notice('Groq key saved. Choose a Groq live mode when you want to use it.');
         } else {
           notice('Key saved for a later step.');
         }
