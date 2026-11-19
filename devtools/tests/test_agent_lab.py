@@ -89,6 +89,8 @@ async def test_live_probe_uses_explicit_key_and_records_a_private_view(groq_lab)
 
     key = "local-personal-key"
     assert (await client.post("/lab/keys", json={"provider": "groq", "value": key})).status_code == 200
+    local = await run(lab, client)
+    assert local["options"]["mode"] == "foundation" and not calls
     rejected = {**body, "request": {"sessionId": "s", "message": f"Accidental paste: {key}"}}
     assert (await client.post("/lab/run", json=rejected)).status_code == 400 and not calls
     record = await run(lab, client, **body, inspect=True)

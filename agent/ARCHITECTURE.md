@@ -25,6 +25,23 @@ owns the shared documentation reorganization and preserves the handoff link.
 - [Legacy discovery](src/trego_agent/discovery.py) and the existing
   [agent entrypoint](src/trego_agent/main.py) still serve the existing pipeline.
 
+## V2 boundaries
+
+1. **Replaceable model.** [`StructuredModel.complete`](src/trego_agent/v2/llm.py)
+   is the model boundary. The extractor validates output shape and quoted user
+   text. The conversation handler checks whether the proposed action is allowed.
+   Geographic identity needs a separate check. [Tests](VERIFY.md#v2-regressions)
+   exercise the real workflow through a substitute model or HTTP transport.
+2. **Shared core.** The [lab](../devtools/agent_lab/app.py) launches the same
+   walking handler, selects connections, supplies temporary storage and displays
+   stages. Implement conversation and place verification in v2 before exposing
+   their results in the lab.
+3. **Code and evidence.** Runtime code lives in [`agent/src/`](src/).
+   Use [`agent/tests/`](tests/), [`devtools/tests/`](../devtools/tests/) and
+   [`tests/integration/`](../tests/integration/) for core, lab and shared checks
+   respectively. Fixed replies are for tests and labelled diagnostics. Live
+   calls require explicit selection. A provider failure surfaces as an error.
+
 ## Identity and write rules to preserve
 
 - Keep the original phrase including qualifiers, for example “аэропорта Милана”,
@@ -49,10 +66,18 @@ until reset or shutdown. The core returns a question or acknowledges the draft.
 There are no researched places or saved routes in this slice.
 
 **Next.** Define the discovery input from the draft, then add bounded search and
-geocoding behind replaceable adapters. Check city versus airport, real aliases,
-same-name candidates and provider failures before connecting Java. Agree any
-public or shared changes with the affected owners. Durable conversation state,
-route edits and city tours are later slices.
+geocoding behind replaceable adapters. Before connecting Java, prove through the
+real core with substituted providers that:
+
+- Identity uses the original qualified phrase and independent evidence. A city
+  cannot stand in for its airport. A genuine alias can pass with evidence.
+- Multiple plausible matches for the same name trigger clarification. A provider
+  failure stays an error. Neither case can reach Java writes.
+- Resolved stops retain order and repeats. Use different names and contexts in
+  the regressions, with no city-specific test branches in runtime code.
+
+Agree public or shared changes with the affected owners. Durable conversation
+state, route edits and city tours are later slices.
 
 ## History, not current acceptance
 

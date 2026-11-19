@@ -34,6 +34,21 @@ settlement features, nearby ambiguity, repeated stops, language switches, incomp
 intent, invalid output/source indices, provider errors, cancellation and uncertain writes.
 Prefer a regression reproducing the actual failure over many implementation-shaped tests.
 
+### V2 regressions
+
+- [Walking core](tests/test_v2_walking.py): substitute only the model and draft
+  store. Exercise the real workflow to distinguish malformed output from an
+  invalid clarification. Confirm the draft still carries the airport phrase.
+- [Lab HTTP](../devtools/tests/test_agent_lab.py): substitute the Groq transport
+  and vault. Check explicit live selection at the HTTP boundary, provider errors
+  without fallback, and shared-core clarification, session isolation, stop
+  repeats and the stop limit. After a UI change, save a key with the local mode
+  selected and verify that the selector stays local.
+
+```powershell
+uv run --project agent --frozen --extra test pytest agent/tests/test_v2_walking.py devtools/tests/test_agent_lab.py -q
+```
+
 ## Local Agent Lab
 
 Use [the launcher](README.md#open-the-new-local-lab-step-2). The new UI exposes

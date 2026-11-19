@@ -29,7 +29,7 @@ it after a tab refresh; the private launch token is never written to a plaintext
 The launcher reports an occupied port and leaves its process running.
 
 To check Groq, open **Personal keys**, enter a personal Groq key and click **Save**.
-The lab selects **Groq live · summarize text**. Enter any short message and select
+Choose **Groq live · summarize text**, enter any short message and select
 **Run request**. The text goes to Groq `openai/gpt-oss-20b` and uses your quota.
 Expect a short summary in the input language. Select **Groq live · understand a
 walking request** to extract a start, destination and stops. Supply details in a
